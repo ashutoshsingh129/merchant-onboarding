@@ -1,6 +1,12 @@
 import React from 'react';
-import { Toolbar, Switch, FormControlLabel } from '@mui/material';
-import { Brightness4, Brightness7 } from '@mui/icons-material';
+import { Toolbar, Switch, FormControlLabel, Button, Box } from '@mui/material';
+import {
+    Brightness4,
+    Brightness7,
+    Dashboard,
+    Business,
+} from '@mui/icons-material';
+import { Link, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store';
 import { setTheme } from '../../store/slices/appSlice';
 import {
@@ -18,6 +24,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
     const dispatch = useAppDispatch();
     const theme = useAppSelector(state => state.app.theme);
+    const location = useLocation();
 
     const handleThemeChange = () => {
         dispatch(setTheme(theme === 'light' ? 'dark' : 'light'));
@@ -28,8 +35,48 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <StyledAppBar position="static">
                 <Toolbar>
                     <StyledTitle variant="h6" component="div">
-                        React Template FE
+                        Merchant Onboarding
                     </StyledTitle>
+
+                    <Box
+                        sx={{
+                            flexGrow: 1,
+                            display: 'flex',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        <Button
+                            component={Link}
+                            to="/dashboard"
+                            startIcon={<Dashboard />}
+                            color="inherit"
+                            sx={{
+                                mx: 1,
+                                backgroundColor:
+                                    location.pathname === '/dashboard'
+                                        ? 'rgba(255,255,255,0.1)'
+                                        : 'transparent',
+                            }}
+                        >
+                            Dashboard
+                        </Button>
+                        <Button
+                            component={Link}
+                            to="/merchant-onboarding"
+                            startIcon={<Business />}
+                            color="inherit"
+                            sx={{
+                                mx: 1,
+                                backgroundColor:
+                                    location.pathname === '/merchant-onboarding'
+                                        ? 'rgba(255,255,255,0.1)'
+                                        : 'transparent',
+                            }}
+                        >
+                            Merchant Onboarding
+                        </Button>
+                    </Box>
+
                     <StyledThemeToggle>
                         <FormControlLabel
                             control={

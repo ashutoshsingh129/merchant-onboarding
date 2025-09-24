@@ -4,8 +4,8 @@
     "singleQuote": true,
     "printWidth": 80,
     "tabWidth": 4,
-    "useTabs": false,
     "bracketSpacing": true,
+    "useTabs": false,
     "arrowParens": "avoid",
-    "endOfLine": "lf"
+    "endOfLine": "auto"
 }

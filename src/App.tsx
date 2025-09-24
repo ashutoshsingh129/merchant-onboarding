@@ -8,6 +8,7 @@ import { useAppSelector } from './store';
 import { lightTheme, darkTheme } from './theme';
 import Layout from './components/Layout/Layout';
 import Dashboard from './components/Dashboard/Dashboard';
+import MerchantOnboarding from './components/MerchantOnboarding/MerchantOnboarding';
 
 const AppRoutes: React.FC = () => {
     const theme = useAppSelector(state => state.app.theme);
@@ -21,6 +22,10 @@ const AppRoutes: React.FC = () => {
                     <Routes>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/dashboard" element={<Dashboard />} />
+                        <Route
+                            path="/merchant-onboarding"
+                            element={<MerchantOnboarding />}
+                        />
                     </Routes>
                 </Layout>
             </Router>

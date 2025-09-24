@@ -2,10 +2,7 @@ import React, { useEffect } from 'react';
 import {
     CardContent,
     Typography,
-    Table,
     TableBody,
-    TableCell,
-    TableHead,
     TableRow,
     Paper,
     Chip,
@@ -22,6 +19,9 @@ import {
     StyledContainer,
     StyledCard,
     StyledTableContainer,
+    StyledTable,
+    StyledTableCell,
+    StyledTableHead,
 } from './Dashboard.styles';
 
 const Dashboard: React.FC = () => {
@@ -115,26 +115,26 @@ const Dashboard: React.FC = () => {
                         </Box>
                     ) : (
                         <StyledTableContainer component={Paper}>
-                            <Table stickyHeader aria-label="users table">
-                                <TableHead>
+                            <StyledTable stickyHeader aria-label="users table">
+                                <StyledTableHead>
                                     <TableRow>
                                         {columns.map(column => (
-                                            <TableCell
+                                            <StyledTableCell
                                                 key={column.id}
-                                                align={column.align}
+                                                align={column.align || 'left'}
                                                 style={{
                                                     minWidth: column.minWidth,
                                                 }}
                                             >
                                                 {column.label}
-                                            </TableCell>
+                                            </StyledTableCell>
                                         ))}
                                     </TableRow>
-                                </TableHead>
+                                </StyledTableHead>
                                 <TableBody>
                                     {users.length === 0 ? (
                                         <TableRow>
-                                            <TableCell
+                                            <StyledTableCell
                                                 colSpan={columns.length}
                                                 align="center"
                                             >
@@ -144,18 +144,18 @@ const Dashboard: React.FC = () => {
                                                 >
                                                     No users found
                                                 </Typography>
-                                            </TableCell>
+                                            </StyledTableCell>
                                         </TableRow>
                                     ) : (
                                         users.map(user => (
                                             <TableRow hover key={user.id}>
-                                                <TableCell>
+                                                <StyledTableCell>
                                                     {user.name}
-                                                </TableCell>
-                                                <TableCell>
+                                                </StyledTableCell>
+                                                <StyledTableCell>
                                                     {user.email}
-                                                </TableCell>
-                                                <TableCell>
+                                                </StyledTableCell>
+                                                <StyledTableCell>
                                                     <Chip
                                                         label={user.role}
                                                         color={
@@ -165,17 +165,17 @@ const Dashboard: React.FC = () => {
                                                         }
                                                         size="small"
                                                     />
-                                                </TableCell>
-                                                <TableCell>
+                                                </StyledTableCell>
+                                                <StyledTableCell>
                                                     {new Date(
                                                         user.createdAt
                                                     ).toLocaleDateString()}
-                                                </TableCell>
+                                                </StyledTableCell>
                                             </TableRow>
                                         ))
                                     )}
                                 </TableBody>
-                            </Table>
+                            </StyledTable>
                         </StyledTableContainer>
                     )}
                 </CardContent>

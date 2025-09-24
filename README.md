@@ -51,17 +51,20 @@ src/
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd react-template-fe
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Start the development server:
+
 ```bash
 npm start
 ```
@@ -90,15 +93,17 @@ The application uses a single `.env-sample` file with comprehensive documentatio
 ### Quick Setup
 
 1. **Copy the sample file:**
-   ```bash
-   npm run env:setup
-   # or manually: cp .env-sample .env
-   ```
+
+    ```bash
+    npm run env:setup
+    # or manually: cp .env-sample .env
+    ```
 
 2. **Check current environment:**
-   ```bash
-   npm run env:check
-   ```
+
+    ```bash
+    npm run env:check
+    ```
 
 3. **Modify `.env` file** with your specific values
 
@@ -116,7 +121,7 @@ The `.env-sample` file contains detailed documentation for all available environ
 
 - `npm start` - Start with current .env settings
 - `npm start:dev` - Force development environment
-- `npm start:staging` - Force staging environment  
+- `npm start:staging` - Force staging environment
 - `npm start:prod` - Force production environment
 - `npm build:dev` - Build for development
 - `npm build:staging` - Build for staging
@@ -132,6 +137,7 @@ The `.env-sample` file contains detailed documentation for all available environ
 4. Export your component
 
 Example:
+
 ```typescript
 // src/components/MyComponent/MyComponent.tsx
 import React from 'react';
@@ -139,7 +145,7 @@ import { MyComponentStyles } from './MyComponent.styles';
 
 const MyComponent: React.FC = () => {
     const classes = MyComponentStyles();
-    
+
     return (
         <div className={classes.container}>
             {/* Your component content */}
@@ -156,6 +162,7 @@ export default MyComponent;
 2. Add the slice to the store configuration in `src/store/index.ts`
 
 Example:
+
 ```typescript
 // src/store/slices/mySlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
