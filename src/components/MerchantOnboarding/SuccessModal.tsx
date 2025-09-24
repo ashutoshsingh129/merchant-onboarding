@@ -19,13 +19,23 @@ import {
     CheckCircle as CheckCircleIcon,
     ContentCopy as CopyIcon,
     Link as LinkIcon,
+    PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
+
+interface CreateAccountLinkResponse {
+    success: boolean;
+    url?: string;
+    expires_at?: number;
+    error?: string;
+    message?: string;
+}
 
 interface SuccessModalProps {
     open: boolean;
     onClose: () => void;
     account: any;
-    onGenerateLink: () => void;
+    onGenerateLink: () => Promise<CreateAccountLinkResponse | null>;
+    onDirectOnboard: () => void;
 }
 
 const SuccessModal: React.FC<SuccessModalProps> = ({
@@ -33,6 +43,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
     onClose,
     account,
     onGenerateLink,
+    onDirectOnboard,
 }) => {
     const [onboardingLink, setOnboardingLink] = useState<string>('');
     const [generatingLink, setGeneratingLink] = useState(false);
@@ -43,11 +54,12 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
         setLinkError(null);
 
         try {
-            await onGenerateLink();
-            // In a real implementation, you would get the link from the API response
-            // For now, we'll simulate it
-            const mockLink = `https://connect.stripe.com/setup/c/${account?.id}/test`;
-            setOnboardingLink(mockLink);
+            const response = await onGenerateLink();
+            if (response && response.url) {
+                setOnboardingLink(response.url);
+            } else {
+                setLinkError('No link received from server');
+            }
         } catch (error: any) {
             setLinkError(error.message || 'Failed to generate onboarding link');
         } finally {
@@ -99,11 +111,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
                         </Typography>
 
                         <Box sx={{ mb: 3 }}>
-                            <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                gutterBottom
-                            >
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
                                 Account ID
                             </Typography>
                             <Typography
@@ -121,70 +129,40 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
                         </Box>
 
                         <Box sx={{ mb: 2 }}>
-                            <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                gutterBottom
-                            >
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
                                 Email
                             </Typography>
-                            <Typography variant="body1">
-                                {account.email}
-                            </Typography>
+                            <Typography variant="body1">{account.email}</Typography>
                         </Box>
 
                         <Box sx={{ mb: 2 }}>
-                            <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                gutterBottom
-                            >
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
                                 Country
                             </Typography>
                             <Chip label={account.country} size="small" />
                         </Box>
 
                         <Box sx={{ mb: 2 }}>
-                            <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                gutterBottom
-                            >
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
                                 Business Type
                             </Typography>
-                            <Chip
-                                label={account.business_type}
-                                size="small"
-                                color="primary"
-                            />
+                            <Chip label={account.business_type} size="small" color="primary" />
                         </Box>
 
                         <Box sx={{ mb: 2 }}>
-                            <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                gutterBottom
-                            >
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
                                 Status
                             </Typography>
                             <Box display="flex" gap={1}>
                                 <Chip
                                     label={`Charges: ${account.charges_enabled ? 'Enabled' : 'Disabled'}`}
                                     size="small"
-                                    color={
-                                        getStatusColor(
-                                            account.charges_enabled
-                                        ) as any
-                                    }
+                                    color={getStatusColor(account.charges_enabled) as any}
                                 />
                                 <Chip
                                     label={`Payouts: ${account.payouts_enabled ? 'Enabled' : 'Disabled'}`}
                                     size="small"
-                                    color={
-                                        getStatusColor(
-                                            account.payouts_enabled
-                                        ) as any
-                                    }
+                                    color={getStatusColor(account.payouts_enabled) as any}
                                 />
                             </Box>
                         </Box>
@@ -195,13 +173,9 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
                             Generate Onboarding Link
                         </Typography>
 
-                        <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ mb: 2 }}
-                        >
-                            Generate a secure link for the merchant to complete
-                            their onboarding process.
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            Generate a secure link for the merchant to complete their onboarding
+                            process.
                         </Typography>
 
                         {onboardingLink && (
@@ -236,24 +210,31 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
                             </Alert>
                         )}
 
-                        <Button
-                            variant="contained"
-                            startIcon={
-                                generatingLink ? (
-                                    <CircularProgress size={20} />
-                                ) : (
-                                    <LinkIcon />
-                                )
-                            }
-                            onClick={handleGenerateLink}
-                            disabled={generatingLink}
-                            fullWidth
-                            size="large"
-                        >
-                            {generatingLink
-                                ? 'Generating Link...'
-                                : 'Generate Onboarding Link'}
-                        </Button>
+                        <Box sx={{ display: 'flex', gap: 2, flexDirection: 'column' }}>
+                            <Button
+                                variant="contained"
+                                startIcon={
+                                    generatingLink ? <CircularProgress size={20} /> : <LinkIcon />
+                                }
+                                onClick={handleGenerateLink}
+                                disabled={generatingLink}
+                                fullWidth
+                                size="large"
+                            >
+                                {generatingLink ? 'Generating Link...' : 'Generate Onboarding Link'}
+                            </Button>
+
+                            <Button
+                                variant="contained"
+                                color="secondary"
+                                startIcon={<PersonAddIcon />}
+                                onClick={onDirectOnboard}
+                                fullWidth
+                                size="large"
+                            >
+                                Onboard Merchant Directly
+                            </Button>
+                        </Box>
                     </Box>
                 )}
             </DialogContent>
@@ -263,11 +244,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
                     Close
                 </Button>
                 {onboardingLink && (
-                    <Button
-                        onClick={handleCopyLink}
-                        variant="contained"
-                        startIcon={<CopyIcon />}
-                    >
+                    <Button onClick={handleCopyLink} variant="contained" startIcon={<CopyIcon />}>
                         Copy Link
                     </Button>
                 )}

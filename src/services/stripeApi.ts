@@ -89,9 +89,9 @@ export const createAccountLink = async (
                 body: JSON.stringify({
                     account_id: data.account_id,
                     refresh_url:
-                        data.refresh_url || 'http://localhost:3000/reauth',
+                        data.refresh_url || 'https://localhost:3000/reauth',
                     return_url:
-                        data.return_url || 'http://localhost:3000/return',
+                        data.return_url || 'https://localhost:3000/return',
                 }),
             }
         );
@@ -106,6 +106,64 @@ export const createAccountLink = async (
     } catch (error: any) {
         // eslint-disable-next-line no-console
         console.error('Error creating account link:', error);
+        throw error;
+    }
+};
+
+interface DirectOnboardRequest {
+    account_id: string;
+    individual_first_name: string;
+    individual_last_name: string;
+    individual_email: string;
+    individual_phone: string;
+    individual_dob_day: number;
+    individual_dob_month: number;
+    individual_dob_year: number;
+    individual_address_line1: string;
+    individual_address_city: string;
+    individual_address_postal_code: string;
+    individual_address_country: string;
+    tos_acceptance_date?: number;
+    tos_acceptance_ip?: string;
+    business_type: string;
+    business_profile_mcc: string;
+    business_profile_url: string;
+    external_account_object: string;
+    external_account_country: string;
+    external_account_currency: string;
+    external_account_account_number: string;
+}
+
+interface DirectOnboardResponse {
+    success: boolean;
+    account?: any;
+    external_account?: any;
+    error?: string;
+    message?: string;
+}
+
+export const directOnboardMerchant = async (
+    data: DirectOnboardRequest
+): Promise<DirectOnboardResponse> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/stripe/direct-onboard`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to onboard merchant');
+        }
+
+        return result;
+    } catch (error: any) {
+        // eslint-disable-next-line no-console
+        console.error('Error in direct onboarding:', error);
         throw error;
     }
 };

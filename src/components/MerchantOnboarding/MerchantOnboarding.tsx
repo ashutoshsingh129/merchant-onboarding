@@ -16,9 +16,13 @@ import {
     CircularProgress,
     Grid2 as Grid,
 } from '@mui/material';
-import { Add as AddIcon, Send as SendIcon } from '@mui/icons-material';
+import {
+    Add as AddIcon,
+    Send as SendIcon,
+} from '@mui/icons-material';
 import { StyledContainer } from './MerchantOnboarding.styles';
 import SuccessModal from './SuccessModal';
+import DirectOnboardForm from '../DirectOnboardForm';
 import {
     createStripeAccount,
     createAccountLink,
@@ -51,6 +55,7 @@ const MerchantOnboarding: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [successModalOpen, setSuccessModalOpen] = useState(false);
     const [createdAccount, setCreatedAccount] = useState<any>(null);
+    const [directOnboardOpen, setDirectOnboardOpen] = useState(false);
 
     const countries = [
         { code: 'NL', name: 'Netherlands' },
@@ -113,25 +118,29 @@ const MerchantOnboarding: React.FC = () => {
     };
 
     const handleGenerateLink = async () => {
-        if (!createdAccount?.id) return;
+        if (!createdAccount?.id) return null;
 
         try {
             const response = await createAccountLink({
                 account_id: createdAccount.id,
-                refresh_url: 'http://localhost:3000/reauth',
-                return_url: 'http://localhost:3000/return',
+                refresh_url: 'https://localhost:3000/reauth',
+                return_url: 'https://localhost:3000/return',
             });
 
             if (response.success && response.url) {
-                // Copy to clipboard
-                await navigator.clipboard.writeText(response.url);
-                alert('Onboarding link copied to clipboard!');
+                return response;
             } else {
                 setError('Failed to generate onboarding link');
+                return null;
             }
         } catch (err: any) {
             setError(err.message || 'Failed to generate onboarding link');
+            return null;
         }
+    };
+
+    const handleOpenDirectOnboard = () => {
+        setDirectOnboardOpen(true);
     };
 
     return (
@@ -293,7 +302,14 @@ const MerchantOnboarding: React.FC = () => {
                             </Alert>
                         )}
 
-                        <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+                        <Box
+                            sx={{
+                                mt: 3,
+                                display: 'flex',
+                                gap: 2,
+                                flexWrap: 'wrap',
+                            }}
+                        >
                             <Button
                                 type="submit"
                                 variant="contained"
@@ -332,7 +348,16 @@ const MerchantOnboarding: React.FC = () => {
                 onClose={() => setSuccessModalOpen(false)}
                 account={createdAccount}
                 onGenerateLink={handleGenerateLink}
+                onDirectOnboard={handleOpenDirectOnboard}
             />
+
+            {createdAccount?.id && (
+                <DirectOnboardForm
+                    open={directOnboardOpen}
+                    onClose={() => setDirectOnboardOpen(false)}
+                    accountId={createdAccount.id}
+                />
+            )}
         </StyledContainer>
     );
 };
