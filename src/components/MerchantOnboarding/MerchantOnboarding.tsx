@@ -16,17 +16,11 @@ import {
     CircularProgress,
     Grid2 as Grid,
 } from '@mui/material';
-import {
-    Add as AddIcon,
-    Send as SendIcon,
-} from '@mui/icons-material';
+import { Add as AddIcon } from '@mui/icons-material';
 import { StyledContainer } from './MerchantOnboarding.styles';
 import SuccessModal from './SuccessModal';
 import DirectOnboardForm from '../DirectOnboardForm';
-import {
-    createStripeAccount,
-    createAccountLink,
-} from '../../services/stripeApi';
+import { createStripeAccount } from '../../services/stripeApi';
 
 interface MerchantFormData {
     type: string;
@@ -42,7 +36,7 @@ interface MerchantFormData {
 const MerchantOnboarding: React.FC = () => {
     const [formData, setFormData] = useState<MerchantFormData>({
         type: 'custom',
-        country: 'NL',
+        country: 'US',
         email: '',
         business_type: 'individual',
         capabilities: {
@@ -55,7 +49,7 @@ const MerchantOnboarding: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [successModalOpen, setSuccessModalOpen] = useState(false);
     const [createdAccount, setCreatedAccount] = useState<any>(null);
-    const [directOnboardOpen, setDirectOnboardOpen] = useState(false);
+    const [showDirectOnboard, setShowDirectOnboard] = useState(false);
 
     const countries = [
         { code: 'NL', name: 'Netherlands' },
@@ -109,38 +103,30 @@ const MerchantOnboarding: React.FC = () => {
                 setError('Failed to create merchant account');
             }
         } catch (err: any) {
-            setError(
-                err.message || 'An error occurred while creating the account'
-            );
+            setError(err.message || 'An error occurred while creating the account');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleGenerateLink = async () => {
-        if (!createdAccount?.id) return null;
-
-        try {
-            const response = await createAccountLink({
-                account_id: createdAccount.id,
-                refresh_url: 'https://localhost:3000/reauth',
-                return_url: 'https://localhost:3000/return',
-            });
-
-            if (response.success && response.url) {
-                return response;
-            } else {
-                setError('Failed to generate onboarding link');
-                return null;
-            }
-        } catch (err: any) {
-            setError(err.message || 'Failed to generate onboarding link');
-            return null;
-        }
+    const handleOpenDirectOnboard = () => {
+        setShowDirectOnboard(true);
     };
 
-    const handleOpenDirectOnboard = () => {
-        setDirectOnboardOpen(true);
+    const handleDirectOnboardSuccess = () => {
+        // Clear the MerchantOnboarding form
+        setFormData({
+            type: 'custom',
+            country: 'US',
+            email: '',
+            business_type: 'individual',
+            capabilities: {
+                card_payments: true,
+                transfers: true,
+            },
+        });
+        setCreatedAccount(null);
+        setShowDirectOnboard(false);
     };
 
     return (
@@ -154,11 +140,7 @@ const MerchantOnboarding: React.FC = () => {
 
             <Card>
                 <CardContent>
-                    <Box
-                        component="form"
-                        onSubmit={handleSubmit}
-                        sx={{ mt: 2 }}
-                    >
+                    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
                         <Grid container spacing={3}>
                             <Grid size={{ xs: 12, sm: 6 }}>
                                 <FormControl fullWidth>
@@ -166,22 +148,11 @@ const MerchantOnboarding: React.FC = () => {
                                     <Select
                                         value={formData.type}
                                         label="Account Type"
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'type',
-                                                e.target.value
-                                            )
-                                        }
+                                        onChange={e => handleInputChange('type', e.target.value)}
                                     >
-                                        <MenuItem value="custom">
-                                            Custom
-                                        </MenuItem>
-                                        <MenuItem value="express">
-                                            Express
-                                        </MenuItem>
-                                        <MenuItem value="standard">
-                                            Standard
-                                        </MenuItem>
+                                        <MenuItem value="custom">Custom</MenuItem>
+                                        <MenuItem value="express">Express</MenuItem>
+                                        <MenuItem value="standard">Standard</MenuItem>
                                     </Select>
                                 </FormControl>
                             </Grid>
@@ -192,18 +163,10 @@ const MerchantOnboarding: React.FC = () => {
                                     <Select
                                         value={formData.country}
                                         label="Country"
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'country',
-                                                e.target.value
-                                            )
-                                        }
+                                        onChange={e => handleInputChange('country', e.target.value)}
                                     >
                                         {countries.map(country => (
-                                            <MenuItem
-                                                key={country.code}
-                                                value={country.code}
-                                            >
+                                            <MenuItem key={country.code} value={country.code}>
                                                 {country.name}
                                             </MenuItem>
                                         ))}
@@ -217,12 +180,7 @@ const MerchantOnboarding: React.FC = () => {
                                     label="Email"
                                     type="email"
                                     value={formData.email}
-                                    onChange={e =>
-                                        handleInputChange(
-                                            'email',
-                                            e.target.value
-                                        )
-                                    }
+                                    onChange={e => handleInputChange('email', e.target.value)}
                                     required
                                     placeholder="merchant@example.com"
                                 />
@@ -235,17 +193,11 @@ const MerchantOnboarding: React.FC = () => {
                                         value={formData.business_type}
                                         label="Business Type"
                                         onChange={e =>
-                                            handleInputChange(
-                                                'business_type',
-                                                e.target.value
-                                            )
+                                            handleInputChange('business_type', e.target.value)
                                         }
                                     >
                                         {businessTypes.map(type => (
-                                            <MenuItem
-                                                key={type.value}
-                                                value={type.value}
-                                            >
+                                            <MenuItem key={type.value} value={type.value}>
                                                 {type.label}
                                             </MenuItem>
                                         ))}
@@ -261,10 +213,7 @@ const MerchantOnboarding: React.FC = () => {
                                     <FormControlLabel
                                         control={
                                             <Checkbox
-                                                checked={
-                                                    formData.capabilities
-                                                        .card_payments
-                                                }
+                                                checked={formData.capabilities.card_payments}
                                                 onChange={e =>
                                                     handleInputChange(
                                                         'capabilities.card_payments',
@@ -278,10 +227,7 @@ const MerchantOnboarding: React.FC = () => {
                                     <FormControlLabel
                                         control={
                                             <Checkbox
-                                                checked={
-                                                    formData.capabilities
-                                                        .transfers
-                                                }
+                                                checked={formData.capabilities.transfers}
                                                 onChange={e =>
                                                     handleInputChange(
                                                         'capabilities.transfers',
@@ -313,31 +259,12 @@ const MerchantOnboarding: React.FC = () => {
                             <Button
                                 type="submit"
                                 variant="contained"
-                                startIcon={
-                                    loading ? (
-                                        <CircularProgress size={20} />
-                                    ) : (
-                                        <AddIcon />
-                                    )
-                                }
+                                startIcon={loading ? <CircularProgress size={20} /> : <AddIcon />}
                                 disabled={loading || !formData.email}
                                 size="large"
                             >
-                                {loading
-                                    ? 'Creating Account...'
-                                    : 'Create Account'}
+                                {loading ? 'Creating Account...' : 'Create Account'}
                             </Button>
-
-                            {createdAccount && (
-                                <Button
-                                    variant="outlined"
-                                    startIcon={<SendIcon />}
-                                    onClick={handleGenerateLink}
-                                    size="large"
-                                >
-                                    Generate Onboarding Link
-                                </Button>
-                            )}
                         </Box>
                     </Box>
                 </CardContent>
@@ -347,15 +274,15 @@ const MerchantOnboarding: React.FC = () => {
                 open={successModalOpen}
                 onClose={() => setSuccessModalOpen(false)}
                 account={createdAccount}
-                onGenerateLink={handleGenerateLink}
                 onDirectOnboard={handleOpenDirectOnboard}
             />
 
-            {createdAccount?.id && (
+            {showDirectOnboard && createdAccount?.id && (
                 <DirectOnboardForm
-                    open={directOnboardOpen}
-                    onClose={() => setDirectOnboardOpen(false)}
                     accountId={createdAccount.id}
+                    email={createdAccount.email || formData.email}
+                    onClose={() => setShowDirectOnboard(false)}
+                    onSuccess={handleDirectOnboardSuccess}
                 />
             )}
         </StyledContainer>

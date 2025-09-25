@@ -21,6 +21,7 @@ import {
     Link as LinkIcon,
     PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
+import { createAccountLink } from '../../services/stripeApi';
 
 interface CreateAccountLinkResponse {
     success: boolean;
@@ -34,31 +35,31 @@ interface SuccessModalProps {
     open: boolean;
     onClose: () => void;
     account: any;
-    onGenerateLink: () => Promise<CreateAccountLinkResponse | null>;
     onDirectOnboard: () => void;
 }
 
-const SuccessModal: React.FC<SuccessModalProps> = ({
-    open,
-    onClose,
-    account,
-    onGenerateLink,
-    onDirectOnboard,
-}) => {
+const SuccessModal: React.FC<SuccessModalProps> = ({ open, onClose, account, onDirectOnboard }) => {
     const [onboardingLink, setOnboardingLink] = useState<string>('');
     const [generatingLink, setGeneratingLink] = useState(false);
     const [linkError, setLinkError] = useState<string | null>(null);
 
     const handleGenerateLink = async () => {
+        if (!account?.id) return;
+
         setGeneratingLink(true);
         setLinkError(null);
 
         try {
-            const response = await onGenerateLink();
-            if (response && response.url) {
+            const response = await createAccountLink({
+                account_id: account.id,
+                refresh_url: 'https://localhost:3000/reauth',
+                return_url: 'https://localhost:3000/return',
+            });
+
+            if (response.success && response.url) {
                 setOnboardingLink(response.url);
             } else {
-                setLinkError('No link received from server');
+                setLinkError('Failed to generate onboarding link');
             }
         } catch (error: any) {
             setLinkError(error.message || 'Failed to generate onboarding link');
@@ -228,7 +229,10 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
                                 variant="contained"
                                 color="secondary"
                                 startIcon={<PersonAddIcon />}
-                                onClick={onDirectOnboard}
+                                onClick={() => {
+                                    onClose();
+                                    onDirectOnboard();
+                                }}
                                 fullWidth
                                 size="large"
                             >

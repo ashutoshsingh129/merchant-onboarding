@@ -11,10 +11,9 @@ import {
     Alert,
     CircularProgress,
     Grid2 as Grid,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
+    Card,
+    CardContent,
+    CardActions,
 } from '@mui/material';
 import { PersonAdd as PersonAddIcon } from '@mui/icons-material';
 import { directOnboardMerchant } from '../../services/stripeApi';
@@ -42,17 +41,23 @@ interface DirectOnboardFormData {
 }
 
 interface DirectOnboardFormProps {
-    open: boolean;
-    onClose: () => void;
     accountId: string;
+    email: string;
+    onClose?: () => void;
+    onSuccess?: () => void;
 }
 
-const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, accountId }) => {
+const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
+    accountId,
+    email,
+    onClose,
+    onSuccess,
+}) => {
     const [formData, setFormData] = useState<DirectOnboardFormData>({
         account_id: accountId,
         individual_first_name: '',
         individual_last_name: '',
-        individual_email: '',
+        individual_email: email,
         individual_phone: '',
         individual_dob_day: 1,
         individual_dob_month: 1,
@@ -60,13 +65,13 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
         individual_address_line1: '',
         individual_address_city: '',
         individual_address_postal_code: '',
-        individual_address_country: 'NL',
+        individual_address_country: 'US',
         business_type: 'individual',
         business_profile_mcc: '5734',
         business_profile_url: '',
         external_account_object: 'bank_account',
-        external_account_country: 'NL',
-        external_account_currency: 'eur',
+        external_account_country: 'US',
+        external_account_currency: 'usd',
         external_account_account_number: '',
     });
 
@@ -74,7 +79,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
-    // Update account_id when accountId prop changes
+    // Update account_id and email when props change
     useEffect(() => {
         if (accountId) {
             setFormData(prev => ({
@@ -83,6 +88,15 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
             }));
         }
     }, [accountId]);
+
+    useEffect(() => {
+        if (email) {
+            setFormData(prev => ({
+                ...prev,
+                individual_email: email,
+            }));
+        }
+    }, [email]);
 
     const countries = [
         { code: 'NL', name: 'Netherlands' },
@@ -143,14 +157,19 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
             if (response.success) {
                 setSuccess(true);
                 setTimeout(() => {
-                    onClose();
+                    if (onClose) {
+                        onClose();
+                    }
+                    if (onSuccess) {
+                        onSuccess();
+                    }
                     setSuccess(false);
-                    // Reset form but preserve account_id
-                    setFormData(prev => ({
-                        ...prev,
+                    // Reset form completely
+                    setFormData({
+                        account_id: accountId,
                         individual_first_name: '',
                         individual_last_name: '',
-                        individual_email: '',
+                        individual_email: email,
                         individual_phone: '',
                         individual_dob_day: 1,
                         individual_dob_month: 1,
@@ -158,15 +177,15 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
                         individual_address_line1: '',
                         individual_address_city: '',
                         individual_address_postal_code: '',
-                        individual_address_country: 'NL',
+                        individual_address_country: 'US',
                         business_type: 'individual',
                         business_profile_mcc: '5734',
                         business_profile_url: '',
                         external_account_object: 'bank_account',
-                        external_account_country: 'NL',
-                        external_account_currency: 'eur',
+                        external_account_country: 'US',
+                        external_account_currency: 'usd',
                         external_account_account_number: '',
-                    }));
+                    });
                 }, 2000);
             } else {
                 setError('Failed to onboard merchant');
@@ -179,7 +198,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
     };
 
     const handleClose = () => {
-        if (!loading) {
+        if (!loading && onClose) {
             onClose();
             setError(null);
             setSuccess(false);
@@ -187,22 +206,12 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
     };
 
     return (
-        <Dialog
-            open={open}
-            onClose={handleClose}
-            maxWidth="md"
-            fullWidth
-            PaperProps={{
-                sx: { minHeight: '80vh' },
-            }}
-        >
-            <DialogTitle>
-                <Box display="flex" alignItems="center" gap={1}>
+        <Card sx={{ mt: 3 }}>
+            <CardContent>
+                <Box display="flex" alignItems="center" gap={1} sx={{ mb: 3 }}>
                     <PersonAddIcon />
                     <Typography variant="h6">Direct Merchant Onboarding</Typography>
                 </Box>
-            </DialogTitle>
-            <DialogContent>
                 <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
                     <Grid container spacing={3}>
                         {/* Account ID */}
@@ -214,13 +223,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
                                 onChange={e => handleInputChange('account_id', e.target.value)}
                                 required
                                 placeholder="acct_1SAA85KHetaYuagI"
-                                helperText={
-                                    accountId
-                                        ? 'Account ID from created account'
-                                        : 'Enter the Stripe account ID to onboard'
-                                }
+                                helperText="Account ID from created account"
                                 InputProps={{
-                                    readOnly: !!accountId,
+                                    readOnly: true,
                                 }}
                                 sx={{
                                     '& .MuiInputBase-input.Mui-readOnly': {
@@ -246,7 +251,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
                                     handleInputChange('individual_first_name', e.target.value)
                                 }
                                 required
-                                placeholder="Ghanshyam"
+                                placeholder="First Name"
                             />
                         </Grid>
 
@@ -259,7 +264,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
                                     handleInputChange('individual_last_name', e.target.value)
                                 }
                                 required
-                                placeholder="Mali"
+                                placeholder="Last Name"
                             />
                         </Grid>
 
@@ -274,6 +279,14 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
                                 }
                                 required
                                 placeholder="merchant@example.com"
+                                InputProps={{
+                                    readOnly: !!email,
+                                }}
+                                sx={{
+                                    '& .MuiInputBase-input.Mui-readOnly': {
+                                        backgroundColor: 'grey.100',
+                                    },
+                                }}
                             />
                         </Grid>
 
@@ -286,7 +299,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
                                     handleInputChange('individual_phone', e.target.value)
                                 }
                                 required
-                                placeholder="+31612345678"
+                                placeholder="+15551234567"
                             />
                         </Grid>
 
@@ -371,7 +384,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
                                     handleInputChange('individual_address_line1', e.target.value)
                                 }
                                 required
-                                placeholder="San Fransis Road"
+                                placeholder="123 Main Street"
                             />
                         </Grid>
 
@@ -384,7 +397,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
                                     handleInputChange('individual_address_city', e.target.value)
                                 }
                                 required
-                                placeholder="Helmond"
+                                placeholder="New York"
                             />
                         </Grid>
 
@@ -400,7 +413,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
                                     )
                                 }
                                 required
-                                placeholder="5708EA"
+                                placeholder="12345"
                             />
                         </Grid>
 
@@ -556,7 +569,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
                                     )
                                 }
                                 required
-                                placeholder="NL91ABNA0417164300"
+                                placeholder="1234567890"
                                 helperText="IBAN or account number"
                             />
                         </Grid>
@@ -574,11 +587,13 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
                         </Alert>
                     )}
                 </Box>
-            </DialogContent>
-            <DialogActions sx={{ p: 3 }}>
-                <Button onClick={handleClose} disabled={loading} size="large">
-                    Cancel
-                </Button>
+            </CardContent>
+            <CardActions sx={{ p: 3 }}>
+                {onClose && (
+                    <Button onClick={handleClose} disabled={loading} size="large">
+                        Cancel
+                    </Button>
+                )}
                 <Button
                     onClick={handleSubmit}
                     variant="contained"
@@ -594,8 +609,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({ open, onClose, ac
                 >
                     {loading ? 'Onboarding...' : 'Onboard Merchant'}
                 </Button>
-            </DialogActions>
-        </Dialog>
+            </CardActions>
+        </Card>
     );
 };
 
