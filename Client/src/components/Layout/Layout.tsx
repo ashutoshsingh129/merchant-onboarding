@@ -1,11 +1,6 @@
 import React from 'react';
 import { Toolbar, Switch, FormControlLabel, Button, Box } from '@mui/material';
-import {
-    Brightness4,
-    Brightness7,
-    Dashboard,
-    Business,
-} from '@mui/icons-material';
+import { Brightness4, Brightness7, Dashboard, Business } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../store';
 import { setTheme } from '../../store/slices/appSlice';

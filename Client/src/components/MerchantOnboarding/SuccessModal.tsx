@@ -23,14 +23,6 @@ import {
 } from '@mui/icons-material';
 import { createAccountLink } from '../../services/stripeApi';
 
-interface CreateAccountLinkResponse {
-    success: boolean;
-    url?: string;
-    expires_at?: number;
-    error?: string;
-    message?: string;
-}
-
 interface SuccessModalProps {
     open: boolean;
     onClose: () => void;

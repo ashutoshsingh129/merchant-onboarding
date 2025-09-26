@@ -3,32 +3,26 @@ import { User, ApiResponse } from '../../types';
 import { apiService } from '../../services/api';
 
 // Async thunk for fetching users
-export const fetchUsers = createAsyncThunk(
-    'users/fetchUsers',
-    async (_, { rejectWithValue }) => {
-        try {
-            const response: ApiResponse<User[]> = await apiService.getUsers();
+export const fetchUsers = createAsyncThunk('users/fetchUsers', async (_, { rejectWithValue }) => {
+    try {
+        const response: ApiResponse<User[]> = await apiService.getUsers();
 
-            if (response.success) {
-                return response.data;
-            } else {
-                return rejectWithValue(response.message);
-            }
-        } catch (error) {
-            return rejectWithValue(
-                error instanceof Error ? error.message : 'Failed to fetch users'
-            );
+        if (response.success) {
+            return response.data;
+        } else {
+            return rejectWithValue(response.message);
         }
+    } catch (error) {
+        return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch users');
     }
-);
+});
 
 // Async thunk for fetching a single user
 export const fetchUserById = createAsyncThunk(
     'users/fetchUserById',
     async (id: string, { rejectWithValue }) => {
         try {
-            const response: ApiResponse<User | null> =
-                await apiService.getUserById(id);
+            const response: ApiResponse<User | null> = await apiService.getUserById(id);
 
             if (response.success && response.data) {
                 return response.data;
@@ -36,9 +30,7 @@ export const fetchUserById = createAsyncThunk(
                 return rejectWithValue(response.message);
             }
         } catch (error) {
-            return rejectWithValue(
-                error instanceof Error ? error.message : 'Failed to fetch user'
-            );
+            return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch user');
         }
     }
 );
@@ -48,8 +40,7 @@ export const createUser = createAsyncThunk(
     'users/createUser',
     async (userData: Omit<User, 'id' | 'createdAt'>, { rejectWithValue }) => {
         try {
-            const response: ApiResponse<User> =
-                await apiService.createUser(userData);
+            const response: ApiResponse<User> = await apiService.createUser(userData);
 
             if (response.success) {
                 return response.data;
@@ -67,13 +58,9 @@ export const createUser = createAsyncThunk(
 // Async thunk for updating a user
 export const updateUser = createAsyncThunk(
     'users/updateUser',
-    async (
-        { id, userData }: { id: string; userData: Partial<User> },
-        { rejectWithValue }
-    ) => {
+    async ({ id, userData }: { id: string; userData: Partial<User> }, { rejectWithValue }) => {
         try {
-            const response: ApiResponse<User | null> =
-                await apiService.updateUser(id, userData);
+            const response: ApiResponse<User | null> = await apiService.updateUser(id, userData);
 
             if (response.success && response.data) {
                 return response.data;
@@ -93,8 +80,7 @@ export const deleteUser = createAsyncThunk(
     'users/deleteUser',
     async (id: string, { rejectWithValue }) => {
         try {
-            const response: ApiResponse<boolean> =
-                await apiService.deleteUser(id);
+            const response: ApiResponse<boolean> = await apiService.deleteUser(id);
 
             if (response.success) {
                 return id; // Return the ID of the deleted user
@@ -191,9 +177,7 @@ const usersSlice = createSlice({
             })
             .addCase(updateUser.fulfilled, (state, action) => {
                 state.loading = false;
-                const index = state.users.findIndex(
-                    user => user.id === action.payload.id
-                );
+                const index = state.users.findIndex(user => user.id === action.payload.id);
                 if (index !== -1) {
                     state.users[index] = action.payload;
                 }
@@ -213,9 +197,7 @@ const usersSlice = createSlice({
             })
             .addCase(deleteUser.fulfilled, (state, action) => {
                 state.loading = false;
-                state.users = state.users.filter(
-                    user => user.id !== action.payload
-                );
+                state.users = state.users.filter(user => user.id !== action.payload);
                 if (state.selectedUser?.id === action.payload) {
                     state.selectedUser = null;
                 }
@@ -228,6 +210,5 @@ const usersSlice = createSlice({
     },
 });
 
-export const { clearError, clearSelectedUser, setSelectedUser } =
-    usersSlice.actions;
+export const { clearError, clearSelectedUser, setSelectedUser } = usersSlice.actions;
 export default usersSlice.reducer;

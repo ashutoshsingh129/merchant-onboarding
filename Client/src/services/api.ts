@@ -85,10 +85,7 @@ export class ApiService {
             // Simulate API error response
             return {
                 data: [],
-                message:
-                    error instanceof Error
-                        ? error.message
-                        : 'An unexpected error occurred',
+                message: error instanceof Error ? error.message : 'An unexpected error occurred',
                 success: false,
             };
         }
@@ -113,19 +110,14 @@ export class ApiService {
         } catch (error) {
             return {
                 data: null,
-                message:
-                    error instanceof Error
-                        ? error.message
-                        : 'An unexpected error occurred',
+                message: error instanceof Error ? error.message : 'An unexpected error occurred',
                 success: false,
             };
         }
     }
 
     // Simulate creating a new user
-    async createUser(
-        userData: Omit<User, 'id' | 'createdAt'>
-    ): Promise<ApiResponse<User>> {
+    async createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<ApiResponse<User>> {
         try {
             await delay(API_DELAY);
 
@@ -149,20 +141,14 @@ export class ApiService {
         } catch (error) {
             return {
                 data: {} as User,
-                message:
-                    error instanceof Error
-                        ? error.message
-                        : 'An unexpected error occurred',
+                message: error instanceof Error ? error.message : 'An unexpected error occurred',
                 success: false,
             };
         }
     }
 
     // Simulate updating a user
-    async updateUser(
-        id: string,
-        userData: Partial<User>
-    ): Promise<ApiResponse<User | null>> {
+    async updateUser(id: string, userData: Partial<User>): Promise<ApiResponse<User | null>> {
         try {
             await delay(API_DELAY);
 
@@ -190,10 +176,7 @@ export class ApiService {
         } catch (error) {
             return {
                 data: null,
-                message:
-                    error instanceof Error
-                        ? error.message
-                        : 'An unexpected error occurred',
+                message: error instanceof Error ? error.message : 'An unexpected error occurred',
                 success: false,
             };
         }
@@ -228,10 +211,7 @@ export class ApiService {
         } catch (error) {
             return {
                 data: false,
-                message:
-                    error instanceof Error
-                        ? error.message
-                        : 'An unexpected error occurred',
+                message: error instanceof Error ? error.message : 'An unexpected error occurred',
                 success: false,
             };
         }

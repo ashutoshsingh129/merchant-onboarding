@@ -1,227 +1,245 @@
-# React Template Frontend
+# Merchant Onboarding Application
 
-A modern React TypeScript boilerplate application built with Create React App, Material-UI, Redux Toolkit, and React Router.
+A full-stack application for onboarding merchants using Stripe Connect. This application allows you to create Stripe merchant accounts and generate onboarding links for merchants to complete their setup.
 
 ## Features
 
-- ⚛️ **React 19** with TypeScript
-- 🎨 **Material-UI (MUI)** with custom theme support
-- 🔄 **Redux Toolkit** for state management
-- 🧭 **React Router** for navigation
-- 🌙 **Dark/Light theme** toggle
-- 📱 **Responsive design**
-- 🧪 **Testing setup** with Jest and React Testing Library
-- 🔧 **ESLint & Prettier** for code quality
-- 🌍 **Environment configuration** for multiple environments
-- 📦 **Build optimization** for production
+- **Frontend (React + TypeScript + Material-UI)**
+  - Modern, responsive UI for merchant onboarding
+  - Form to create Stripe merchant accounts
+  - Success modal showing account details
+  - Generate and copy onboarding links
+  - Dark/Light theme support
+
+- **Backend (Node.js + Express + Stripe)**
+  - RESTful API for Stripe integration
+  - Create merchant accounts
+  - Generate secure onboarding links
+  - Retrieve account information
+  - Rate limiting and security features
 
 ## Project Structure
 
 ```
-src/
-├── components/           # Reusable components
-│   ├── Dashboard/       # Dashboard component
-│   │   ├── Dashboard.tsx
-│   │   └── Dashboard.styles.ts
-│   └── Layout/          # Layout component
-│       ├── Layout.tsx
-│       └── Layout.styles.ts
-├── store/               # Redux store configuration
-│   ├── index.ts
-│   └── slices/
-│       └── appSlice.ts
-├── theme/               # MUI theme configuration
-│   └── index.ts
-├── types/               # TypeScript type definitions
-│   └── index.ts
-├── utils/               # Utility functions
-│   └── index.ts
-├── hooks/               # Custom React hooks
-├── App.tsx              # Main App component
-└── index.tsx            # Application entry point
+Merchant Onboarding Final/
+├── backend/                    # Express.js backend server
+│   ├── routes/                # API routes
+│   ├── server.js              # Main server file
+│   ├── package.json           # Backend dependencies
+│   └── .env                   # Environment variables
+├── simplypay_frontend-template_project/  # React frontend
+│   ├── src/
+│   │   ├── components/        # React components
+│   │   │   ├── MerchantOnboarding/  # Merchant onboarding form
+│   │   │   ├── Dashboard/     # Dashboard component
+│   │   │   └── Layout/        # Layout component
+│   │   ├── services/          # API services
+│   │   └── store/             # Redux store
+│   └── package.json           # Frontend dependencies
+└── README.md                  # This file
 ```
 
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
+- Node.js (v14 or higher)
 - npm or yarn
+- Stripe account with API keys
 
-### Installation
-
-1. Clone the repository:
-
-```bash
-git clone <repository-url>
-cd react-template-fe
-```
-
-2. Install dependencies:
+### Option 1: Start Both Servers at Once (Recommended)
 
 ```bash
+# From the root directory
+cd "Merchant Onboardig Final"
+
+# Install all dependencies (root, backend, and frontend)
 npm install
-```
 
-3. Start the development server:
+# Set up environment variables
+# Edit backend/.env file with your Stripe API keys
+STRIPE_SECRET_KEY=sk_test_your_actual_stripe_secret_key_here
+STRIPE_PUBLISHABLE_KEY=pk_test_your_actual_stripe_publishable_key_here
 
-```bash
+# Start both backend and frontend servers
 npm start
 ```
 
-The application will open at `http://localhost:3000`.
+This will start:
 
-## Available Scripts
+- Backend server on `http://localhost:5000`
+- Frontend server on `http://localhost:3000`
 
-- `npm start` - Start development server
-- `npm start:staging` - Start with staging environment
-- `npm start:production` - Start with production environment
-- `npm build` - Build for production
-- `npm build:staging` - Build for staging
-- `npm build:production` - Build for production
-- `npm test` - Run tests
-- `npm test:coverage` - Run tests with coverage
-- `npm lint` - Run ESLint
-- `npm lint:fix` - Fix ESLint errors
-- `npm format` - Format code with Prettier
-- `npm format:check` - Check code formatting
+### Option 2: Start Servers Separately
 
-## Environment Configuration
+#### Backend Setup
 
-The application uses a single `.env-sample` file with comprehensive documentation for all environments.
+```bash
+# Navigate to backend directory
+cd backend
 
-### Quick Setup
+# Install dependencies
+npm install
 
-1. **Copy the sample file:**
+# Set up environment variables
+# Edit .env file with your Stripe API keys
+STRIPE_SECRET_KEY=sk_test_your_actual_stripe_secret_key_here
+STRIPE_PUBLISHABLE_KEY=pk_test_your_actual_stripe_publishable_key_here
 
-    ```bash
-    npm run env:setup
-    # or manually: cp .env-sample .env
-    ```
-
-2. **Check current environment:**
-
-    ```bash
-    npm run env:check
-    ```
-
-3. **Modify `.env` file** with your specific values
-
-### Environment Variables
-
-The `.env-sample` file contains detailed documentation for all available environment variables:
-
-- `REACT_APP_API_BASE_URL` - Your API base URL
-- `REACT_APP_ENVIRONMENT` - Current environment (development/staging/production)
-- `REACT_APP_APP_NAME` - Application name
-- `REACT_APP_VERSION` - Application version
-- `REACT_APP_DEBUG` - Enable debug mode (development only)
-
-### Environment-Specific Scripts
-
-- `npm start` - Start with current .env settings
-- `npm start:dev` - Force development environment
-- `npm start:staging` - Force staging environment
-- `npm start:prod` - Force production environment
-- `npm build:dev` - Build for development
-- `npm build:staging` - Build for staging
-- `npm build:prod` - Build for production
-
-## Customization
-
-### Adding New Components
-
-1. Create a new folder in `src/components/` with your component name
-2. Add your component file (e.g., `ComponentName.tsx`)
-3. Add styles file (e.g., `ComponentName.styles.ts`)
-4. Export your component
-
-Example:
-
-```typescript
-// src/components/MyComponent/MyComponent.tsx
-import React from 'react';
-import { MyComponentStyles } from './MyComponent.styles';
-
-const MyComponent: React.FC = () => {
-    const classes = MyComponentStyles();
-
-    return (
-        <div className={classes.container}>
-            {/* Your component content */}
-        </div>
-    );
-};
-
-export default MyComponent;
+# Start the backend server
+npm run dev
 ```
 
-### Adding New Redux Slices
+#### Frontend Setup
 
-1. Create a new slice file in `src/store/slices/`
-2. Add the slice to the store configuration in `src/store/index.ts`
+```bash
+# Navigate to frontend directory
+cd simplypay_frontend-template_project
 
-Example:
+# Install dependencies
+npm install
 
-```typescript
-// src/store/slices/mySlice.ts
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-
-interface MyState {
-    data: any[];
-    loading: boolean;
-}
-
-const initialState: MyState = {
-    data: [],
-    loading: false,
-};
-
-const mySlice = createSlice({
-    name: 'mySlice',
-    initialState,
-    reducers: {
-        setData: (state, action: PayloadAction<any[]>) => {
-            state.data = action.payload;
-        },
-        setLoading: (state, action: PayloadAction<boolean>) => {
-            state.loading = action.payload;
-        },
-    },
-});
-
-export const { setData, setLoading } = mySlice.actions;
-export default mySlice.reducer;
+# Start the frontend development server
+npm start
 ```
 
-### Customizing Theme
+### Access the Application
 
-Modify the theme configuration in `src/theme/index.ts`:
+1. Open your browser and go to `http://localhost:3000`
+2. Navigate to "Merchant Onboarding" from the top navigation
+3. Fill out the merchant form and create an account
+4. Generate onboarding links for merchants
 
-```typescript
-const customTheme: ThemeOptions = {
-    palette: {
-        primary: {
-            main: '#your-color',
-        },
-        // ... other theme options
-    },
-    // ... other theme configurations
-};
+## Available Scripts (Root Package.json)
+
+From the root directory, you can use these npm scripts:
+
+- `npm start` - Start both backend and frontend servers
+- `npm run dev` - Same as npm start (alias)
+- `npm run start:backend` - Start only the backend server
+- `npm run start:frontend` - Start only the frontend server
+- `npm run build` - Build the frontend for production
+- `npm run setup` - Install all dependencies (root, backend, frontend)
+
+## Usage
+
+### Creating a Merchant Account
+
+1. Fill out the merchant onboarding form:
+   - Select account type (Custom, Express, Standard)
+   - Choose country
+   - Enter merchant email
+   - Select business type
+   - Configure capabilities (Card Payments, Transfers)
+
+2. Click "Create Account" to create the Stripe account
+
+3. A success modal will show:
+   - Account ID
+   - Account details
+   - Generate onboarding link button
+
+### Generating Onboarding Links
+
+1. After account creation, click "Generate Onboarding Link"
+2. The link will be generated and displayed
+3. Copy the link to send to the merchant
+4. Merchant can use this link to complete their onboarding
+
+## API Endpoints
+
+### Backend API
+
+- `POST /api/stripe/create-account` - Create a new Stripe merchant account
+- `POST /api/stripe/create-account-link` - Generate onboarding link
+- `GET /api/stripe/account/:account_id` - Get account information
+- `GET /api/health` - Health check
+
+## Environment Variables
+
+### Backend (.env)
+
+```
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here
+STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here
+PORT=5000
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+REFRESH_URL=http://localhost:3000/reauth
+RETURN_URL=http://localhost:3000/return
 ```
 
-## Deployment
+### Frontend
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+```
+REACT_APP_API_URL=http://localhost:5000/api
+```
+
+## Stripe Configuration
+
+1. Create a Stripe account at [stripe.com](https://stripe.com)
+2. Enable Stripe Connect in your dashboard
+3. Get your API keys from the Stripe dashboard
+4. Update the `.env` file with your keys
+
+## Development
+
+### Backend Development
+
+```bash
+cd backend
+npm run dev  # Starts with nodemon for auto-restart
+```
+
+### Frontend Development
+
+```bash
+cd simplypay_frontend-template_project
+npm start    # Starts React development server
+```
+
+## Production Deployment
+
+1. Update environment variables for production
+2. Use production Stripe keys
+3. Build the frontend: `npm run build`
+4. Deploy backend and frontend to your hosting platform
+
+## Security Features
+
+- Rate limiting on API endpoints
+- CORS protection
+- Input validation
+- Secure environment variable handling
+- Helmet.js security headers
+
+## Technologies Used
+
+### Frontend
+
+- React 19
+- TypeScript
+- Material-UI (MUI)
+- Redux Toolkit
+- React Router
+
+### Backend
+
+- Node.js
+- Express.js
+- Stripe API
+- CORS
+- Helmet.js
+- Express Rate Limit
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run tests and linting
+4. Test thoroughly
 5. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License.
+MIT License - see LICENSE file for details

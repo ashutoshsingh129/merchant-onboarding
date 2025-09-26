@@ -1,5 +1,4 @@
-const API_BASE_URL =
-    process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 interface CreateAccountRequest {
     type: string;
@@ -62,9 +61,7 @@ export const createStripeAccount = async (
         const result = await response.json();
 
         if (!response.ok) {
-            throw new Error(
-                result.message || 'Failed to create Stripe account'
-            );
+            throw new Error(result.message || 'Failed to create Stripe account');
         }
 
         return result;
@@ -79,22 +76,17 @@ export const createAccountLink = async (
     data: CreateAccountLinkRequest
 ): Promise<CreateAccountLinkResponse> => {
     try {
-        const response = await fetch(
-            `${API_BASE_URL}/stripe/create-account-link`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    account_id: data.account_id,
-                    refresh_url:
-                        data.refresh_url || 'https://localhost:3000/reauth',
-                    return_url:
-                        data.return_url || 'https://localhost:3000/return',
-                }),
-            }
-        );
+        const response = await fetch(`${API_BASE_URL}/stripe/create-account-link`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                account_id: data.account_id,
+                refresh_url: data.refresh_url || 'https://localhost:3000/reauth',
+                return_url: data.return_url || 'https://localhost:3000/return',
+            }),
+        });
 
         const result = await response.json();
 
@@ -170,22 +162,17 @@ export const directOnboardMerchant = async (
 
 export const getAccountInfo = async (accountId: string) => {
     try {
-        const response = await fetch(
-            `${API_BASE_URL}/stripe/account/${accountId}`,
-            {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            }
-        );
+        const response = await fetch(`${API_BASE_URL}/stripe/account/${accountId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
 
         const result = await response.json();
 
         if (!response.ok) {
-            throw new Error(
-                result.message || 'Failed to retrieve account information'
-            );
+            throw new Error(result.message || 'Failed to retrieve account information');
         }
 
         return result;

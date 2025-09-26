@@ -81,9 +81,7 @@ const Dashboard: React.FC = () => {
                         alignItems="center"
                         marginBottom={2}
                     >
-                        <Typography variant="h6">
-                            Users Table ({users.length} users)
-                        </Typography>
+                        <Typography variant="h6">Users Table ({users.length} users)</Typography>
                         <Button
                             variant="outlined"
                             startIcon={<Refresh />}
@@ -95,11 +93,7 @@ const Dashboard: React.FC = () => {
                     </Box>
 
                     {error && (
-                        <Alert
-                            severity="error"
-                            onClose={handleErrorClose}
-                            sx={{ marginBottom: 2 }}
-                        >
+                        <Alert severity="error" onClose={handleErrorClose} sx={{ marginBottom: 2 }}>
                             {error}
                         </Alert>
                     )}
@@ -138,10 +132,7 @@ const Dashboard: React.FC = () => {
                                                 colSpan={columns.length}
                                                 align="center"
                                             >
-                                                <Typography
-                                                    variant="body2"
-                                                    color="text.secondary"
-                                                >
+                                                <Typography variant="body2" color="text.secondary">
                                                     No users found
                                                 </Typography>
                                             </StyledTableCell>
@@ -149,27 +140,17 @@ const Dashboard: React.FC = () => {
                                     ) : (
                                         users.map(user => (
                                             <TableRow hover key={user.id}>
-                                                <StyledTableCell>
-                                                    {user.name}
-                                                </StyledTableCell>
-                                                <StyledTableCell>
-                                                    {user.email}
-                                                </StyledTableCell>
+                                                <StyledTableCell>{user.name}</StyledTableCell>
+                                                <StyledTableCell>{user.email}</StyledTableCell>
                                                 <StyledTableCell>
                                                     <Chip
                                                         label={user.role}
-                                                        color={
-                                                            getRoleColor(
-                                                                user.role
-                                                            ) as any
-                                                        }
+                                                        color={getRoleColor(user.role) as any}
                                                         size="small"
                                                     />
                                                 </StyledTableCell>
                                                 <StyledTableCell>
-                                                    {new Date(
-                                                        user.createdAt
-                                                    ).toLocaleDateString()}
+                                                    {new Date(user.createdAt).toLocaleDateString()}
                                                 </StyledTableCell>
                                             </TableRow>
                                         ))

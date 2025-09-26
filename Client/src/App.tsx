@@ -22,10 +22,7 @@ const AppRoutes: React.FC = () => {
                     <Routes>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/dashboard" element={<Dashboard />} />
-                        <Route
-                            path="/merchant-onboarding"
-                            element={<MerchantOnboarding />}
-                        />
+                        <Route path="/merchant-onboarding" element={<MerchantOnboarding />} />
                     </Routes>
                 </Layout>
             </Router>
