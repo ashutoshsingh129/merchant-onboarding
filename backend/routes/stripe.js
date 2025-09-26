@@ -110,6 +110,15 @@ router.post("/direct-onboard", async (req, res) => {
       business_type,
       business_profile_mcc,
       business_profile_url,
+      // Company fields (for company business_type)
+      company_name,
+      company_tax_id,
+      company_structure,
+      company_address_line1,
+      company_address_city,
+      company_address_state,
+      company_address_postal_code,
+      company_address_country,
       // Representative fields (for company business_type)
       representative_first_name,
       representative_last_name,
@@ -172,6 +181,20 @@ router.post("/direct-onboard", async (req, res) => {
         },
       };
     } else if (business_type === "company") {
+      // Add company information to account update data
+      accountUpdateData.company = {
+        name: company_name,
+        tax_id: company_tax_id,
+        structure: company_structure,
+        address: {
+          line1: company_address_line1,
+          city: company_address_city,
+          state: company_address_state,
+          postal_code: company_address_postal_code,
+          country: company_address_country,
+        },
+      };
+
       // For company accounts, we need to handle representative person
       // First, check if there's already a representative
       let existingRepresentative = null;
@@ -320,6 +343,57 @@ router.get("/account/:account_id", async (req, res) => {
     console.error("Error retrieving account:", error);
     res.status(500).json({
       error: "Failed to retrieve account",
+      message: error.message,
+    });
+  }
+});
+
+// Create external account (bank account)
+router.post("/create-external-account", async (req, res) => {
+  try {
+    const {
+      account_id,
+      object,
+      country,
+      currency,
+      account_number,
+      default_for_currency = true,
+    } = req.body;
+
+    // Validate required fields
+    if (!account_id || !object || !country || !currency || !account_number) {
+      return res.status(400).json({
+        error: "Missing required fields",
+        required: ["account_id", "object", "country", "currency", "account_number"],
+      });
+    }
+
+    // Create external account
+    const externalAccount = await stripe.accounts.createExternalAccount(account_id, {
+      object: object,
+      country: country,
+      currency: currency,
+      account_number: account_number,
+      default_for_currency: default_for_currency,
+    });
+
+    res.json({
+      success: true,
+      external_account: {
+        id: externalAccount.id,
+        object: externalAccount.object,
+        country: externalAccount.country,
+        currency: externalAccount.currency,
+        last4: externalAccount.last4,
+        bank_name: externalAccount.bank_name,
+        default_for_currency: externalAccount.default_for_currency,
+        created: externalAccount.created,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating external account:", error);
+    res.status(500).json({
+      error: "Failed to create external account",
       message: error.message,
     });
   }

@@ -122,6 +122,15 @@ interface DirectOnboardRequest {
     business_type: string;
     business_profile_mcc: string;
     business_profile_url: string;
+    // Company fields (for company business_type)
+    company_name: string;
+    company_tax_id: string;
+    company_structure: string;
+    company_address_line1: string;
+    company_address_city: string;
+    company_address_state: string;
+    company_address_postal_code: string;
+    company_address_country: string;
     // Representative fields (for company business_type)
     representative_first_name: string;
     representative_last_name: string;
@@ -195,6 +204,48 @@ export const getAccountInfo = async (accountId: string) => {
     } catch (error: any) {
         // eslint-disable-next-line no-console
         console.error('Error retrieving account info:', error);
+        throw error;
+    }
+};
+
+interface CreateExternalAccountRequest {
+    account_id: string;
+    object: string;
+    country: string;
+    currency: string;
+    account_number: string;
+    default_for_currency?: boolean;
+}
+
+interface CreateExternalAccountResponse {
+    success: boolean;
+    external_account?: any;
+    error?: string;
+    message?: string;
+}
+
+export const createExternalAccount = async (
+    data: CreateExternalAccountRequest
+): Promise<CreateExternalAccountResponse> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/stripe/create-external-account`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to create external account');
+        }
+
+        return result;
+    } catch (error: any) {
+        // eslint-disable-next-line no-console
+        console.error('Error creating external account:', error);
         throw error;
     }
 };
