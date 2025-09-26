@@ -28,7 +28,9 @@ interface DirectOnboardFormData {
     individual_dob_month: number;
     individual_dob_year: number;
     individual_address_line1: string;
+    individual_address_line2: string;
     individual_address_city: string;
+    individual_address_state: string;
     individual_address_postal_code: string;
     individual_address_country: string;
     business_type: string;
@@ -38,11 +40,27 @@ interface DirectOnboardFormData {
     external_account_country: string;
     external_account_currency: string;
     external_account_account_number: string;
+    // Representative Person fields (when business_type is 'company')
+    representative_first_name: string;
+    representative_last_name: string;
+    representative_email: string;
+    representative_dob_day: number;
+    representative_dob_month: number;
+    representative_dob_year: number;
+    representative_address_line1: string;
+    representative_address_city: string;
+    representative_address_state: string;
+    representative_address_postal_code: string;
+    representative_address_country: string;
+    representative_relationship_representative: boolean;
+    representative_relationship_title: string;
 }
 
 interface DirectOnboardFormProps {
     accountId: string;
     email: string;
+    businessType?: string;
+    country?: string;
     onClose?: () => void;
     onSuccess?: () => void;
 }
@@ -50,6 +68,8 @@ interface DirectOnboardFormProps {
 const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
     accountId,
     email,
+    businessType,
+    country,
     onClose,
     onSuccess,
 }) => {
@@ -63,16 +83,32 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         individual_dob_month: 1,
         individual_dob_year: 1990,
         individual_address_line1: '',
+        individual_address_line2: '',
         individual_address_city: '',
+        individual_address_state: '',
         individual_address_postal_code: '',
-        individual_address_country: 'US',
-        business_type: 'individual',
+        individual_address_country: country || 'US',
+        business_type: businessType || 'individual',
         business_profile_mcc: '5734',
         business_profile_url: '',
         external_account_object: 'bank_account',
-        external_account_country: 'US',
+        external_account_country: country || 'US',
         external_account_currency: 'usd',
         external_account_account_number: '',
+        // Representative Person fields
+        representative_first_name: '',
+        representative_last_name: '',
+        representative_email: '',
+        representative_dob_day: 1,
+        representative_dob_month: 1,
+        representative_dob_year: 1990,
+        representative_address_line1: '',
+        representative_address_city: '',
+        representative_address_state: '',
+        representative_address_postal_code: '',
+        representative_address_country: country || 'US',
+        representative_relationship_representative: true,
+        representative_relationship_title: '',
     });
 
     const [loading, setLoading] = useState(false);
@@ -175,16 +211,32 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         individual_dob_month: 1,
                         individual_dob_year: 1990,
                         individual_address_line1: '',
+                        individual_address_line2: '',
                         individual_address_city: '',
+                        individual_address_state: '',
                         individual_address_postal_code: '',
-                        individual_address_country: 'US',
-                        business_type: 'individual',
+                        individual_address_country: country || 'US',
+                        business_type: businessType || 'individual',
                         business_profile_mcc: '5734',
                         business_profile_url: '',
                         external_account_object: 'bank_account',
-                        external_account_country: 'US',
+                        external_account_country: country || 'US',
                         external_account_currency: 'usd',
                         external_account_account_number: '',
+                        // Representative Person fields
+                        representative_first_name: '',
+                        representative_last_name: '',
+                        representative_email: '',
+                        representative_dob_day: 1,
+                        representative_dob_month: 1,
+                        representative_dob_year: 1990,
+                        representative_address_line1: '',
+                        representative_address_city: '',
+                        representative_address_state: '',
+                        representative_address_postal_code: '',
+                        representative_address_country: country || 'US',
+                        representative_relationship_representative: true,
+                        representative_relationship_title: '',
                     });
                 }, 2000);
             } else {
@@ -388,6 +440,19 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                             />
                         </Grid>
 
+                        <Grid size={{ xs: 12 }}>
+                            <TextField
+                                fullWidth
+                                label="Address Line 2"
+                                value={formData.individual_address_line2}
+                                onChange={e =>
+                                    handleInputChange('individual_address_line2', e.target.value)
+                                }
+                                placeholder="Apartment, suite, unit, or building"
+                                helperText="Optional"
+                            />
+                        </Grid>
+
                         <Grid size={{ xs: 12, sm: 6 }}>
                             <TextField
                                 fullWidth
@@ -398,6 +463,20 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 }
                                 required
                                 placeholder="New York"
+                            />
+                        </Grid>
+
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                                fullWidth
+                                label="State"
+                                value={formData.individual_address_state}
+                                onChange={e =>
+                                    handleInputChange('individual_address_state', e.target.value)
+                                }
+                                required
+                                placeholder="NY"
+                                helperText="State, county, province, or region"
                             />
                         </Grid>
 
@@ -490,6 +569,271 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 placeholder="https://example-merchant.com"
                             />
                         </Grid>
+
+                        {/* Representative Person Fields - Only show when business type is Company */}
+                        {formData.business_type === 'company' && (
+                            <>
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                        Representative Person Information
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="First Name"
+                                        value={formData.representative_first_name}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'representative_first_name',
+                                                e.target.value
+                                            )
+                                        }
+                                        required
+                                        placeholder="Representative First Name"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Last Name"
+                                        value={formData.representative_last_name}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'representative_last_name',
+                                                e.target.value
+                                            )
+                                        }
+                                        required
+                                        placeholder="Representative Last Name"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Email Address"
+                                        type="email"
+                                        value={formData.representative_email}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'representative_email',
+                                                e.target.value
+                                            )
+                                        }
+                                        required
+                                        placeholder="representative@example.com"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Job Title"
+                                        value={formData.representative_relationship_title}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'representative_relationship_title',
+                                                e.target.value
+                                            )
+                                        }
+                                        required
+                                        placeholder="CEO, Manager, etc."
+                                    />
+                                </Grid>
+
+                                {/* Representative Date of Birth */}
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="subtitle1" gutterBottom>
+                                        Representative Date of Birth
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 4 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Day</InputLabel>
+                                        <Select
+                                            value={formData.representative_dob_day}
+                                            label="Day"
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_dob_day',
+                                                    e.target.value
+                                                )
+                                            }
+                                        >
+                                            {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                                                day => (
+                                                    <MenuItem key={day} value={day}>
+                                                        {day}
+                                                    </MenuItem>
+                                                )
+                                            )}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+
+                                <Grid size={{ xs: 4 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Month</InputLabel>
+                                        <Select
+                                            value={formData.representative_dob_month}
+                                            label="Month"
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_dob_month',
+                                                    e.target.value
+                                                )
+                                            }
+                                        >
+                                            {months.map(month => (
+                                                <MenuItem key={month.value} value={month.value}>
+                                                    {month.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+
+                                <Grid size={{ xs: 4 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Year"
+                                        type="number"
+                                        value={formData.representative_dob_year}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'representative_dob_year',
+                                                parseInt(e.target.value)
+                                            )
+                                        }
+                                        required
+                                        inputProps={{
+                                            min: 1900,
+                                            max: new Date().getFullYear(),
+                                        }}
+                                    />
+                                </Grid>
+
+                                {/* Representative Address */}
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                        Representative Address
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Street Address"
+                                        value={formData.representative_address_line1}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'representative_address_line1',
+                                                e.target.value
+                                            )
+                                        }
+                                        required
+                                        placeholder="123 Main Street"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="City"
+                                        value={formData.representative_address_city}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'representative_address_city',
+                                                e.target.value
+                                            )
+                                        }
+                                        required
+                                        placeholder="New York"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="State Code"
+                                        value={formData.representative_address_state}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'representative_address_state',
+                                                e.target.value
+                                            )
+                                        }
+                                        required
+                                        placeholder="NY"
+                                        helperText="2-letter state code"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="ZIP Code"
+                                        value={formData.representative_address_postal_code}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'representative_address_postal_code',
+                                                e.target.value
+                                            )
+                                        }
+                                        required
+                                        placeholder="12345"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Country Code</InputLabel>
+                                        <Select
+                                            value={formData.representative_address_country}
+                                            label="Country Code"
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_country',
+                                                    e.target.value
+                                                )
+                                            }
+                                        >
+                                            {countries.map(country => (
+                                                <MenuItem key={country.code} value={country.code}>
+                                                    {country.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+
+                                {/* Representative Relationship */}
+                                <Grid size={{ xs: 12 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Representative</InputLabel>
+                                        <Select
+                                            value={
+                                                formData.representative_relationship_representative
+                                            }
+                                            label="Representative"
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_relationship_representative',
+                                                    e.target.value === 'true'
+                                                )
+                                            }
+                                        >
+                                            <MenuItem value="true">True</MenuItem>
+                                            <MenuItem value="false">False</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            </>
+                        )}
 
                         {/* External Account */}
                         <Grid size={{ xs: 12 }}>
@@ -603,7 +947,22 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         !formData.account_id ||
                         !formData.individual_first_name ||
                         !formData.individual_last_name ||
-                        !formData.individual_email
+                        !formData.individual_email ||
+                        !formData.individual_phone ||
+                        !formData.individual_address_line1 ||
+                        !formData.individual_address_city ||
+                        !formData.individual_address_state ||
+                        !formData.individual_address_postal_code ||
+                        !formData.external_account_account_number ||
+                        (formData.business_type === 'company' &&
+                            (!formData.representative_first_name ||
+                                !formData.representative_last_name ||
+                                !formData.representative_email ||
+                                !formData.representative_relationship_title ||
+                                !formData.representative_address_line1 ||
+                                !formData.representative_address_city ||
+                                !formData.representative_address_state ||
+                                !formData.representative_address_postal_code))
                     }
                     size="large"
                 >

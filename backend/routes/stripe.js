@@ -100,7 +100,9 @@ router.post("/direct-onboard", async (req, res) => {
       individual_dob_month,
       individual_dob_year,
       individual_address_line1,
+      individual_address_line2,
       individual_address_city,
+      individual_address_state,
       individual_address_postal_code,
       individual_address_country,
       tos_acceptance_date,
@@ -108,6 +110,20 @@ router.post("/direct-onboard", async (req, res) => {
       business_type,
       business_profile_mcc,
       business_profile_url,
+      // Representative fields (for company business_type)
+      representative_first_name,
+      representative_last_name,
+      representative_email,
+      representative_dob_day,
+      representative_dob_month,
+      representative_dob_year,
+      representative_address_line1,
+      representative_address_city,
+      representative_address_state,
+      representative_address_postal_code,
+      representative_address_country,
+      representative_relationship_representative,
+      representative_relationship_title,
       external_account_object,
       external_account_country,
       external_account_currency,
@@ -121,25 +137,8 @@ router.post("/direct-onboard", async (req, res) => {
       });
     }
 
-    // Prepare the account update data
+    // Prepare the account update data based on business_type
     const accountUpdateData = {
-      individual: {
-        first_name: individual_first_name,
-        last_name: individual_last_name,
-        email: individual_email,
-        phone: individual_phone,
-        dob: {
-          day: individual_dob_day,
-          month: individual_dob_month,
-          year: individual_dob_year,
-        },
-        address: {
-          line1: individual_address_line1,
-          city: individual_address_city,
-          postal_code: individual_address_postal_code,
-          country: individual_address_country,
-        },
-      },
       tos_acceptance: {
         date: tos_acceptance_date || Math.floor(Date.now() / 1000),
         ip: tos_acceptance_ip || req.ip,
@@ -151,7 +150,94 @@ router.post("/direct-onboard", async (req, res) => {
       },
     };
 
-    // Update the Stripe account with individual details
+    // Add individual or company fields based on business_type
+    if (business_type === "individual") {
+      accountUpdateData.individual = {
+        first_name: individual_first_name,
+        last_name: individual_last_name,
+        email: individual_email,
+        phone: individual_phone,
+        dob: {
+          day: individual_dob_day,
+          month: individual_dob_month,
+          year: individual_dob_year,
+        },
+        address: {
+          line1: individual_address_line1,
+          line2: individual_address_line2,
+          city: individual_address_city,
+          state: individual_address_state,
+          postal_code: individual_address_postal_code,
+          country: individual_address_country,
+        },
+      };
+    } else if (business_type === "company") {
+      // For company accounts, we need to handle representative person
+      // First, check if there's already a representative
+      let existingRepresentative = null;
+      try {
+        const persons = await stripe.accounts.listPersons(account_id);
+        existingRepresentative = persons.data.find(person => 
+          person.relationship && person.relationship.representative === true
+        );
+      } catch (error) {
+        console.log("No existing persons found or error listing persons:", error.message);
+      }
+
+      if (existingRepresentative) {
+        // Update existing representative
+        await stripe.accounts.updatePerson(account_id, existingRepresentative.id, {
+          first_name: representative_first_name,
+          last_name: representative_last_name,
+          email: representative_email,
+          dob: {
+            day: representative_dob_day,
+            month: representative_dob_month,
+            year: representative_dob_year,
+          },
+          address: {
+            line1: representative_address_line1,
+            city: representative_address_city,
+            state: representative_address_state,
+            postal_code: representative_address_postal_code,
+            country: representative_address_country,
+          },
+          relationship: {
+            representative: representative_relationship_representative,
+            title: representative_relationship_title,
+          },
+        });
+      } else {
+        // Create new representative person
+        await stripe.accounts.createPerson(account_id, {
+          first_name: representative_first_name,
+          last_name: representative_last_name,
+          email: representative_email,
+          dob: {
+            day: representative_dob_day,
+            month: representative_dob_month,
+            year: representative_dob_year,
+          },
+          address: {
+            line1: representative_address_line1,
+            city: representative_address_city,
+            state: representative_address_state,
+            postal_code: representative_address_postal_code,
+            country: representative_address_country,
+          },
+          relationship: {
+            representative: representative_relationship_representative,
+            title: representative_relationship_title,
+          },
+        });
+      }
+
+      // For company accounts, we don't send individual fields
+      // The account owner information is handled through the person we just created/updated
+      // We only need to ensure the account has the correct business_type
+    }
+
+    // Update the Stripe account with details
     const updatedAccount = await stripe.accounts.update(
       account_id,
       accountUpdateData,

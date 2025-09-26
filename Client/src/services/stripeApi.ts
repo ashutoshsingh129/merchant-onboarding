@@ -112,7 +112,9 @@ interface DirectOnboardRequest {
     individual_dob_month: number;
     individual_dob_year: number;
     individual_address_line1: string;
+    individual_address_line2: string;
     individual_address_city: string;
+    individual_address_state: string;
     individual_address_postal_code: string;
     individual_address_country: string;
     tos_acceptance_date?: number;
@@ -120,6 +122,20 @@ interface DirectOnboardRequest {
     business_type: string;
     business_profile_mcc: string;
     business_profile_url: string;
+    // Representative fields (for company business_type)
+    representative_first_name: string;
+    representative_last_name: string;
+    representative_email: string;
+    representative_dob_day: number;
+    representative_dob_month: number;
+    representative_dob_year: number;
+    representative_address_line1: string;
+    representative_address_city: string;
+    representative_address_state: string;
+    representative_address_postal_code: string;
+    representative_address_country: string;
+    representative_relationship_representative: boolean;
+    representative_relationship_title: string;
     external_account_object: string;
     external_account_country: string;
     external_account_currency: string;

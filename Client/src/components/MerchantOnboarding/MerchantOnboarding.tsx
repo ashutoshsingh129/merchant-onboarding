@@ -281,6 +281,8 @@ const MerchantOnboarding: React.FC = () => {
                 <DirectOnboardForm
                     accountId={createdAccount.id}
                     email={createdAccount.email || formData.email}
+                    businessType={formData.business_type}
+                    country={formData.country}
                     onClose={() => setShowDirectOnboard(false)}
                     onSuccess={handleDirectOnboardSuccess}
                 />
