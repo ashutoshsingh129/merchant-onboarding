@@ -4,14 +4,14 @@
   "description": "Full-stack merchant onboarding application with Stripe integration",
   "private": true,
   "scripts": {
-    "install:all": "npm install && cd backend && npm install && cd ../Client && npm install",
-    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
-    "start:backend": "cd backend && npm run dev",
+    "install:all": "npm install && cd client && npm install && cd ../Client && npm install",
+    "start": "concurrently \"npm run start:client\" \"npm run start:frontend\"",
+    "start:client": "cd client && npm run dev",
     "start:frontend": "cd Client && npm start",
-    "start:backend:prod": "cd backend && npm start",
+    "start:client:prod": "cd client && npm start",
     "start:frontend:prod": "cd Client && npm run build && npm run start",
     "build": "cd Client && npm run build",
-    "dev": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "dev": "concurrently \"npm run start:client\" \"npm run start:frontend\"",
     "setup": "npm run install:all"
   },
   "devDependencies": {
