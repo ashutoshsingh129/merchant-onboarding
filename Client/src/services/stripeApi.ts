@@ -127,6 +127,7 @@ interface DirectOnboardRequest {
     company_tax_id: string;
     company_structure: string;
     company_address_line1: string;
+    company_address_line2: string;
     company_address_city: string;
     company_address_state: string;
     company_address_postal_code: string;
@@ -135,6 +136,7 @@ interface DirectOnboardRequest {
     representative_first_name: string;
     representative_last_name: string;
     representative_email: string;
+    representative_phone: string;
     representative_dob_day: number;
     representative_dob_month: number;
     representative_dob_year: number;
@@ -144,7 +146,9 @@ interface DirectOnboardRequest {
     representative_address_postal_code: string;
     representative_address_country: string;
     representative_relationship_representative: boolean;
+    representative_relationship_executive: boolean;
     representative_relationship_title: string;
+    representative_ssn_last_4: string;
     external_account_object: string;
     external_account_country: string;
     external_account_currency: string;

@@ -115,6 +115,7 @@ router.post("/direct-onboard", async (req, res) => {
       company_tax_id,
       company_structure,
       company_address_line1,
+      company_address_line2,
       company_address_city,
       company_address_state,
       company_address_postal_code,
@@ -123,6 +124,7 @@ router.post("/direct-onboard", async (req, res) => {
       representative_first_name,
       representative_last_name,
       representative_email,
+      representative_phone,
       representative_dob_day,
       representative_dob_month,
       representative_dob_year,
@@ -132,7 +134,9 @@ router.post("/direct-onboard", async (req, res) => {
       representative_address_postal_code,
       representative_address_country,
       representative_relationship_representative,
+      representative_relationship_executive,
       representative_relationship_title,
+      representative_ssn_last_4,
       external_account_object,
       external_account_country,
       external_account_currency,
@@ -155,7 +159,7 @@ router.post("/direct-onboard", async (req, res) => {
       business_type: business_type || "individual",
       business_profile: {
         mcc: business_profile_mcc,
-        url: business_profile_url,
+        url: business_profile_url || undefined, // Only send if not empty
       },
     };
 
@@ -165,7 +169,16 @@ router.post("/direct-onboard", async (req, res) => {
         first_name: individual_first_name,
         last_name: individual_last_name,
         email: individual_email,
-        phone: individual_phone,
+        phone: individual_phone ? (() => {
+          let formatted = individual_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
+          if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
+            formatted = '+' + formatted;
+          } else if (!formatted.startsWith('+1') && formatted.length === 10) {
+            formatted = '+1' + formatted;
+          }
+          // Only return if properly formatted
+          return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+        })() : undefined,
         dob: {
           day: individual_dob_day,
           month: individual_dob_month,
@@ -182,18 +195,52 @@ router.post("/direct-onboard", async (req, res) => {
       };
     } else if (business_type === "company") {
       // Add company information to account update data
+      const companyAddress = {};
+      
+      // Only include address fields that have values
+      if (company_address_line1) companyAddress.line1 = company_address_line1;
+      if (company_address_line2) companyAddress.line2 = company_address_line2;
+      if (company_address_city) companyAddress.city = company_address_city;
+      if (company_address_state) companyAddress.state = company_address_state;
+      if (company_address_postal_code) companyAddress.postal_code = company_address_postal_code;
+      if (company_address_country) companyAddress.country = company_address_country;
+
       accountUpdateData.company = {
         name: company_name,
-        tax_id: company_tax_id,
         structure: company_structure,
-        address: {
-          line1: company_address_line1,
-          city: company_address_city,
-          state: company_address_state,
-          postal_code: company_address_postal_code,
-          country: company_address_country,
-        },
       };
+
+      // Only add tax_id if it's a valid 9-digit number
+      if (company_tax_id && company_tax_id.trim() !== '') {
+        const cleanTaxId = company_tax_id.replace(/[^\d]/g, ''); // Remove all non-digit characters
+        if (cleanTaxId.length === 9) {
+          accountUpdateData.company.tax_id = cleanTaxId;
+        }
+      }
+
+      // Only add phone if representative_phone has a value
+      if (representative_phone && representative_phone.trim() !== '') {
+        // Format US phone number for Stripe (E.164 format: +1XXXXXXXXXX)
+        let formattedPhone = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
+        
+        // Ensure US phone number starts with +1
+        if (formattedPhone.startsWith('1') && !formattedPhone.startsWith('+1')) {
+          formattedPhone = '+' + formattedPhone;
+        } else if (!formattedPhone.startsWith('+1') && formattedPhone.length === 10) {
+          formattedPhone = '+1' + formattedPhone;
+        } else if (formattedPhone.startsWith('+1') && formattedPhone.length === 12) {
+          // Already properly formatted
+        }
+        
+        if (formattedPhone.startsWith('+1') && formattedPhone.length === 12) {
+          accountUpdateData.company.phone = formattedPhone;
+        }
+      }
+
+      // Only add address if we have at least line1
+      if (company_address_line1) {
+        accountUpdateData.company.address = companyAddress;
+      }
 
       // For company accounts, we need to handle representative person
       // First, check if there's already a representative
@@ -204,7 +251,7 @@ router.post("/direct-onboard", async (req, res) => {
           person.relationship && person.relationship.representative === true
         );
       } catch (error) {
-        console.log("No existing persons found or error listing persons:", error.message);
+        // No existing persons found or error listing persons
       }
 
       if (existingRepresentative) {
@@ -213,6 +260,16 @@ router.post("/direct-onboard", async (req, res) => {
           first_name: representative_first_name,
           last_name: representative_last_name,
           email: representative_email,
+          phone: representative_phone ? (() => {
+            let formatted = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
+            if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
+              formatted = '+' + formatted;
+            } else if (!formatted.startsWith('+1') && formatted.length === 10) {
+              formatted = '+1' + formatted;
+            }
+            // Only return if properly formatted
+            return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+          })() : undefined,
           dob: {
             day: representative_dob_day,
             month: representative_dob_month,
@@ -227,8 +284,11 @@ router.post("/direct-onboard", async (req, res) => {
           },
           relationship: {
             representative: representative_relationship_representative,
+            executive: representative_relationship_executive,
+            owner: representative_relationship_executive, // Set owner to true if executive is true
             title: representative_relationship_title,
           },
+          ssn_last_4: representative_ssn_last_4,
         });
       } else {
         // Create new representative person
@@ -236,6 +296,16 @@ router.post("/direct-onboard", async (req, res) => {
           first_name: representative_first_name,
           last_name: representative_last_name,
           email: representative_email,
+          phone: representative_phone ? (() => {
+            let formatted = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
+            if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
+              formatted = '+' + formatted;
+            } else if (!formatted.startsWith('+1') && formatted.length === 10) {
+              formatted = '+1' + formatted;
+            }
+            // Only return if properly formatted
+            return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+          })() : undefined,
           dob: {
             day: representative_dob_day,
             month: representative_dob_month,
@@ -250,8 +320,11 @@ router.post("/direct-onboard", async (req, res) => {
           },
           relationship: {
             representative: representative_relationship_representative,
+            executive: representative_relationship_executive,
+            owner: representative_relationship_executive, // Set owner to true if executive is true
             title: representative_relationship_title,
           },
+          ssn_last_4: representative_ssn_last_4,
         });
       }
 
@@ -259,6 +332,7 @@ router.post("/direct-onboard", async (req, res) => {
       // The account owner information is handled through the person we just created/updated
       // We only need to ensure the account has the correct business_type
     }
+
 
     // Update the Stripe account with details
     const updatedAccount = await stripe.accounts.update(
@@ -302,10 +376,12 @@ router.post("/direct-onboard", async (req, res) => {
         type: updatedAccount.type,
         business_type: updatedAccount.business_type,
         individual: updatedAccount.individual,
+        company: updatedAccount.company,
         charges_enabled: updatedAccount.charges_enabled,
         payouts_enabled: updatedAccount.payouts_enabled,
         details_submitted: updatedAccount.details_submitted,
         created: updatedAccount.created,
+        requirements: updatedAccount.requirements,
       },
       external_account: externalAccount,
     });

@@ -14,6 +14,8 @@ import {
     Card,
     CardContent,
     CardActions,
+    FormControlLabel,
+    Checkbox,
 } from '@mui/material';
 import { PersonAdd as PersonAddIcon } from '@mui/icons-material';
 import { directOnboardMerchant } from '../../services/stripeApi';
@@ -41,6 +43,7 @@ interface DirectOnboardFormData {
     company_tax_id: string;
     company_structure: string;
     company_address_line1: string;
+    company_address_line2: string;
     company_address_city: string;
     company_address_state: string;
     company_address_postal_code: string;
@@ -56,6 +59,7 @@ interface DirectOnboardFormData {
     representative_first_name: string;
     representative_last_name: string;
     representative_email: string;
+    representative_phone: string;
     representative_dob_day: number;
     representative_dob_month: number;
     representative_dob_year: number;
@@ -65,7 +69,9 @@ interface DirectOnboardFormData {
     representative_address_postal_code: string;
     representative_address_country: string;
     representative_relationship_representative: boolean;
+    representative_relationship_executive: boolean;
     representative_relationship_title: string;
+    representative_ssn_last_4: string;
 }
 
 interface DirectOnboardFormProps {
@@ -108,6 +114,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         company_tax_id: '',
         company_structure: 'private_corporation',
         company_address_line1: '',
+        company_address_line2: '',
         company_address_city: '',
         company_address_state: '',
         company_address_postal_code: '',
@@ -123,6 +130,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         representative_first_name: '',
         representative_last_name: '',
         representative_email: '',
+        representative_phone: '',
         representative_dob_day: 1,
         representative_dob_month: 1,
         representative_dob_year: 1990,
@@ -132,7 +140,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         representative_address_postal_code: '',
         representative_address_country: country || 'US',
         representative_relationship_representative: true,
+        representative_relationship_executive: false,
         representative_relationship_title: '',
+        representative_ssn_last_4: '',
     });
 
     const [loading, setLoading] = useState(false);
@@ -265,6 +275,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         company_tax_id: '',
                         company_structure: 'private_corporation',
                         company_address_line1: '',
+                        company_address_line2: '',
                         company_address_city: '',
                         company_address_state: '',
                         company_address_postal_code: '',
@@ -280,6 +291,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         representative_first_name: '',
                         representative_last_name: '',
                         representative_email: '',
+                        representative_phone: '',
                         representative_dob_day: 1,
                         representative_dob_month: 1,
                         representative_dob_year: 1990,
@@ -289,7 +301,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         representative_address_postal_code: '',
                         representative_address_country: country || 'US',
                         representative_relationship_representative: true,
+                        representative_relationship_executive: false,
                         representative_relationship_title: '',
+                        representative_ssn_last_4: '',
                     });
                 }, 2000);
             } else {
@@ -326,7 +340,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 label="Account ID"
                                 value={formData.account_id}
                                 onChange={e => handleInputChange('account_id', e.target.value)}
-                                required
                                 placeholder="acct_1SAA85KHetaYuagI"
                                 helperText="Account ID from created account"
                                 InputProps={{
@@ -340,145 +353,177 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                             />
                         </Grid>
 
-                        {/* Personal Information */}
-                        <Grid size={{ xs: 12 }}>
-                            <Typography variant="h6" gutterBottom>
-                                Personal Information
-                            </Typography>
-                        </Grid>
+                        {/* Personal Information - Only show when business type is Individual */}
+                        {formData.business_type === 'individual' && (
+                            <>
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="h6" gutterBottom sx={{ color: 'green' }}>
+                                        ✅ Individual Information (VISIBLE)
+                                    </Typography>
+                                    <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                        sx={{ mb: 2, color: 'blue' }}
+                                    >
+                                        DEBUG: Business type is: {formData.business_type} -
+                                        Individual fields should be visible
+                                    </Typography>
+                                </Grid>
+                            </>
+                        )}
 
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="First Name"
-                                value={formData.individual_first_name}
-                                onChange={e =>
-                                    handleInputChange('individual_first_name', e.target.value)
-                                }
-                                required
-                                placeholder="First Name"
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Last Name"
-                                value={formData.individual_last_name}
-                                onChange={e =>
-                                    handleInputChange('individual_last_name', e.target.value)
-                                }
-                                required
-                                placeholder="Last Name"
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Email"
-                                type="email"
-                                value={formData.individual_email}
-                                onChange={e =>
-                                    handleInputChange('individual_email', e.target.value)
-                                }
-                                required
-                                placeholder="merchant@example.com"
-                                InputProps={{
-                                    readOnly: !!email,
-                                }}
-                                sx={{
-                                    '& .MuiInputBase-input.Mui-readOnly': {
-                                        backgroundColor: 'grey.100',
-                                    },
-                                }}
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Phone"
-                                value={formData.individual_phone}
-                                onChange={e =>
-                                    handleInputChange('individual_phone', e.target.value)
-                                }
-                                required
-                                placeholder="+15551234567"
-                            />
-                        </Grid>
-
-                        {/* Date of Birth */}
-                        <Grid size={{ xs: 12 }}>
-                            <Typography variant="subtitle1" gutterBottom>
-                                Date of Birth
-                            </Typography>
-                        </Grid>
-
-                        <Grid size={{ xs: 4 }}>
-                            <FormControl fullWidth>
-                                <InputLabel>Day</InputLabel>
-                                <Select
-                                    value={formData.individual_dob_day}
-                                    label="Day"
+                        {/* Individual Fields - Only show when business type is Individual */}
+                        {formData.business_type === 'individual' && (
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <TextField
+                                    fullWidth
+                                    label="First Name"
+                                    value={formData.individual_first_name}
                                     onChange={e =>
-                                        handleInputChange('individual_dob_day', e.target.value)
+                                        handleInputChange('individual_first_name', e.target.value)
                                     }
-                                >
-                                    {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                                        <MenuItem key={day} value={day}>
-                                            {day}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Grid>
+                                    placeholder="First Name"
+                                    required
+                                />
+                            </Grid>
+                        )}
 
-                        <Grid size={{ xs: 4 }}>
-                            <FormControl fullWidth>
-                                <InputLabel>Month</InputLabel>
-                                <Select
-                                    value={formData.individual_dob_month}
-                                    label="Month"
+                        {formData.business_type === 'individual' && (
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <TextField
+                                    fullWidth
+                                    label="Last Name"
+                                    value={formData.individual_last_name}
                                     onChange={e =>
-                                        handleInputChange('individual_dob_month', e.target.value)
+                                        handleInputChange('individual_last_name', e.target.value)
                                     }
-                                >
-                                    {months.map(month => (
-                                        <MenuItem key={month.value} value={month.value}>
-                                            {month.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Grid>
+                                    placeholder="Last Name"
+                                    required
+                                />
+                            </Grid>
+                        )}
 
-                        <Grid size={{ xs: 4 }}>
-                            <TextField
-                                fullWidth
-                                label="Year"
-                                type="number"
-                                value={formData.individual_dob_year}
-                                onChange={e =>
-                                    handleInputChange(
-                                        'individual_dob_year',
-                                        parseInt(e.target.value)
-                                    )
-                                }
-                                required
-                                inputProps={{
-                                    min: 1900,
-                                    max: new Date().getFullYear(),
-                                }}
-                            />
-                        </Grid>
+                        {formData.business_type === 'individual' && (
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <TextField
+                                    fullWidth
+                                    label="Email"
+                                    type="email"
+                                    value={formData.individual_email}
+                                    onChange={e =>
+                                        handleInputChange('individual_email', e.target.value)
+                                    }
+                                    placeholder="merchant@example.com"
+                                    InputProps={{
+                                        readOnly: !!email,
+                                    }}
+                                    sx={{
+                                        '& .MuiInputBase-input.Mui-readOnly': {
+                                            backgroundColor: 'grey.100',
+                                        },
+                                    }}
+                                />
+                            </Grid>
+                        )}
 
-                        {/* Address */}
-                        <Grid size={{ xs: 12 }}>
-                            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                Address
-                            </Typography>
-                        </Grid>
+                        {formData.business_type === 'individual' && (
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <TextField
+                                    fullWidth
+                                    label="Phone"
+                                    value={formData.individual_phone}
+                                    onChange={e =>
+                                        handleInputChange('individual_phone', e.target.value)
+                                    }
+                                    placeholder="+15551234567"
+                                    required
+                                />
+                            </Grid>
+                        )}
+
+                        {/* Date of Birth - Only show when business type is Individual */}
+                        {formData.business_type === 'individual' && (
+                            <Grid size={{ xs: 12 }}>
+                                <Typography variant="subtitle1" gutterBottom>
+                                    Date of Birth
+                                </Typography>
+                            </Grid>
+                        )}
+
+                        {formData.business_type === 'individual' && (
+                            <Grid size={{ xs: 4 }}>
+                                <FormControl fullWidth>
+                                    <InputLabel>Day</InputLabel>
+                                    <Select
+                                        value={formData.individual_dob_day}
+                                        label="Day"
+                                        onChange={e =>
+                                            handleInputChange('individual_dob_day', e.target.value)
+                                        }
+                                    >
+                                        {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                                            <MenuItem key={day} value={day}>
+                                                {day}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                        )}
+
+                        {formData.business_type === 'individual' && (
+                            <Grid size={{ xs: 4 }}>
+                                <FormControl fullWidth>
+                                    <InputLabel>Month</InputLabel>
+                                    <Select
+                                        value={formData.individual_dob_month}
+                                        label="Month"
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'individual_dob_month',
+                                                e.target.value
+                                            )
+                                        }
+                                    >
+                                        {months.map(month => (
+                                            <MenuItem key={month.value} value={month.value}>
+                                                {month.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                        )}
+
+                        {formData.business_type === 'individual' && (
+                            <Grid size={{ xs: 4 }}>
+                                <TextField
+                                    fullWidth
+                                    label="Year"
+                                    type="number"
+                                    value={formData.individual_dob_year}
+                                    onChange={e =>
+                                        handleInputChange(
+                                            'individual_dob_year',
+                                            parseInt(e.target.value)
+                                        )
+                                    }
+                                    inputProps={{
+                                        min: 1900,
+                                        max: new Date().getFullYear(),
+                                    }}
+                                />
+                            </Grid>
+                        )}
+
+                        {/* Address - Only show when business type is Individual */}
+                        {formData.business_type === 'individual' && (
+                            <Grid size={{ xs: 12 }}>
+                                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                    Address
+                                </Typography>
+                            </Grid>
+                        )}
 
                         <Grid size={{ xs: 12 }}>
                             <TextField
@@ -488,8 +533,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 onChange={e =>
                                     handleInputChange('individual_address_line1', e.target.value)
                                 }
-                                required
                                 placeholder="123 Main Street"
+                                required
                             />
                         </Grid>
 
@@ -514,8 +559,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 onChange={e =>
                                     handleInputChange('individual_address_city', e.target.value)
                                 }
-                                required
                                 placeholder="New York"
+                                required
                             />
                         </Grid>
 
@@ -527,9 +572,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 onChange={e =>
                                     handleInputChange('individual_address_state', e.target.value)
                                 }
-                                required
                                 placeholder="NY"
                                 helperText="State, county, province, or region"
+                                required
                             />
                         </Grid>
 
@@ -544,8 +589,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         e.target.value
                                     )
                                 }
-                                required
                                 placeholder="12345"
+                                required
                             />
                         </Grid>
 
@@ -605,7 +650,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 onChange={e =>
                                     handleInputChange('business_profile_mcc', e.target.value)
                                 }
-                                required
                                 placeholder="5734"
                                 helperText="4-digit merchant category code"
                             />
@@ -620,6 +664,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                     handleInputChange('business_profile_url', e.target.value)
                                 }
                                 placeholder="https://example-merchant.com"
+                                required
                             />
                         </Grid>
 
@@ -627,8 +672,20 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         {formData.business_type === 'company' && (
                             <>
                                 <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Company Information
+                                    <Typography
+                                        variant="h6"
+                                        gutterBottom
+                                        sx={{ mt: 2, color: 'green' }}
+                                    >
+                                        ✅ Company Information (VISIBLE)
+                                    </Typography>
+                                    <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                        sx={{ mb: 2, color: 'blue' }}
+                                    >
+                                        DEBUG: Business type is: {formData.business_type} - Company
+                                        fields should be visible
                                     </Typography>
                                 </Grid>
 
@@ -640,8 +697,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         onChange={e =>
                                             handleInputChange('company_name', e.target.value)
                                         }
-                                        required
                                         placeholder="ABC Technologies LLC"
+                                        required
                                     />
                                 </Grid>
 
@@ -653,8 +710,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         onChange={e =>
                                             handleInputChange('company_tax_id', e.target.value)
                                         }
-                                        required
                                         placeholder="12-3456789"
+                                        required
                                         helperText="EIN or Tax Identification Number"
                                     />
                                 </Grid>
@@ -702,8 +759,23 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 e.target.value
                                             )
                                         }
-                                        required
                                         placeholder="123 Main St"
+                                        required
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Apartment, unit, or other (optional)"
+                                        value={formData.company_address_line2}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'company_address_line2',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Apt 4B, Suite 200, etc."
                                     />
                                 </Grid>
 
@@ -718,8 +790,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 e.target.value
                                             )
                                         }
-                                        required
                                         placeholder="New York"
+                                        required
                                     />
                                 </Grid>
 
@@ -734,8 +806,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 e.target.value
                                             )
                                         }
-                                        required
                                         placeholder="NY"
+                                        required
                                         helperText="State, county, province, or region"
                                     />
                                 </Grid>
@@ -751,8 +823,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 e.target.value
                                             )
                                         }
-                                        required
                                         placeholder="10001"
+                                        required
                                     />
                                 </Grid>
 
@@ -799,7 +871,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         parseInt(e.target.value)
                                     )
                                 }
-                                required
                                 helperText="Unix timestamp of when ToS was accepted"
                                 InputProps={{
                                     readOnly: true,
@@ -829,8 +900,20 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         {formData.business_type === 'company' && (
                             <>
                                 <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Representative Person Information
+                                    <Typography
+                                        variant="h6"
+                                        gutterBottom
+                                        sx={{ mt: 2, color: 'green' }}
+                                    >
+                                        ✅ Representative Person Information (VISIBLE)
+                                    </Typography>
+                                    <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                        sx={{ mb: 2, color: 'blue' }}
+                                    >
+                                        DEBUG: Business type is: {formData.business_type} -
+                                        Representative fields should be visible
                                     </Typography>
                                 </Grid>
 
@@ -845,8 +928,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 e.target.value
                                             )
                                         }
-                                        required
                                         placeholder="Representative First Name"
+                                        required
                                     />
                                 </Grid>
 
@@ -861,8 +944,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 e.target.value
                                             )
                                         }
-                                        required
                                         placeholder="Representative Last Name"
+                                        required
                                     />
                                 </Grid>
 
@@ -878,8 +961,25 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 e.target.value
                                             )
                                         }
-                                        required
                                         placeholder="representative@example.com"
+                                        required
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Phone Number"
+                                        value={formData.representative_phone}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'representative_phone',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="+31612345678"
+                                        required
+                                        helperText="Include country code (e.g., +1 for US, +31 for Netherlands)"
                                     />
                                 </Grid>
 
@@ -894,8 +994,26 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 e.target.value
                                             )
                                         }
-                                        required
                                         placeholder="CEO, Manager, etc."
+                                        required
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="SSN Last 4 Digits"
+                                        value={formData.representative_ssn_last_4}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'representative_ssn_last_4',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="1234"
+                                        required
+                                        inputProps={{ maxLength: 4 }}
+                                        helperText="Last 4 digits of Social Security Number (US only)"
                                     />
                                 </Grid>
 
@@ -964,7 +1082,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 parseInt(e.target.value)
                                             )
                                         }
-                                        required
                                         inputProps={{
                                             min: 1900,
                                             max: new Date().getFullYear(),
@@ -990,8 +1107,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 e.target.value
                                             )
                                         }
-                                        required
                                         placeholder="123 Main Street"
+                                        required
                                     />
                                 </Grid>
 
@@ -1006,8 +1123,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 e.target.value
                                             )
                                         }
-                                        required
                                         placeholder="New York"
+                                        required
                                     />
                                 </Grid>
 
@@ -1022,8 +1139,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 e.target.value
                                             )
                                         }
-                                        required
                                         placeholder="NY"
+                                        required
                                         helperText="2-letter state code"
                                     />
                                 </Grid>
@@ -1039,8 +1156,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 e.target.value
                                             )
                                         }
-                                        required
                                         placeholder="12345"
+                                        required
                                     />
                                 </Grid>
 
@@ -1066,26 +1183,49 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                     </FormControl>
                                 </Grid>
 
-                                {/* Representative Relationship */}
+                                {/* Representative Role */}
                                 <Grid size={{ xs: 12 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Representative</InputLabel>
-                                        <Select
-                                            value={
-                                                formData.representative_relationship_representative
-                                            }
-                                            label="Representative"
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'representative_relationship_representative',
-                                                    e.target.value === 'true'
-                                                )
-                                            }
-                                        >
-                                            <MenuItem value="true">True</MenuItem>
-                                            <MenuItem value="false">False</MenuItem>
-                                        </Select>
-                                    </FormControl>
+                                    <Typography variant="subtitle1" gutterBottom>
+                                        Representative Role
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={
+                                                    formData.representative_relationship_representative
+                                                }
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'representative_relationship_representative',
+                                                        e.target.checked
+                                                    )
+                                                }
+                                            />
+                                        }
+                                        label="Is this person a company representative?"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={
+                                                    formData.representative_relationship_executive
+                                                }
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'representative_relationship_executive',
+                                                        e.target.checked
+                                                    )
+                                                }
+                                            />
+                                        }
+                                        label="Is this person an owner/executive with significant control?"
+                                    />
                                 </Grid>
                             </>
                         )}
@@ -1167,7 +1307,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         e.target.value
                                     )
                                 }
-                                required
                                 placeholder="1234567890"
                                 helperText="IBAN or account number"
                             />
@@ -1200,15 +1339,16 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                     disabled={
                         loading ||
                         !formData.account_id ||
-                        !formData.individual_first_name ||
-                        !formData.individual_last_name ||
-                        !formData.individual_email ||
-                        !formData.individual_phone ||
-                        !formData.individual_address_line1 ||
-                        !formData.individual_address_city ||
-                        !formData.individual_address_state ||
-                        !formData.individual_address_postal_code ||
-                        !formData.external_account_account_number ||
+                        !formData.business_profile_url ||
+                        (formData.business_type === 'individual' &&
+                            (!formData.individual_first_name ||
+                                !formData.individual_last_name ||
+                                !formData.individual_email ||
+                                !formData.individual_phone ||
+                                !formData.individual_address_line1 ||
+                                !formData.individual_address_city ||
+                                !formData.individual_address_state ||
+                                !formData.individual_address_postal_code)) ||
                         (formData.business_type === 'company' &&
                             (!formData.company_name ||
                                 !formData.company_tax_id ||
@@ -1219,7 +1359,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 !formData.representative_first_name ||
                                 !formData.representative_last_name ||
                                 !formData.representative_email ||
+                                !formData.representative_phone ||
                                 !formData.representative_relationship_title ||
+                                !formData.representative_ssn_last_4 ||
                                 !formData.representative_address_line1 ||
                                 !formData.representative_address_city ||
                                 !formData.representative_address_state ||
