@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import { PersonAdd as PersonAddIcon } from '@mui/icons-material';
 import { directOnboardMerchant } from '../../services/stripeApi';
+import { useIPDetection } from '../../services/ipService';
 
 interface DirectOnboardFormData {
     account_id: string;
@@ -91,6 +92,14 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
     onClose,
     onSuccess,
 }) => {
+    // Auto-detect user's IP address
+    const {
+        ip: detectedIP,
+        isLoading: ipLoading,
+        error: ipError,
+        retry: retryIP,
+    } = useIPDetection();
+
     const [formData, setFormData] = useState<DirectOnboardFormData>({
         account_id: accountId,
         individual_first_name: '',
@@ -121,7 +130,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         company_address_country: country || 'US',
         // ToS Acceptance
         tos_acceptance_date: Math.floor(Date.now() / 1000),
-        tos_acceptance_ip: '',
+        tos_acceptance_ip: detectedIP || '',
         external_account_object: 'bank_account',
         external_account_country: country || 'US',
         external_account_currency: 'usd',
@@ -148,6 +157,16 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+
+    // Update IP address when detection completes
+    useEffect(() => {
+        if (detectedIP && detectedIP !== formData.tos_acceptance_ip) {
+            setFormData(prev => ({
+                ...prev,
+                tos_acceptance_ip: detectedIP,
+            }));
+        }
+    }, [detectedIP, formData.tos_acceptance_ip]);
 
     // Update account_id and email when props change
     useEffect(() => {
@@ -353,8 +372,69 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                             />
                         </Grid>
 
+                        {/* Business Information - Show immediately after Account ID for company profiles */}
+                        {formData.business_type === 'company' && (
+                            <>
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                        Business Information
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Business Type</InputLabel>
+                                        <Select
+                                            value={formData.business_type}
+                                            label="Business Type"
+                                            onChange={e =>
+                                                handleInputChange('business_type', e.target.value)
+                                            }
+                                        >
+                                            {businessTypes.map(type => (
+                                                <MenuItem key={type.value} value={type.value}>
+                                                    {type.label}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="MCC (Merchant Category Code)"
+                                        value={formData.business_profile_mcc}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'business_profile_mcc',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="5734"
+                                        helperText="4-digit merchant category code"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Business URL"
+                                        value={formData.business_profile_url}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'business_profile_url',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="https://example-merchant.com"
+                                    />
+                                </Grid>
+                            </>
+                        )}
+
                         {/* Personal Information - Only show when business type is Individual */}
-                        {formData.business_type === 'individual' && (
+                        {/* {formData.business_type === 'individual' && (
                             <>
                                 <Grid size={{ xs: 12 }}>
                                     <Typography variant="h6" gutterBottom sx={{ color: 'green' }}>
@@ -370,7 +450,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                     </Typography>
                                 </Grid>
                             </>
-                        )}
+                        )} */}
 
                         {/* Individual Fields - Only show when business type is Individual */}
                         {formData.business_type === 'individual' && (
@@ -383,7 +463,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         handleInputChange('individual_first_name', e.target.value)
                                     }
                                     placeholder="First Name"
-                                    required
                                 />
                             </Grid>
                         )}
@@ -398,7 +477,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         handleInputChange('individual_last_name', e.target.value)
                                     }
                                     placeholder="Last Name"
-                                    required
                                 />
                             </Grid>
                         )}
@@ -436,7 +514,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         handleInputChange('individual_phone', e.target.value)
                                     }
                                     placeholder="+15551234567"
-                                    required
                                 />
                             </Grid>
                         )}
@@ -518,174 +595,181 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
 
                         {/* Address - Only show when business type is Individual */}
                         {formData.business_type === 'individual' && (
-                            <Grid size={{ xs: 12 }}>
-                                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                    Address
-                                </Typography>
-                            </Grid>
+                            <>
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                        Address
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Address Line 1"
+                                        value={formData.individual_address_line1}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'individual_address_line1',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="123 Main Street"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Address Line 2"
+                                        value={formData.individual_address_line2}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'individual_address_line2',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Apartment, suite, unit, or building"
+                                        helperText="Optional"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="City"
+                                        value={formData.individual_address_city}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'individual_address_city',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="New York"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="State"
+                                        value={formData.individual_address_state}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'individual_address_state',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="NY"
+                                        helperText="State, county, province, or region"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Postal Code"
+                                        value={formData.individual_address_postal_code}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'individual_address_postal_code',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="12345"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Country</InputLabel>
+                                        <Select
+                                            value={formData.individual_address_country}
+                                            label="Country"
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_country',
+                                                    e.target.value
+                                                )
+                                            }
+                                        >
+                                            {countries.map(country => (
+                                                <MenuItem key={country.code} value={country.code}>
+                                                    {country.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            </>
                         )}
 
-                        <Grid size={{ xs: 12 }}>
-                            <TextField
-                                fullWidth
-                                label="Address Line 1"
-                                value={formData.individual_address_line1}
-                                onChange={e =>
-                                    handleInputChange('individual_address_line1', e.target.value)
-                                }
-                                placeholder="123 Main Street"
-                                required
-                            />
-                        </Grid>
+                        {/* Business Information - Show for individual profiles after address */}
+                        {formData.business_type === 'individual' && (
+                            <>
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                        Business Information
+                                    </Typography>
+                                </Grid>
 
-                        <Grid size={{ xs: 12 }}>
-                            <TextField
-                                fullWidth
-                                label="Address Line 2"
-                                value={formData.individual_address_line2}
-                                onChange={e =>
-                                    handleInputChange('individual_address_line2', e.target.value)
-                                }
-                                placeholder="Apartment, suite, unit, or building"
-                                helperText="Optional"
-                            />
-                        </Grid>
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Business Type</InputLabel>
+                                        <Select
+                                            value={formData.business_type}
+                                            label="Business Type"
+                                            onChange={e =>
+                                                handleInputChange('business_type', e.target.value)
+                                            }
+                                        >
+                                            {businessTypes.map(type => (
+                                                <MenuItem key={type.value} value={type.value}>
+                                                    {type.label}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
 
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="City"
-                                value={formData.individual_address_city}
-                                onChange={e =>
-                                    handleInputChange('individual_address_city', e.target.value)
-                                }
-                                placeholder="New York"
-                                required
-                            />
-                        </Grid>
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="MCC (Merchant Category Code)"
+                                        value={formData.business_profile_mcc}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'business_profile_mcc',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="5734"
+                                        helperText="4-digit merchant category code"
+                                    />
+                                </Grid>
 
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="State"
-                                value={formData.individual_address_state}
-                                onChange={e =>
-                                    handleInputChange('individual_address_state', e.target.value)
-                                }
-                                placeholder="NY"
-                                helperText="State, county, province, or region"
-                                required
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Postal Code"
-                                value={formData.individual_address_postal_code}
-                                onChange={e =>
-                                    handleInputChange(
-                                        'individual_address_postal_code',
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="12345"
-                                required
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12 }}>
-                            <FormControl fullWidth>
-                                <InputLabel>Country</InputLabel>
-                                <Select
-                                    value={formData.individual_address_country}
-                                    label="Country"
-                                    onChange={e =>
-                                        handleInputChange(
-                                            'individual_address_country',
-                                            e.target.value
-                                        )
-                                    }
-                                >
-                                    {countries.map(country => (
-                                        <MenuItem key={country.code} value={country.code}>
-                                            {country.name}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Grid>
-
-                        {/* Business Information */}
-                        <Grid size={{ xs: 12 }}>
-                            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                Business Information
-                            </Typography>
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <FormControl fullWidth>
-                                <InputLabel>Business Type</InputLabel>
-                                <Select
-                                    value={formData.business_type}
-                                    label="Business Type"
-                                    onChange={e =>
-                                        handleInputChange('business_type', e.target.value)
-                                    }
-                                >
-                                    {businessTypes.map(type => (
-                                        <MenuItem key={type.value} value={type.value}>
-                                            {type.label}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="MCC (Merchant Category Code)"
-                                value={formData.business_profile_mcc}
-                                onChange={e =>
-                                    handleInputChange('business_profile_mcc', e.target.value)
-                                }
-                                placeholder="5734"
-                                helperText="4-digit merchant category code"
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12 }}>
-                            <TextField
-                                fullWidth
-                                label="Business URL"
-                                value={formData.business_profile_url}
-                                onChange={e =>
-                                    handleInputChange('business_profile_url', e.target.value)
-                                }
-                                placeholder="https://example-merchant.com"
-                                required
-                            />
-                        </Grid>
+                                <Grid size={{ xs: 12 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Business URL"
+                                        value={formData.business_profile_url}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'business_profile_url',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="https://example-merchant.com"
+                                    />
+                                </Grid>
+                            </>
+                        )}
 
                         {/* Company Information - Only show when business type is Company */}
                         {formData.business_type === 'company' && (
                             <>
                                 <Grid size={{ xs: 12 }}>
-                                    <Typography
-                                        variant="h6"
-                                        gutterBottom
-                                        sx={{ mt: 2, color: 'green' }}
-                                    >
-                                        ✅ Company Information (VISIBLE)
-                                    </Typography>
-                                    <Typography
-                                        variant="body2"
-                                        color="text.secondary"
-                                        sx={{ mb: 2, color: 'blue' }}
-                                    >
-                                        DEBUG: Business type is: {formData.business_type} - Company
-                                        fields should be visible
+                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                        Company Information
                                     </Typography>
                                 </Grid>
 
@@ -698,7 +782,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             handleInputChange('company_name', e.target.value)
                                         }
                                         placeholder="ABC Technologies LLC"
-                                        required
                                     />
                                 </Grid>
 
@@ -711,7 +794,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             handleInputChange('company_tax_id', e.target.value)
                                         }
                                         placeholder="12-3456789"
-                                        required
                                         helperText="EIN or Tax Identification Number"
                                     />
                                 </Grid>
@@ -760,7 +842,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="123 Main St"
-                                        required
                                     />
                                 </Grid>
 
@@ -791,7 +872,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="New York"
-                                        required
                                     />
                                 </Grid>
 
@@ -807,7 +887,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="NY"
-                                        required
                                         helperText="State, county, province, or region"
                                     />
                                 </Grid>
@@ -824,7 +903,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="10001"
-                                        required
                                     />
                                 </Grid>
 
@@ -891,8 +969,32 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 onChange={e =>
                                     handleInputChange('tos_acceptance_ip', e.target.value)
                                 }
-                                placeholder="203.0.113.1"
-                                helperText="IP address of the user accepting ToS"
+                                placeholder={ipLoading ? 'Detecting IP...' : '203.0.113.1'}
+                                helperText={
+                                    ipLoading
+                                        ? 'Auto-detecting your IP address...'
+                                        : ipError
+                                          ? `Auto-detection failed: ${ipError}. You can enter manually.`
+                                          : 'IP address of the user accepting ToS (auto-detected)'
+                                }
+                                InputProps={{
+                                    endAdornment: ipLoading ? (
+                                        <CircularProgress size={20} />
+                                    ) : ipError ? (
+                                        <Button
+                                            size="small"
+                                            onClick={retryIP}
+                                            sx={{ minWidth: 'auto', px: 1 }}
+                                        >
+                                            Retry
+                                        </Button>
+                                    ) : null,
+                                }}
+                                sx={{
+                                    '& .MuiInputBase-input': {
+                                        color: detectedIP && !ipError ? 'success.main' : 'inherit',
+                                    },
+                                }}
                             />
                         </Grid>
 
@@ -900,20 +1002,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         {formData.business_type === 'company' && (
                             <>
                                 <Grid size={{ xs: 12 }}>
-                                    <Typography
-                                        variant="h6"
-                                        gutterBottom
-                                        sx={{ mt: 2, color: 'green' }}
-                                    >
-                                        ✅ Representative Person Information (VISIBLE)
-                                    </Typography>
-                                    <Typography
-                                        variant="body2"
-                                        color="text.secondary"
-                                        sx={{ mb: 2, color: 'blue' }}
-                                    >
-                                        DEBUG: Business type is: {formData.business_type} -
-                                        Representative fields should be visible
+                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                        Representative Person Information
                                     </Typography>
                                 </Grid>
 
@@ -929,7 +1019,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="Representative First Name"
-                                        required
                                     />
                                 </Grid>
 
@@ -945,7 +1034,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="Representative Last Name"
-                                        required
                                     />
                                 </Grid>
 
@@ -962,7 +1050,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="representative@example.com"
-                                        required
                                     />
                                 </Grid>
 
@@ -978,7 +1065,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="+31612345678"
-                                        required
                                         helperText="Include country code (e.g., +1 for US, +31 for Netherlands)"
                                     />
                                 </Grid>
@@ -995,7 +1081,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="CEO, Manager, etc."
-                                        required
                                     />
                                 </Grid>
 
@@ -1011,7 +1096,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="1234"
-                                        required
                                         inputProps={{ maxLength: 4 }}
                                         helperText="Last 4 digits of Social Security Number (US only)"
                                     />
@@ -1108,7 +1192,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="123 Main Street"
-                                        required
                                     />
                                 </Grid>
 
@@ -1124,7 +1207,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="New York"
-                                        required
                                     />
                                 </Grid>
 
@@ -1140,7 +1222,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="NY"
-                                        required
                                         helperText="2-letter state code"
                                     />
                                 </Grid>
@@ -1157,7 +1238,6 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="12345"
-                                        required
                                     />
                                 </Grid>
 
@@ -1336,37 +1416,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                     onClick={handleSubmit}
                     variant="contained"
                     startIcon={loading ? <CircularProgress size={20} /> : <PersonAddIcon />}
-                    disabled={
-                        loading ||
-                        !formData.account_id ||
-                        !formData.business_profile_url ||
-                        (formData.business_type === 'individual' &&
-                            (!formData.individual_first_name ||
-                                !formData.individual_last_name ||
-                                !formData.individual_email ||
-                                !formData.individual_phone ||
-                                !formData.individual_address_line1 ||
-                                !formData.individual_address_city ||
-                                !formData.individual_address_state ||
-                                !formData.individual_address_postal_code)) ||
-                        (formData.business_type === 'company' &&
-                            (!formData.company_name ||
-                                !formData.company_tax_id ||
-                                !formData.company_address_line1 ||
-                                !formData.company_address_city ||
-                                !formData.company_address_state ||
-                                !formData.company_address_postal_code ||
-                                !formData.representative_first_name ||
-                                !formData.representative_last_name ||
-                                !formData.representative_email ||
-                                !formData.representative_phone ||
-                                !formData.representative_relationship_title ||
-                                !formData.representative_ssn_last_4 ||
-                                !formData.representative_address_line1 ||
-                                !formData.representative_address_city ||
-                                !formData.representative_address_state ||
-                                !formData.representative_address_postal_code))
-                    }
+                    disabled={loading}
                     size="large"
                 >
                     {loading ? 'Onboarding...' : 'Onboard Merchant'}
