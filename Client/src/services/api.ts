@@ -1,4 +1,4 @@
-import { User, ApiResponse } from '../types';
+import { User, ApiResponse, MerchantAccount, PaginatedResponse, PaginationParams } from '../types';
 import { getEnvironmentConfig } from '../utils';
 
 // Simulated API delay to mimic real API calls
@@ -211,6 +211,107 @@ export class ApiService {
         } catch (error) {
             return {
                 data: false,
+                message: error instanceof Error ? error.message : 'An unexpected error occurred',
+                success: false,
+            };
+        }
+    }
+
+    // Fetch merchant accounts with pagination
+    async getMerchantAccounts(
+        params: PaginationParams = {}
+    ): Promise<ApiResponse<PaginatedResponse<MerchantAccount>>> {
+        try {
+            const queryParams = new URLSearchParams();
+
+            if (params.limit) {
+                queryParams.append('limit', params.limit.toString());
+            }
+            if (params.starting_after) {
+                queryParams.append('starting_after', params.starting_after);
+            }
+            if (params.ending_before) {
+                queryParams.append('ending_before', params.ending_before);
+            }
+
+            const url = `${this.baseUrl}/api/stripe/accounts${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                return {
+                    data: result.data,
+                    message: 'Merchant accounts fetched successfully',
+                    success: true,
+                };
+            } else {
+                return {
+                    data: { data: [], has_more: false },
+                    message: result.error || 'Failed to fetch merchant accounts',
+                    success: false,
+                };
+            }
+        } catch (error) {
+            return {
+                data: { data: [], has_more: false },
+                message: error instanceof Error ? error.message : 'An unexpected error occurred',
+                success: false,
+            };
+        }
+    }
+
+    // Fetch a single merchant account by ID
+    async getMerchantAccountById(id: string): Promise<ApiResponse<MerchantAccount | null>> {
+        try {
+            const url = `${this.baseUrl}/api/stripe/accounts/${id}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    return {
+                        data: null,
+                        message: 'Merchant account not found',
+                        success: false,
+                    };
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                return {
+                    data: result.data,
+                    message: 'Merchant account fetched successfully',
+                    success: true,
+                };
+            } else {
+                return {
+                    data: null,
+                    message: result.error || 'Failed to fetch merchant account',
+                    success: false,
+                };
+            }
+        } catch (error) {
+            return {
+                data: null,
                 message: error instanceof Error ? error.message : 'An unexpected error occurred',
                 success: false,
             };

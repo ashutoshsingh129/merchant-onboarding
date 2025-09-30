@@ -475,4 +475,121 @@ router.post("/create-external-account", async (req, res) => {
   }
 });
 
+// Get all Stripe accounts with pagination
+router.get("/accounts", async (req, res) => {
+  try {
+    const { limit = 10, starting_after, ending_before } = req.query;
+
+    // Build query parameters for Stripe API
+    const queryParams = {
+      limit: parseInt(limit),
+    };
+
+    if (starting_after) {
+      queryParams.starting_after = starting_after;
+    }
+
+    if (ending_before) {
+      queryParams.ending_before = ending_before;
+    }
+
+    // Fetch accounts from Stripe
+    const accounts = await stripe.accounts.list(queryParams);
+
+    // Transform the response to match our interface
+    const transformedAccounts = accounts.data.map(account => ({
+      id: account.id,
+      email: account.email,
+      business_type: account.business_type,
+      country: account.country,
+      created: account.created,
+      business_profile: {
+        name: account.business_profile?.name || null,
+        url: account.business_profile?.url || null,
+        mcc: account.business_profile?.mcc || null,
+      },
+      capabilities: {
+        card_payments: account.capabilities?.card_payments || "inactive",
+        transfers: account.capabilities?.transfers || "inactive",
+      },
+      charges_enabled: account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+      details_submitted: account.details_submitted,
+      requirements: {
+        disabled_reason: account.requirements?.disabled_reason || null,
+      },
+      tos_acceptance: {
+        date: account.tos_acceptance?.date || null,
+        ip: account.tos_acceptance?.ip || null,
+        user_agent: account.tos_acceptance?.user_agent || null,
+      },
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        data: transformedAccounts,
+        has_more: accounts.has_more,
+        total_count: accounts.total_count,
+        url: accounts.url,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching Stripe accounts:", error);
+    res.status(500).json({
+      error: "Failed to fetch Stripe accounts",
+      message: error.message,
+    });
+  }
+});
+
+// Get a single Stripe account by ID
+router.get("/accounts/:account_id", async (req, res) => {
+  try {
+    const { account_id } = req.params;
+
+    const account = await stripe.accounts.retrieve(account_id);
+
+    // Transform the response to match our interface
+    const transformedAccount = {
+      id: account.id,
+      email: account.email,
+      business_type: account.business_type,
+      country: account.country,
+      created: account.created,
+      business_profile: {
+        name: account.business_profile?.name || null,
+        url: account.business_profile?.url || null,
+        mcc: account.business_profile?.mcc || null,
+      },
+      capabilities: {
+        card_payments: account.capabilities?.card_payments || "inactive",
+        transfers: account.capabilities?.transfers || "inactive",
+      },
+      charges_enabled: account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+      details_submitted: account.details_submitted,
+      requirements: {
+        disabled_reason: account.requirements?.disabled_reason || null,
+      },
+      tos_acceptance: {
+        date: account.tos_acceptance?.date || null,
+        ip: account.tos_acceptance?.ip || null,
+        user_agent: account.tos_acceptance?.user_agent || null,
+      },
+    };
+
+    res.json({
+      success: true,
+      data: transformedAccount,
+    });
+  } catch (error) {
+    console.error("Error retrieving Stripe account:", error);
+    res.status(500).json({
+      error: "Failed to retrieve Stripe account",
+      message: error.message,
+    });
+  }
+});
+
 module.exports = router;

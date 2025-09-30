@@ -26,3 +26,49 @@ export interface EnvironmentConfig {
     APP_NAME: string;
     VERSION: string;
 }
+
+export interface MerchantAccount {
+    id: string;
+    email: string | null;
+    business_type: 'individual' | 'company' | string;
+    country: string;
+    created: number; // UNIX timestamp
+
+    business_profile: {
+        name: string | null;
+        url: string | null;
+        mcc: string | null;
+    };
+
+    capabilities: {
+        card_payments: 'active' | 'inactive' | 'pending';
+        transfers: 'active' | 'inactive' | 'pending';
+    };
+
+    charges_enabled: boolean;
+    payouts_enabled: boolean;
+    details_submitted: boolean;
+
+    requirements: {
+        disabled_reason: string | null;
+    };
+
+    tos_acceptance: {
+        date: number | null; // UNIX timestamp
+        ip: string | null;
+        user_agent: string | null;
+    };
+}
+
+export interface PaginatedResponse<T> {
+    data: T[];
+    has_more: boolean;
+    total_count?: number;
+    url?: string;
+}
+
+export interface PaginationParams {
+    limit?: number;
+    starting_after?: string;
+    ending_before?: string;
+}
