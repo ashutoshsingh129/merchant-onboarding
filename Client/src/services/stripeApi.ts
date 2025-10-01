@@ -226,8 +226,18 @@ interface DirectOnboardRequest {
     // File IDs for identity verification
     individual_verification_document_front?: string;
     individual_verification_document_back?: string;
+    individual_verification_additional_document_front?: string;
+    individual_verification_additional_document_back?: string;
+    company_verification_document_front?: string;
+    company_verification_document_back?: string;
     representative_verification_document_front?: string;
     representative_verification_document_back?: string;
+    representative_verification_additional_document_front?: string;
+    representative_verification_additional_document_back?: string;
+    owner_verification_document_front?: string;
+    owner_verification_document_back?: string;
+    owner_verification_additional_document_front?: string;
+    owner_verification_additional_document_back?: string;
 }
 
 interface DirectOnboardResponse {

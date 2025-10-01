@@ -105,8 +105,18 @@ interface DirectOnboardFormData {
     // File IDs for identity verification
     individual_verification_document_front?: string;
     individual_verification_document_back?: string;
+    individual_verification_additional_document_front?: string;
+    individual_verification_additional_document_back?: string;
+    company_verification_document_front?: string;
+    company_verification_document_back?: string;
     representative_verification_document_front?: string;
     representative_verification_document_back?: string;
+    representative_verification_additional_document_front?: string;
+    representative_verification_additional_document_back?: string;
+    owner_verification_document_front?: string;
+    owner_verification_document_back?: string;
+    owner_verification_additional_document_front?: string;
+    owner_verification_additional_document_back?: string;
 }
 
 interface DirectOnboardFormProps {
@@ -214,8 +224,18 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
     const [uploadedFiles, setUploadedFiles] = useState<{
         individual_front?: { id: string; name: string };
         individual_back?: { id: string; name: string };
+        individual_additional_front?: { id: string; name: string };
+        individual_additional_back?: { id: string; name: string };
+        company_front?: { id: string; name: string };
+        company_back?: { id: string; name: string };
         representative_front?: { id: string; name: string };
         representative_back?: { id: string; name: string };
+        representative_additional_front?: { id: string; name: string };
+        representative_additional_back?: { id: string; name: string };
+        owner_front?: { id: string; name: string };
+        owner_back?: { id: string; name: string };
+        owner_additional_front?: { id: string; name: string };
+        owner_additional_back?: { id: string; name: string };
     }>({});
 
     // Update IP address when detection completes
@@ -317,8 +337,18 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         type:
             | 'individual_front'
             | 'individual_back'
+            | 'individual_additional_front'
+            | 'individual_additional_back'
+            | 'company_front'
+            | 'company_back'
             | 'representative_front'
             | 'representative_back'
+            | 'representative_additional_front'
+            | 'representative_additional_back'
+            | 'owner_front'
+            | 'owner_back'
+            | 'owner_additional_front'
+            | 'owner_additional_back'
     ) => {
         try {
             setUploadingFile(type);
@@ -337,8 +367,21 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                 const fieldMapping = {
                     individual_front: 'individual_verification_document_front',
                     individual_back: 'individual_verification_document_back',
+                    individual_additional_front:
+                        'individual_verification_additional_document_front',
+                    individual_additional_back: 'individual_verification_additional_document_back',
+                    company_front: 'company_verification_document_front',
+                    company_back: 'company_verification_document_back',
                     representative_front: 'representative_verification_document_front',
                     representative_back: 'representative_verification_document_back',
+                    representative_additional_front:
+                        'representative_verification_additional_document_front',
+                    representative_additional_back:
+                        'representative_verification_additional_document_back',
+                    owner_front: 'owner_verification_document_front',
+                    owner_back: 'owner_verification_document_back',
+                    owner_additional_front: 'owner_verification_additional_document_front',
+                    owner_additional_back: 'owner_verification_additional_document_back',
                 } as const;
 
                 setFormData(prev => ({
@@ -903,6 +946,90 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         />
                                     </Button>
                                 </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                                        Additional Document (Address Proof - Optional)
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                                        Upload a utility bill, bank statement, or official
+                                        correspondence
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.individual_additional_front ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={uploadingFile === 'individual_additional_front'}
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'individual_additional_front'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.individual_additional_front
+                                              ? `Uploaded: ${uploadedFiles.individual_additional_front.name}`
+                                              : 'Upload Address Proof (Front)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(
+                                                        file,
+                                                        'individual_additional_front'
+                                                    );
+                                                }
+                                            }}
+                                        />
+                                    </Button>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.individual_additional_back ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={uploadingFile === 'individual_additional_back'}
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'individual_additional_back'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.individual_additional_back
+                                              ? `Uploaded: ${uploadedFiles.individual_additional_back.name}`
+                                              : 'Upload Address Proof (Back)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(
+                                                        file,
+                                                        'individual_additional_back'
+                                                    );
+                                                }
+                                            }}
+                                        />
+                                    </Button>
+                                </Grid>
                             </>
                         )}
 
@@ -1129,6 +1256,85 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             ))}
                                         </Select>
                                     </FormControl>
+                                </Grid>
+
+                                {/* Company Verification Documents */}
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                        Company Verification Documents (Optional)
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                                        Upload company legal documents (IRS Letter 147C, EIN
+                                        Assistance Letter, etc.)
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.company_front ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={uploadingFile === 'company_front'}
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'company_front'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.company_front
+                                              ? `Uploaded: ${uploadedFiles.company_front.name}`
+                                              : 'Upload Company Document (Front)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(file, 'company_front');
+                                                }
+                                            }}
+                                        />
+                                    </Button>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.company_back ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={uploadingFile === 'company_back'}
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'company_back'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.company_back
+                                              ? `Uploaded: ${uploadedFiles.company_back.name}`
+                                              : 'Upload Company Document (Back)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(file, 'company_back');
+                                                }
+                                            }}
+                                        />
+                                    </Button>
                                 </Grid>
                             </>
                         )}
@@ -1545,6 +1751,94 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                     </Button>
                                 </Grid>
 
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                                        Additional Document (Address Proof - Optional)
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                                        Upload utility bill, bank statement, or official
+                                        correspondence for the representative
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.representative_additional_front ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={
+                                            uploadingFile === 'representative_additional_front'
+                                        }
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'representative_additional_front'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.representative_additional_front
+                                              ? `Uploaded: ${uploadedFiles.representative_additional_front.name}`
+                                              : 'Upload Address Proof (Front)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(
+                                                        file,
+                                                        'representative_additional_front'
+                                                    );
+                                                }
+                                            }}
+                                        />
+                                    </Button>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.representative_additional_back ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={
+                                            uploadingFile === 'representative_additional_back'
+                                        }
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'representative_additional_back'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.representative_additional_back
+                                              ? `Uploaded: ${uploadedFiles.representative_additional_back.name}`
+                                              : 'Upload Address Proof (Back)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(
+                                                        file,
+                                                        'representative_additional_back'
+                                                    );
+                                                }
+                                            }}
+                                        />
+                                    </Button>
+                                </Grid>
+
                                 {/* Owner Checkbox */}
                                 <Grid size={{ xs: 12 }}>
                                     <FormControlLabel
@@ -1818,6 +2112,166 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             ))}
                                         </Select>
                                     </FormControl>
+                                </Grid>
+
+                                {/* Owner Identity Verification Documents */}
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                        Owner Identity Verification (Optional)
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                                        Upload identity document for the owner (driver's license,
+                                        passport, etc.)
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.owner_front ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={uploadingFile === 'owner_front'}
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'owner_front'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.owner_front
+                                              ? `Uploaded: ${uploadedFiles.owner_front.name}`
+                                              : 'Upload Owner ID (Front)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(file, 'owner_front');
+                                                }
+                                            }}
+                                        />
+                                    </Button>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.owner_back ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={uploadingFile === 'owner_back'}
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'owner_back'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.owner_back
+                                              ? `Uploaded: ${uploadedFiles.owner_back.name}`
+                                              : 'Upload Owner ID (Back)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(file, 'owner_back');
+                                                }
+                                            }}
+                                        />
+                                    </Button>
+                                </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                                        Additional Document (Address Proof - Optional)
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                                        Upload utility bill, bank statement, or official
+                                        correspondence for the owner
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.owner_additional_front ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={uploadingFile === 'owner_additional_front'}
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'owner_additional_front'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.owner_additional_front
+                                              ? `Uploaded: ${uploadedFiles.owner_additional_front.name}`
+                                              : 'Upload Address Proof (Front)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(
+                                                        file,
+                                                        'owner_additional_front'
+                                                    );
+                                                }
+                                            }}
+                                        />
+                                    </Button>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.owner_additional_back ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={uploadingFile === 'owner_additional_back'}
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'owner_additional_back'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.owner_additional_back
+                                              ? `Uploaded: ${uploadedFiles.owner_additional_back.name}`
+                                              : 'Upload Address Proof (Back)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(file, 'owner_additional_back');
+                                                }
+                                            }}
+                                        />
+                                    </Button>
                                 </Grid>
                             </>
                         )}

@@ -217,8 +217,18 @@ router.post("/direct-onboard", async (req, res) => {
       // File IDs for identity verification
       individual_verification_document_front,
       individual_verification_document_back,
+      individual_verification_additional_document_front,
+      individual_verification_additional_document_back,
+      company_verification_document_front,
+      company_verification_document_back,
       representative_verification_document_front,
       representative_verification_document_back,
+      representative_verification_additional_document_front,
+      representative_verification_additional_document_back,
+      owner_verification_document_front,
+      owner_verification_document_back,
+      owner_verification_additional_document_front,
+      owner_verification_additional_document_back,
     } = req.body;
 
     // Validate required fields
@@ -273,15 +283,30 @@ router.post("/direct-onboard", async (req, res) => {
       };
 
       // Add identity verification documents if provided
-      if (individual_verification_document_front || individual_verification_document_back) {
-        accountUpdateData.individual.verification = {
-          document: {},
-        };
-        if (individual_verification_document_front) {
-          accountUpdateData.individual.verification.document.front = individual_verification_document_front;
+      if (individual_verification_document_front || individual_verification_document_back || 
+          individual_verification_additional_document_front || individual_verification_additional_document_back) {
+        accountUpdateData.individual.verification = {};
+        
+        // Identity document (ID)
+        if (individual_verification_document_front || individual_verification_document_back) {
+          accountUpdateData.individual.verification.document = {};
+          if (individual_verification_document_front) {
+            accountUpdateData.individual.verification.document.front = individual_verification_document_front;
+          }
+          if (individual_verification_document_back) {
+            accountUpdateData.individual.verification.document.back = individual_verification_document_back;
+          }
         }
-        if (individual_verification_document_back) {
-          accountUpdateData.individual.verification.document.back = individual_verification_document_back;
+        
+        // Additional document (address proof)
+        if (individual_verification_additional_document_front || individual_verification_additional_document_back) {
+          accountUpdateData.individual.verification.additional_document = {};
+          if (individual_verification_additional_document_front) {
+            accountUpdateData.individual.verification.additional_document.front = individual_verification_additional_document_front;
+          }
+          if (individual_verification_additional_document_back) {
+            accountUpdateData.individual.verification.additional_document.back = individual_verification_additional_document_back;
+          }
         }
       }
     } else if (business_type === "company") {
@@ -332,6 +357,19 @@ router.post("/direct-onboard", async (req, res) => {
       // Only add address if we have at least line1
       if (company_address_line1) {
         accountUpdateData.company.address = companyAddress;
+      }
+
+      // Add company verification documents if provided
+      if (company_verification_document_front || company_verification_document_back) {
+        accountUpdateData.company.verification = {
+          document: {},
+        };
+        if (company_verification_document_front) {
+          accountUpdateData.company.verification.document.front = company_verification_document_front;
+        }
+        if (company_verification_document_back) {
+          accountUpdateData.company.verification.document.back = company_verification_document_back;
+        }
       }
 
       // For company accounts, we need to handle representative person
@@ -390,15 +428,30 @@ router.post("/direct-onboard", async (req, res) => {
         };
 
         // Add identity verification documents if provided
-        if (representative_verification_document_front || representative_verification_document_back) {
-          representativeData.verification = {
-            document: {},
-          };
-          if (representative_verification_document_front) {
-            representativeData.verification.document.front = representative_verification_document_front;
+        if (representative_verification_document_front || representative_verification_document_back ||
+            representative_verification_additional_document_front || representative_verification_additional_document_back) {
+          representativeData.verification = {};
+          
+          // Identity document (ID)
+          if (representative_verification_document_front || representative_verification_document_back) {
+            representativeData.verification.document = {};
+            if (representative_verification_document_front) {
+              representativeData.verification.document.front = representative_verification_document_front;
+            }
+            if (representative_verification_document_back) {
+              representativeData.verification.document.back = representative_verification_document_back;
+            }
           }
-          if (representative_verification_document_back) {
-            representativeData.verification.document.back = representative_verification_document_back;
+          
+          // Additional document (address proof)
+          if (representative_verification_additional_document_front || representative_verification_additional_document_back) {
+            representativeData.verification.additional_document = {};
+            if (representative_verification_additional_document_front) {
+              representativeData.verification.additional_document.front = representative_verification_additional_document_front;
+            }
+            if (representative_verification_additional_document_back) {
+              representativeData.verification.additional_document.back = representative_verification_additional_document_back;
+            }
           }
         }
 
@@ -441,15 +494,30 @@ router.post("/direct-onboard", async (req, res) => {
         };
 
         // Add identity verification documents if provided
-        if (representative_verification_document_front || representative_verification_document_back) {
-          representativeData.verification = {
-            document: {},
-          };
-          if (representative_verification_document_front) {
-            representativeData.verification.document.front = representative_verification_document_front;
+        if (representative_verification_document_front || representative_verification_document_back ||
+            representative_verification_additional_document_front || representative_verification_additional_document_back) {
+          representativeData.verification = {};
+          
+          // Identity document (ID)
+          if (representative_verification_document_front || representative_verification_document_back) {
+            representativeData.verification.document = {};
+            if (representative_verification_document_front) {
+              representativeData.verification.document.front = representative_verification_document_front;
+            }
+            if (representative_verification_document_back) {
+              representativeData.verification.document.back = representative_verification_document_back;
+            }
           }
-          if (representative_verification_document_back) {
-            representativeData.verification.document.back = representative_verification_document_back;
+          
+          // Additional document (address proof)
+          if (representative_verification_additional_document_front || representative_verification_additional_document_back) {
+            representativeData.verification.additional_document = {};
+            if (representative_verification_additional_document_front) {
+              representativeData.verification.additional_document.front = representative_verification_additional_document_front;
+            }
+            if (representative_verification_additional_document_back) {
+              representativeData.verification.additional_document.back = representative_verification_additional_document_back;
+            }
           }
         }
 
@@ -473,7 +541,7 @@ router.post("/direct-onboard", async (req, res) => {
 
         if (existingOwner) {
           // Update existing owner
-          ownerPerson = await stripe.accounts.updatePerson(account_id, existingOwner.id, {
+          const ownerData = {
             first_name: owner_first_name,
             last_name: owner_last_name,
             email: owner_email,
@@ -504,10 +572,40 @@ router.post("/direct-onboard", async (req, res) => {
               title: owner_relationship_title,
             },
             ssn_last_4: owner_ssn_last_4,
-          });
+          };
+
+          // Add identity verification documents if provided
+          if (owner_verification_document_front || owner_verification_document_back ||
+              owner_verification_additional_document_front || owner_verification_additional_document_back) {
+            ownerData.verification = {};
+            
+            // Identity document (ID)
+            if (owner_verification_document_front || owner_verification_document_back) {
+              ownerData.verification.document = {};
+              if (owner_verification_document_front) {
+                ownerData.verification.document.front = owner_verification_document_front;
+              }
+              if (owner_verification_document_back) {
+                ownerData.verification.document.back = owner_verification_document_back;
+              }
+            }
+            
+            // Additional document (address proof)
+            if (owner_verification_additional_document_front || owner_verification_additional_document_back) {
+              ownerData.verification.additional_document = {};
+              if (owner_verification_additional_document_front) {
+                ownerData.verification.additional_document.front = owner_verification_additional_document_front;
+              }
+              if (owner_verification_additional_document_back) {
+                ownerData.verification.additional_document.back = owner_verification_additional_document_back;
+              }
+            }
+          }
+
+          ownerPerson = await stripe.accounts.updatePerson(account_id, existingOwner.id, ownerData);
         } else {
           // Create new owner person
-          ownerPerson = await stripe.accounts.createPerson(account_id, {
+          const ownerData = {
             first_name: owner_first_name,
             last_name: owner_last_name,
             email: owner_email,
@@ -538,7 +636,37 @@ router.post("/direct-onboard", async (req, res) => {
               title: owner_relationship_title,
             },
             ssn_last_4: owner_ssn_last_4,
-          });
+          };
+
+          // Add identity verification documents if provided
+          if (owner_verification_document_front || owner_verification_document_back ||
+              owner_verification_additional_document_front || owner_verification_additional_document_back) {
+            ownerData.verification = {};
+            
+            // Identity document (ID)
+            if (owner_verification_document_front || owner_verification_document_back) {
+              ownerData.verification.document = {};
+              if (owner_verification_document_front) {
+                ownerData.verification.document.front = owner_verification_document_front;
+              }
+              if (owner_verification_document_back) {
+                ownerData.verification.document.back = owner_verification_document_back;
+              }
+            }
+            
+            // Additional document (address proof)
+            if (owner_verification_additional_document_front || owner_verification_additional_document_back) {
+              ownerData.verification.additional_document = {};
+              if (owner_verification_additional_document_front) {
+                ownerData.verification.additional_document.front = owner_verification_additional_document_front;
+              }
+              if (owner_verification_additional_document_back) {
+                ownerData.verification.additional_document.back = owner_verification_additional_document_back;
+              }
+            }
+          }
+
+          ownerPerson = await stripe.accounts.createPerson(account_id, ownerData);
         }
       }
 
