@@ -135,6 +135,7 @@ router.post("/direct-onboard", async (req, res) => {
       representative_address_country,
       representative_relationship_representative,
       representative_relationship_executive,
+      representative_relationship_owner,
       representative_relationship_title,
       representative_ssn_last_4,
       external_account_object,
@@ -208,6 +209,7 @@ router.post("/direct-onboard", async (req, res) => {
       accountUpdateData.company = {
         name: company_name,
         structure: company_structure,
+        owners_provided: true, // Indicates that all owner information has been provided
       };
 
       // Only add tax_id if it's a valid 9-digit number
@@ -245,6 +247,7 @@ router.post("/direct-onboard", async (req, res) => {
       // For company accounts, we need to handle representative person
       // First, check if there's already a representative
       let existingRepresentative = null;
+      let representativePerson = null;
       try {
         const persons = await stripe.accounts.listPersons(account_id);
         existingRepresentative = persons.data.find(person => 
@@ -256,7 +259,7 @@ router.post("/direct-onboard", async (req, res) => {
 
       if (existingRepresentative) {
         // Update existing representative
-        await stripe.accounts.updatePerson(account_id, existingRepresentative.id, {
+        representativePerson = await stripe.accounts.updatePerson(account_id, existingRepresentative.id, {
           first_name: representative_first_name,
           last_name: representative_last_name,
           email: representative_email,
@@ -285,14 +288,14 @@ router.post("/direct-onboard", async (req, res) => {
           relationship: {
             representative: representative_relationship_representative,
             executive: representative_relationship_executive,
-            owner: representative_relationship_executive, // Set owner to true if executive is true
+            owner: representative_relationship_owner,
             title: representative_relationship_title,
           },
           ssn_last_4: representative_ssn_last_4,
         });
       } else {
         // Create new representative person
-        await stripe.accounts.createPerson(account_id, {
+        representativePerson = await stripe.accounts.createPerson(account_id, {
           first_name: representative_first_name,
           last_name: representative_last_name,
           email: representative_email,
@@ -321,7 +324,7 @@ router.post("/direct-onboard", async (req, res) => {
           relationship: {
             representative: representative_relationship_representative,
             executive: representative_relationship_executive,
-            owner: representative_relationship_executive, // Set owner to true if executive is true
+            owner: representative_relationship_owner,
             title: representative_relationship_title,
           },
           ssn_last_4: representative_ssn_last_4,

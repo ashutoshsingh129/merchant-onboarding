@@ -71,6 +71,7 @@ interface DirectOnboardFormData {
     representative_address_country: string;
     representative_relationship_representative: boolean;
     representative_relationship_executive: boolean;
+    representative_relationship_owner: boolean;
     representative_relationship_title: string;
     representative_ssn_last_4: string;
 }
@@ -150,6 +151,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         representative_address_country: country || 'US',
         representative_relationship_representative: true,
         representative_relationship_executive: false,
+        representative_relationship_owner: false,
         representative_relationship_title: '',
         representative_ssn_last_4: '',
     });
@@ -321,6 +323,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         representative_address_country: country || 'US',
                         representative_relationship_representative: true,
                         representative_relationship_executive: false,
+                        representative_relationship_owner: false,
                         representative_relationship_title: '',
                         representative_ssn_last_4: '',
                     });
@@ -1293,6 +1296,23 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                     <FormControlLabel
                                         control={
                                             <Checkbox
+                                                checked={formData.representative_relationship_owner}
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'representative_relationship_owner',
+                                                        e.target.checked
+                                                    )
+                                                }
+                                            />
+                                        }
+                                        label="Mark this representative as owner"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
                                                 checked={
                                                     formData.representative_relationship_executive
                                                 }
@@ -1304,7 +1324,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 }
                                             />
                                         }
-                                        label="Is this person an owner/executive with significant control?"
+                                        label="Is this person an executive with significant control?"
                                     />
                                 </Grid>
                             </>
