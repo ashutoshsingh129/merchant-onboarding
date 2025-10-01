@@ -17,8 +17,12 @@ import {
     FormControlLabel,
     Checkbox,
 } from '@mui/material';
-import { PersonAdd as PersonAddIcon } from '@mui/icons-material';
-import { directOnboardMerchant } from '../../services/stripeApi';
+import {
+    PersonAdd as PersonAddIcon,
+    CloudUpload as CloudUploadIcon,
+    CheckCircle as CheckCircleIcon,
+} from '@mui/icons-material';
+import { directOnboardMerchant, uploadDocument } from '../../services/stripeApi';
 import { useIPDetection } from '../../services/ipService';
 
 interface DirectOnboardFormData {
@@ -98,6 +102,11 @@ interface DirectOnboardFormData {
     owner_relationship_owner: boolean;
     owner_relationship_title: string;
     owner_ssn_last_4: string;
+    // File IDs for identity verification
+    individual_verification_document_front?: string;
+    individual_verification_document_back?: string;
+    representative_verification_document_front?: string;
+    representative_verification_document_back?: string;
 }
 
 interface DirectOnboardFormProps {
@@ -200,6 +209,15 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
     const [success, setSuccess] = useState(false);
     const [representativeIsOwner, setRepresentativeIsOwner] = useState(false);
 
+    // File upload states
+    const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+    const [uploadedFiles, setUploadedFiles] = useState<{
+        individual_front?: { id: string; name: string };
+        individual_back?: { id: string; name: string };
+        representative_front?: { id: string; name: string };
+        representative_back?: { id: string; name: string };
+    }>({});
+
     // Update IP address when detection completes
     useEffect(() => {
         if (detectedIP && detectedIP !== formData.tos_acceptance_ip) {
@@ -294,6 +312,47 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         }));
     };
 
+    const handleFileUpload = async (
+        file: File,
+        type:
+            | 'individual_front'
+            | 'individual_back'
+            | 'representative_front'
+            | 'representative_back'
+    ) => {
+        try {
+            setUploadingFile(type);
+            setError(null);
+
+            const response = await uploadDocument(file, 'identity_document');
+
+            if (response.success && response.file_id) {
+                // Update uploaded files state
+                setUploadedFiles(prev => ({
+                    ...prev,
+                    [type]: { id: response.file_id!, name: file.name },
+                }));
+
+                // Update form data with file ID
+                const fieldMapping = {
+                    individual_front: 'individual_verification_document_front',
+                    individual_back: 'individual_verification_document_back',
+                    representative_front: 'representative_verification_document_front',
+                    representative_back: 'representative_verification_document_back',
+                } as const;
+
+                setFormData(prev => ({
+                    ...prev,
+                    [fieldMapping[type]]: response.file_id,
+                }));
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to upload document');
+        } finally {
+            setUploadingFile(null);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -312,6 +371,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         onSuccess();
                     }
                     setSuccess(false);
+                    // Reset uploaded files
+                    setUploadedFiles({});
                     // Reset form completely
                     setFormData({
                         account_id: accountId,
@@ -758,6 +819,89 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             ))}
                                         </Select>
                                     </FormControl>
+                                </Grid>
+                            </>
+                        )}
+
+                        {/* Identity Document Upload - Only show when business type is Individual */}
+                        {formData.business_type === 'individual' && (
+                            <>
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                        Identity Verification (Optional)
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                                        Upload an identity document (driver's license, passport,
+                                        etc.) to verify your identity
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.individual_front ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={uploadingFile === 'individual_front'}
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'individual_front'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.individual_front
+                                              ? `Uploaded: ${uploadedFiles.individual_front.name}`
+                                              : 'Upload ID Document (Front)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(file, 'individual_front');
+                                                }
+                                            }}
+                                        />
+                                    </Button>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.individual_back ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={uploadingFile === 'individual_back'}
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'individual_back'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.individual_back
+                                              ? `Uploaded: ${uploadedFiles.individual_back.name}`
+                                              : 'Upload ID Document (Back)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(file, 'individual_back');
+                                                }
+                                            }}
+                                        />
+                                    </Button>
                                 </Grid>
                             </>
                         )}
@@ -1320,6 +1464,85 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             ))}
                                         </Select>
                                     </FormControl>
+                                </Grid>
+
+                                {/* Identity Document Upload for Representative */}
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                        Representative Identity Verification (Optional)
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                                        Upload an identity document (driver's license, passport,
+                                        etc.) for the representative
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.representative_front ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={uploadingFile === 'representative_front'}
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'representative_front'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.representative_front
+                                              ? `Uploaded: ${uploadedFiles.representative_front.name}`
+                                              : 'Upload ID Document (Front)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(file, 'representative_front');
+                                                }
+                                            }}
+                                        />
+                                    </Button>
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        fullWidth
+                                        startIcon={
+                                            uploadedFiles.representative_back ? (
+                                                <CheckCircleIcon color="success" />
+                                            ) : (
+                                                <CloudUploadIcon />
+                                            )
+                                        }
+                                        disabled={uploadingFile === 'representative_back'}
+                                        sx={{ height: '56px' }}
+                                    >
+                                        {uploadingFile === 'representative_back'
+                                            ? 'Uploading...'
+                                            : uploadedFiles.representative_back
+                                              ? `Uploaded: ${uploadedFiles.representative_back.name}`
+                                              : 'Upload ID Document (Back)'}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*,.pdf"
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    handleFileUpload(file, 'representative_back');
+                                                }
+                                            }}
+                                        />
+                                    </Button>
                                 </Grid>
 
                                 {/* Owner Checkbox */}

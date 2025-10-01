@@ -1,7 +1,64 @@
 const express = require("express");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const multer = require("multer");
+const fs = require("fs");
 
 const router = express.Router();
+
+// Configure multer for file uploads
+const upload = multer({ dest: "uploads/" });
+
+// Upload identity document to Stripe
+router.post("/upload-document", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: "No file uploaded",
+      });
+    }
+
+    const { purpose } = req.body;
+
+    // Upload file to Stripe
+    const file = await stripe.files.create({
+      purpose: purpose || "identity_document",
+      file: {
+        data: fs.readFileSync(req.file.path),
+        name: req.file.originalname,
+        type: req.file.mimetype,
+      },
+    });
+
+    // Clean up the temporary file
+    fs.unlinkSync(req.file.path);
+
+    res.json({
+      success: true,
+      file_id: file.id,
+      file: {
+        id: file.id,
+        object: file.object,
+        purpose: file.purpose,
+        filename: file.filename,
+        size: file.size,
+        type: file.type,
+        created: file.created,
+      },
+    });
+  } catch (error) {
+    console.error("Error uploading file to Stripe:", error);
+    
+    // Clean up the temporary file if it exists
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.status(500).json({
+      error: "Failed to upload file to Stripe",
+      message: error.message,
+    });
+  }
+});
 
 // Create a new Stripe account
 router.post("/create-account", async (req, res) => {
@@ -157,6 +214,11 @@ router.post("/direct-onboard", async (req, res) => {
       external_account_country,
       external_account_currency,
       external_account_account_number,
+      // File IDs for identity verification
+      individual_verification_document_front,
+      individual_verification_document_back,
+      representative_verification_document_front,
+      representative_verification_document_back,
     } = req.body;
 
     // Validate required fields
@@ -209,6 +271,19 @@ router.post("/direct-onboard", async (req, res) => {
           country: individual_address_country,
         },
       };
+
+      // Add identity verification documents if provided
+      if (individual_verification_document_front || individual_verification_document_back) {
+        accountUpdateData.individual.verification = {
+          document: {},
+        };
+        if (individual_verification_document_front) {
+          accountUpdateData.individual.verification.document.front = individual_verification_document_front;
+        }
+        if (individual_verification_document_back) {
+          accountUpdateData.individual.verification.document.back = individual_verification_document_back;
+        }
+      }
     } else if (business_type === "company") {
       // Add company information to account update data
       const companyAddress = {};
@@ -279,7 +354,7 @@ router.post("/direct-onboard", async (req, res) => {
 
       if (existingRepresentative) {
         // Update existing representative
-        representativePerson = await stripe.accounts.updatePerson(account_id, existingRepresentative.id, {
+        const representativeData = {
           first_name: representative_first_name,
           last_name: representative_last_name,
           email: representative_email,
@@ -312,10 +387,25 @@ router.post("/direct-onboard", async (req, res) => {
             title: representative_relationship_title,
           },
           ssn_last_4: representative_ssn_last_4,
-        });
+        };
+
+        // Add identity verification documents if provided
+        if (representative_verification_document_front || representative_verification_document_back) {
+          representativeData.verification = {
+            document: {},
+          };
+          if (representative_verification_document_front) {
+            representativeData.verification.document.front = representative_verification_document_front;
+          }
+          if (representative_verification_document_back) {
+            representativeData.verification.document.back = representative_verification_document_back;
+          }
+        }
+
+        representativePerson = await stripe.accounts.updatePerson(account_id, existingRepresentative.id, representativeData);
       } else {
         // Create new representative person
-        representativePerson = await stripe.accounts.createPerson(account_id, {
+        const representativeData = {
           first_name: representative_first_name,
           last_name: representative_last_name,
           email: representative_email,
@@ -348,7 +438,22 @@ router.post("/direct-onboard", async (req, res) => {
             title: representative_relationship_title,
           },
           ssn_last_4: representative_ssn_last_4,
-        });
+        };
+
+        // Add identity verification documents if provided
+        if (representative_verification_document_front || representative_verification_document_back) {
+          representativeData.verification = {
+            document: {},
+          };
+          if (representative_verification_document_front) {
+            representativeData.verification.document.front = representative_verification_document_front;
+          }
+          if (representative_verification_document_back) {
+            representativeData.verification.document.back = representative_verification_document_back;
+          }
+        }
+
+        representativePerson = await stripe.accounts.createPerson(account_id, representativeData);
       }
 
       // Handle owner person separately if owner details are provided

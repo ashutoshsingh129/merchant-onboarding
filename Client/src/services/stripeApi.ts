@@ -1,5 +1,49 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+interface UploadDocumentResponse {
+    success: boolean;
+    file_id?: string;
+    file?: {
+        id: string;
+        object: string;
+        purpose: string;
+        filename: string;
+        size: number;
+        type: string;
+        created: number;
+    };
+    error?: string;
+    message?: string;
+}
+
+export const uploadDocument = async (
+    file: File,
+    purpose: string = 'identity_document'
+): Promise<UploadDocumentResponse> => {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('purpose', purpose);
+
+        const response = await fetch(`${API_BASE_URL}/stripe/upload-document`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to upload document');
+        }
+
+        return result;
+    } catch (error: any) {
+        // eslint-disable-next-line no-console
+        console.error('Error uploading document:', error);
+        throw error;
+    }
+};
+
 interface CreateAccountRequest {
     type: string;
     country: string;
@@ -179,6 +223,11 @@ interface DirectOnboardRequest {
     external_account_exp_month?: string;
     external_account_exp_year?: string;
     external_account_cvc?: string;
+    // File IDs for identity verification
+    individual_verification_document_front?: string;
+    individual_verification_document_back?: string;
+    representative_verification_document_front?: string;
+    representative_verification_document_back?: string;
 }
 
 interface DirectOnboardResponse {
