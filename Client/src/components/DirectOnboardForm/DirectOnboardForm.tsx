@@ -56,6 +56,15 @@ interface DirectOnboardFormData {
     external_account_country: string;
     external_account_currency: string;
     external_account_account_number: string;
+    // Bank Account fields (optional)
+    external_account_routing_number?: string;
+    external_account_account_holder_name?: string;
+    external_account_account_holder_type?: string;
+    // Debit Card fields (optional)
+    external_account_card_number?: string;
+    external_account_exp_month?: string;
+    external_account_exp_year?: string;
+    external_account_cvc?: string;
     // Representative Person fields (when business_type is 'company')
     representative_first_name: string;
     representative_last_name: string;
@@ -71,9 +80,24 @@ interface DirectOnboardFormData {
     representative_address_country: string;
     representative_relationship_representative: boolean;
     representative_relationship_executive: boolean;
-    representative_relationship_owner: boolean;
     representative_relationship_title: string;
     representative_ssn_last_4: string;
+    // Owner Person fields (when business_type is 'company')
+    owner_first_name: string;
+    owner_last_name: string;
+    owner_email: string;
+    owner_phone: string;
+    owner_dob_day: number;
+    owner_dob_month: number;
+    owner_dob_year: number;
+    owner_address_line1: string;
+    owner_address_city: string;
+    owner_address_state: string;
+    owner_address_postal_code: string;
+    owner_address_country: string;
+    owner_relationship_owner: boolean;
+    owner_relationship_title: string;
+    owner_ssn_last_4: string;
 }
 
 interface DirectOnboardFormProps {
@@ -151,14 +175,30 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         representative_address_country: country || 'US',
         representative_relationship_representative: true,
         representative_relationship_executive: false,
-        representative_relationship_owner: false,
         representative_relationship_title: '',
         representative_ssn_last_4: '',
+        // Owner Person fields
+        owner_first_name: '',
+        owner_last_name: '',
+        owner_email: '',
+        owner_phone: '',
+        owner_dob_day: 1,
+        owner_dob_month: 1,
+        owner_dob_year: 1990,
+        owner_address_line1: '',
+        owner_address_city: '',
+        owner_address_state: '',
+        owner_address_postal_code: '',
+        owner_address_country: country || 'US',
+        owner_relationship_owner: true,
+        owner_relationship_title: '',
+        owner_ssn_last_4: '',
     });
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [representativeIsOwner, setRepresentativeIsOwner] = useState(false);
 
     // Update IP address when detection completes
     useEffect(() => {
@@ -323,10 +363,26 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         representative_address_country: country || 'US',
                         representative_relationship_representative: true,
                         representative_relationship_executive: false,
-                        representative_relationship_owner: false,
                         representative_relationship_title: '',
                         representative_ssn_last_4: '',
+                        // Owner Person fields
+                        owner_first_name: '',
+                        owner_last_name: '',
+                        owner_email: '',
+                        owner_phone: '',
+                        owner_dob_day: 1,
+                        owner_dob_month: 1,
+                        owner_dob_year: 1990,
+                        owner_address_line1: '',
+                        owner_address_city: '',
+                        owner_address_state: '',
+                        owner_address_postal_code: '',
+                        owner_address_country: country || 'US',
+                        owner_relationship_owner: true,
+                        owner_relationship_title: '',
+                        owner_ssn_last_4: '',
                     });
+                    setRepresentativeIsOwner(false);
                 }, 2000);
             } else {
                 setError('Failed to onboard merchant');
@@ -1266,66 +1322,279 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                     </FormControl>
                                 </Grid>
 
-                                {/* Representative Role */}
+                                {/* Owner Checkbox */}
                                 <Grid size={{ xs: 12 }}>
-                                    <Typography variant="subtitle1" gutterBottom>
-                                        Representative Role
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={representativeIsOwner}
+                                                onChange={e => {
+                                                    const isChecked = e.target.checked;
+                                                    setRepresentativeIsOwner(isChecked);
+
+                                                    // Clear owner fields when representative is also owner
+                                                    if (isChecked) {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            owner_first_name: '',
+                                                            owner_last_name: '',
+                                                            owner_email: '',
+                                                            owner_phone: '',
+                                                            owner_dob_day: 1,
+                                                            owner_dob_month: 1,
+                                                            owner_dob_year: 1990,
+                                                            owner_address_line1: '',
+                                                            owner_address_city: '',
+                                                            owner_address_state: '',
+                                                            owner_address_postal_code: '',
+                                                            owner_address_country: country || 'US',
+                                                            owner_relationship_owner: true,
+                                                            owner_relationship_title: '',
+                                                            owner_ssn_last_4: '',
+                                                        }));
+                                                    }
+                                                }}
+                                            />
+                                        }
+                                        label="This representative is also the owner"
+                                    />
+                                </Grid>
+                            </>
+                        )}
+
+                        {/* Owner Person Fields - Only show when business type is Company and representative is NOT owner */}
+                        {formData.business_type === 'company' && !representativeIsOwner && (
+                            <>
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                        Owner Information
                                     </Typography>
                                 </Grid>
 
                                 <Grid size={{ xs: 12, sm: 6 }}>
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={
-                                                    formData.representative_relationship_representative
-                                                }
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'representative_relationship_representative',
-                                                        e.target.checked
-                                                    )
-                                                }
-                                            />
+                                    <TextField
+                                        fullWidth
+                                        label="First Name"
+                                        value={formData.owner_first_name}
+                                        onChange={e =>
+                                            handleInputChange('owner_first_name', e.target.value)
                                         }
-                                        label="Is this person a company representative?"
+                                        placeholder="Owner First Name"
                                     />
                                 </Grid>
 
                                 <Grid size={{ xs: 12, sm: 6 }}>
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={formData.representative_relationship_owner}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'representative_relationship_owner',
-                                                        e.target.checked
-                                                    )
-                                                }
-                                            />
+                                    <TextField
+                                        fullWidth
+                                        label="Last Name"
+                                        value={formData.owner_last_name}
+                                        onChange={e =>
+                                            handleInputChange('owner_last_name', e.target.value)
                                         }
-                                        label="Mark this representative as owner"
+                                        placeholder="Owner Last Name"
                                     />
                                 </Grid>
 
                                 <Grid size={{ xs: 12, sm: 6 }}>
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={
-                                                    formData.representative_relationship_executive
-                                                }
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'representative_relationship_executive',
-                                                        e.target.checked
-                                                    )
-                                                }
-                                            />
+                                    <TextField
+                                        fullWidth
+                                        label="Email Address"
+                                        type="email"
+                                        value={formData.owner_email}
+                                        onChange={e =>
+                                            handleInputChange('owner_email', e.target.value)
                                         }
-                                        label="Is this person an executive with significant control?"
+                                        placeholder="owner@example.com"
                                     />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Phone Number"
+                                        value={formData.owner_phone}
+                                        onChange={e =>
+                                            handleInputChange('owner_phone', e.target.value)
+                                        }
+                                        placeholder="+31612345678"
+                                        helperText="Include country code (e.g., +1 for US, +31 for Netherlands)"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Job Title"
+                                        value={formData.owner_relationship_title}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'owner_relationship_title',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Owner, Founder, etc."
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="SSN Last 4 Digits"
+                                        value={formData.owner_ssn_last_4}
+                                        onChange={e =>
+                                            handleInputChange('owner_ssn_last_4', e.target.value)
+                                        }
+                                        placeholder="1234"
+                                        inputProps={{ maxLength: 4 }}
+                                        helperText="Last 4 digits of Social Security Number (US only)"
+                                    />
+                                </Grid>
+
+                                {/* Owner Date of Birth */}
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="subtitle1" gutterBottom>
+                                        Owner Date of Birth
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 4 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Day</InputLabel>
+                                        <Select
+                                            value={formData.owner_dob_day}
+                                            label="Day"
+                                            onChange={e =>
+                                                handleInputChange('owner_dob_day', e.target.value)
+                                            }
+                                        >
+                                            {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                                                day => (
+                                                    <MenuItem key={day} value={day}>
+                                                        {day}
+                                                    </MenuItem>
+                                                )
+                                            )}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+
+                                <Grid size={{ xs: 4 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Month</InputLabel>
+                                        <Select
+                                            value={formData.owner_dob_month}
+                                            label="Month"
+                                            onChange={e =>
+                                                handleInputChange('owner_dob_month', e.target.value)
+                                            }
+                                        >
+                                            {months.map(month => (
+                                                <MenuItem key={month.value} value={month.value}>
+                                                    {month.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+
+                                <Grid size={{ xs: 4 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Year"
+                                        type="number"
+                                        value={formData.owner_dob_year}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'owner_dob_year',
+                                                parseInt(e.target.value)
+                                            )
+                                        }
+                                        inputProps={{
+                                            min: 1900,
+                                            max: new Date().getFullYear(),
+                                        }}
+                                    />
+                                </Grid>
+
+                                {/* Owner Address */}
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                        Owner Address
+                                    </Typography>
+                                </Grid>
+
+                                <Grid size={{ xs: 12 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Street Address"
+                                        value={formData.owner_address_line1}
+                                        onChange={e =>
+                                            handleInputChange('owner_address_line1', e.target.value)
+                                        }
+                                        placeholder="123 Main Street"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="City"
+                                        value={formData.owner_address_city}
+                                        onChange={e =>
+                                            handleInputChange('owner_address_city', e.target.value)
+                                        }
+                                        placeholder="New York"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="State Code"
+                                        value={formData.owner_address_state}
+                                        onChange={e =>
+                                            handleInputChange('owner_address_state', e.target.value)
+                                        }
+                                        placeholder="NY"
+                                        helperText="2-letter state code"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="ZIP Code"
+                                        value={formData.owner_address_postal_code}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'owner_address_postal_code',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="12345"
+                                    />
+                                </Grid>
+
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Country Code</InputLabel>
+                                        <Select
+                                            value={formData.owner_address_country}
+                                            label="Country Code"
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_address_country',
+                                                    e.target.value
+                                                )
+                                            }
+                                        >
+                                            {countries.map(country => (
+                                                <MenuItem key={country.code} value={country.code}>
+                                                    {country.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
                                 </Grid>
                             </>
                         )}

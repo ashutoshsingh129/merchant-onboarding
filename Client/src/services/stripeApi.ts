@@ -149,10 +149,36 @@ interface DirectOnboardRequest {
     representative_relationship_executive: boolean;
     representative_relationship_title: string;
     representative_ssn_last_4: string;
+    // Owner fields (for company business_type)
+    owner_first_name: string;
+    owner_last_name: string;
+    owner_email: string;
+    owner_phone: string;
+    owner_dob_day: number;
+    owner_dob_month: number;
+    owner_dob_year: number;
+    owner_address_line1: string;
+    owner_address_city: string;
+    owner_address_state: string;
+    owner_address_postal_code: string;
+    owner_address_country: string;
+    owner_relationship_owner: boolean;
+    owner_relationship_title: string;
+    owner_ssn_last_4: string;
+    // External Account fields
     external_account_object: string;
     external_account_country: string;
     external_account_currency: string;
+    // Bank Account fields
+    external_account_routing_number?: string;
     external_account_account_number: string;
+    external_account_account_holder_name?: string;
+    external_account_account_holder_type?: string;
+    // Debit Card fields
+    external_account_card_number?: string;
+    external_account_exp_month?: string;
+    external_account_exp_year?: string;
+    external_account_cvc?: string;
 }
 
 interface DirectOnboardResponse {

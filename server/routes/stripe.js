@@ -135,9 +135,24 @@ router.post("/direct-onboard", async (req, res) => {
       representative_address_country,
       representative_relationship_representative,
       representative_relationship_executive,
-      representative_relationship_owner,
       representative_relationship_title,
       representative_ssn_last_4,
+      // Owner fields (for company business_type)
+      owner_first_name,
+      owner_last_name,
+      owner_email,
+      owner_phone,
+      owner_dob_day,
+      owner_dob_month,
+      owner_dob_year,
+      owner_address_line1,
+      owner_address_city,
+      owner_address_state,
+      owner_address_postal_code,
+      owner_address_country,
+      owner_relationship_owner,
+      owner_relationship_title,
+      owner_ssn_last_4,
       external_account_object,
       external_account_country,
       external_account_currency,
@@ -248,6 +263,11 @@ router.post("/direct-onboard", async (req, res) => {
       // First, check if there's already a representative
       let existingRepresentative = null;
       let representativePerson = null;
+      
+      // Check if owner information is provided separately
+      // If not, the representative should also be marked as owner
+      const isRepresentativeAlsoOwner = !owner_first_name || owner_first_name.trim() === '';
+      
       try {
         const persons = await stripe.accounts.listPersons(account_id);
         existingRepresentative = persons.data.find(person => 
@@ -288,7 +308,7 @@ router.post("/direct-onboard", async (req, res) => {
           relationship: {
             representative: representative_relationship_representative,
             executive: representative_relationship_executive,
-            owner: representative_relationship_owner,
+            owner: isRepresentativeAlsoOwner,
             title: representative_relationship_title,
           },
           ssn_last_4: representative_ssn_last_4,
@@ -324,11 +344,97 @@ router.post("/direct-onboard", async (req, res) => {
           relationship: {
             representative: representative_relationship_representative,
             executive: representative_relationship_executive,
-            owner: representative_relationship_owner,
+            owner: isRepresentativeAlsoOwner,
             title: representative_relationship_title,
           },
           ssn_last_4: representative_ssn_last_4,
         });
+      }
+
+      // Handle owner person separately if owner details are provided
+      // Check if owner_first_name is provided to determine if we should create/update owner
+      if (owner_first_name && owner_first_name.trim() !== '') {
+        // Check if there's already an owner person
+        let existingOwner = null;
+        let ownerPerson = null;
+        try {
+          const persons = await stripe.accounts.listPersons(account_id);
+          existingOwner = persons.data.find(person => 
+            person.relationship && person.relationship.owner === true && person.id !== representativePerson.id
+          );
+        } catch (error) {
+          // No existing owner found or error listing persons
+        }
+
+        if (existingOwner) {
+          // Update existing owner
+          ownerPerson = await stripe.accounts.updatePerson(account_id, existingOwner.id, {
+            first_name: owner_first_name,
+            last_name: owner_last_name,
+            email: owner_email,
+            phone: owner_phone ? (() => {
+              let formatted = owner_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
+              if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
+                formatted = '+' + formatted;
+              } else if (!formatted.startsWith('+1') && formatted.length === 10) {
+                formatted = '+1' + formatted;
+              }
+              // Only return if properly formatted
+              return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+            })() : undefined,
+            dob: {
+              day: owner_dob_day,
+              month: owner_dob_month,
+              year: owner_dob_year,
+            },
+            address: {
+              line1: owner_address_line1,
+              city: owner_address_city,
+              state: owner_address_state,
+              postal_code: owner_address_postal_code,
+              country: owner_address_country,
+            },
+            relationship: {
+              owner: owner_relationship_owner,
+              title: owner_relationship_title,
+            },
+            ssn_last_4: owner_ssn_last_4,
+          });
+        } else {
+          // Create new owner person
+          ownerPerson = await stripe.accounts.createPerson(account_id, {
+            first_name: owner_first_name,
+            last_name: owner_last_name,
+            email: owner_email,
+            phone: owner_phone ? (() => {
+              let formatted = owner_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
+              if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
+                formatted = '+' + formatted;
+              } else if (!formatted.startsWith('+1') && formatted.length === 10) {
+                formatted = '+1' + formatted;
+              }
+              // Only return if properly formatted
+              return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+            })() : undefined,
+            dob: {
+              day: owner_dob_day,
+              month: owner_dob_month,
+              year: owner_dob_year,
+            },
+            address: {
+              line1: owner_address_line1,
+              city: owner_address_city,
+              state: owner_address_state,
+              postal_code: owner_address_postal_code,
+              country: owner_address_country,
+            },
+            relationship: {
+              owner: owner_relationship_owner,
+              title: owner_relationship_title,
+            },
+            ssn_last_4: owner_ssn_last_4,
+          });
+        }
       }
 
       // For company accounts, we don't send individual fields
