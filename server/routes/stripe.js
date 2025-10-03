@@ -213,6 +213,8 @@ router.post("/direct-onboard", async (req, res) => {
       external_account_object,
       external_account_country,
       external_account_currency,
+      // Bank Account fields
+      external_account_routing_number,
       external_account_account_number,
       // File IDs for identity verification
       individual_verification_document_front,
@@ -229,6 +231,13 @@ router.post("/direct-onboard", async (req, res) => {
       owner_verification_document_back,
       owner_verification_additional_document_front,
       owner_verification_additional_document_back,
+      external_account_account_holder_name,
+      external_account_account_holder_type,
+      // Debit Card fields
+      external_account_card_number,
+      external_account_exp_month,
+      external_account_exp_year,
+      external_account_cvc,
     } = req.body;
 
     // Validate required fields
@@ -684,22 +693,51 @@ router.post("/direct-onboard", async (req, res) => {
 
     // If external account details are provided, create external account
     let externalAccount = null;
-    if (
-      external_account_object &&
-      external_account_country &&
-      external_account_currency &&
-      external_account_account_number
-    ) {
+    if (external_account_object) {
       try {
-        externalAccount = await stripe.accounts.createExternalAccount(
-          account_id,
-          {
-            object: external_account_object,
-            country: external_account_country,
-            currency: external_account_currency,
-            account_number: external_account_account_number,
-          },
-        );
+        if (external_account_object === 'bank_account') {
+          // Create bank account
+          if (external_account_account_number && external_account_country && external_account_currency) {
+            const bankAccountData = {
+              object: 'bank_account',
+              country: external_account_country,
+              currency: external_account_currency,
+              account_number: external_account_account_number,
+            };
+            
+            // Add optional fields if provided
+            if (external_account_routing_number) {
+              bankAccountData.routing_number = external_account_routing_number;
+            }
+            if (external_account_account_holder_name) {
+              bankAccountData.account_holder_name = external_account_account_holder_name;
+            }
+            if (external_account_account_holder_type) {
+              bankAccountData.account_holder_type = external_account_account_holder_type;
+            }
+            
+            externalAccount = await stripe.accounts.createExternalAccount(
+              account_id,
+              { external_account: bankAccountData }
+            );
+          }
+        } else if (external_account_object === 'card') {
+          // Create debit card
+          if (external_account_card_number && external_account_exp_month && external_account_exp_year && external_account_cvc) {
+            const cardData = {
+              object: 'card',
+              number: external_account_card_number,
+              exp_month: external_account_exp_month,
+              exp_year: external_account_exp_year,
+              cvc: external_account_cvc,
+            };
+            
+            externalAccount = await stripe.accounts.createExternalAccount(
+              account_id,
+              { external_account: cardData }
+            );
+          }
+        }
       } catch (externalAccountError) {
         console.warn(
           "Failed to create external account:",
