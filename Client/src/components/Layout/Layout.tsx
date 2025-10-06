@@ -58,6 +58,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         <Button
                             component={Link}
                             to="/merchant-onboarding"
+                            state={{ newForm: true }}
                             startIcon={<Business />}
                             color="inherit"
                             sx={{

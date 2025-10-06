@@ -16,6 +16,11 @@ import {
     CardActions,
     FormControlLabel,
     Checkbox,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    DialogActions,
 } from '@mui/material';
 import {
     PersonAdd as PersonAddIcon,
@@ -145,6 +150,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         retry: retryIP,
     } = useIPDetection();
 
+    const STORAGE_KEY = `directOnboardForm_${accountId || 'new'}`;
+
     const [formData, setFormData] = useState<DirectOnboardFormData>({
         account_id: accountId,
         individual_first_name: '',
@@ -229,6 +236,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [representativeIsOwner, setRepresentativeIsOwner] = useState(false);
+    const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
 
     // File upload states
     const [uploadingFile, setUploadingFile] = useState<string | null>(null);
@@ -248,6 +256,53 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         owner_additional_front?: { id: string; name: string };
         owner_additional_back?: { id: string; name: string };
     }>({});
+
+    // Load saved form data on mount
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                setFormData(prev => ({ ...prev, ...parsed }));
+            }
+        } catch {
+            // ignore storage errors
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Persist form data on change
+    useEffect(() => {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+        } catch {
+            // ignore storage errors
+        }
+    }, [STORAGE_KEY, formData]);
+
+    // Check if form has unsaved changes
+    const hasUnsavedChanges =
+        formData.individual_first_name !== '' ||
+        formData.individual_last_name !== '' ||
+        formData.individual_phone !== '' ||
+        formData.individual_address_line1 !== '' ||
+        formData.company_name !== '' ||
+        formData.external_account_routing_number !== '' ||
+        formData.external_account_account_number !== '';
+
+    // Handle beforeunload event to warn about unsaved changes
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+                return 'You have unsaved changes. Are you sure you want to leave?';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasUnsavedChanges]);
 
     // Update IP address when detection completes
     useEffect(() => {
@@ -425,6 +480,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         onSuccess();
                     }
                     setSuccess(false);
+                    try {
+                        localStorage.removeItem(STORAGE_KEY);
+                    } catch {}
                     // Reset uploaded files
                     setUploadedFiles({});
                     // Reset form completely
@@ -527,98 +585,184 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         }
     };
 
+    const handleReset = () => {
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+        } catch {}
+        setUploadedFiles({});
+        setFormData(prev => ({
+            ...prev,
+            account_id: accountId,
+            individual_first_name: '',
+            individual_last_name: '',
+            individual_email: email,
+            individual_phone: '',
+            individual_dob_day: 1,
+            individual_dob_month: 1,
+            individual_dob_year: 1990,
+            individual_address_line1: '',
+            individual_address_line2: '',
+            individual_address_city: '',
+            individual_address_state: '',
+            individual_address_postal_code: '',
+            individual_address_country: country || 'US',
+            business_type: businessType || 'individual',
+            business_profile_mcc: '5734',
+            business_profile_url: '',
+            company_name: '',
+            company_tax_id: '',
+            company_structure: 'private_corporation',
+            company_address_line1: '',
+            company_address_line2: '',
+            company_address_city: '',
+            company_address_state: '',
+            company_address_postal_code: '',
+            company_address_country: country || 'US',
+            tos_acceptance_date: Math.floor(Date.now() / 1000),
+            tos_acceptance_ip: '',
+            external_account_object: 'bank_account',
+            external_account_country: country || 'US',
+            external_account_currency: 'usd',
+            external_account_routing_number: '',
+            external_account_account_number: '',
+            external_account_account_holder_name: '',
+            external_account_account_holder_type: 'individual',
+            external_account_card_number: '',
+            external_account_exp_month: '01',
+            external_account_exp_year: new Date().getFullYear().toString(),
+            external_account_cvc: '',
+            representative_first_name: '',
+            representative_last_name: '',
+            representative_email: '',
+            representative_phone: '',
+            representative_dob_day: 1,
+            representative_dob_month: 1,
+            representative_dob_year: 1990,
+            representative_address_line1: '',
+            representative_address_city: '',
+            representative_address_state: '',
+            representative_address_postal_code: '',
+            representative_address_country: country || 'US',
+            representative_relationship_representative: true,
+            representative_relationship_executive: false,
+            representative_relationship_title: '',
+            representative_ssn_last_4: '',
+            owner_first_name: '',
+            owner_last_name: '',
+            owner_email: '',
+            owner_phone: '',
+            owner_dob_day: 1,
+            owner_dob_month: 1,
+            owner_dob_year: 1990,
+            owner_address_line1: '',
+            owner_address_city: '',
+            owner_address_state: '',
+            owner_address_postal_code: '',
+            owner_address_country: country || 'US',
+            owner_relationship_owner: true,
+            owner_relationship_title: '',
+            owner_ssn_last_4: '',
+        }));
+        setError(null);
+        setSuccess(false);
+    };
+
     return (
-        <Card sx={{ mt: 3 }}>
-            <CardContent>
-                <Box display="flex" alignItems="center" gap={1} sx={{ mb: 3 }}>
-                    <PersonAddIcon />
-                    <Typography variant="h6">Direct Merchant Onboarding</Typography>
-                </Box>
-                <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-                    <Grid container spacing={3}>
-                        {/* Account ID */}
-                        <Grid size={{ xs: 12 }}>
-                            <TextField
-                                fullWidth
-                                label="Account ID"
-                                value={formData.account_id}
-                                onChange={e => handleInputChange('account_id', e.target.value)}
-                                placeholder="acct_1SAA85KHetaYuagI"
-                                helperText="Account ID from created account"
-                                InputProps={{
-                                    readOnly: true,
-                                }}
-                                sx={{
-                                    '& .MuiInputBase-input.Mui-readOnly': {
-                                        backgroundColor: 'grey.100',
-                                    },
-                                }}
-                            />
-                        </Grid>
+        <>
+            <Card sx={{ mt: 3 }}>
+                <CardContent>
+                    <Box display="flex" alignItems="center" gap={1} sx={{ mb: 3 }}>
+                        <PersonAddIcon />
+                        <Typography variant="h6">Direct Merchant Onboarding</Typography>
+                    </Box>
+                    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+                        <Grid container spacing={3}>
+                            {/* Account ID */}
+                            <Grid size={{ xs: 12 }}>
+                                <TextField
+                                    fullWidth
+                                    label="Account ID"
+                                    value={formData.account_id}
+                                    onChange={e => handleInputChange('account_id', e.target.value)}
+                                    placeholder="acct_1SAA85KHetaYuagI"
+                                    helperText="Account ID from created account"
+                                    InputProps={{
+                                        readOnly: true,
+                                    }}
+                                    sx={{
+                                        '& .MuiInputBase-input.Mui-readOnly': {
+                                            backgroundColor: 'grey.100',
+                                        },
+                                    }}
+                                />
+                            </Grid>
 
-                        {/* Business Information - Show immediately after Account ID for company profiles */}
-                        {formData.business_type === 'company' && (
-                            <>
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Business Information
-                                    </Typography>
-                                </Grid>
+                            {/* Business Information - Show immediately after Account ID for company profiles */}
+                            {formData.business_type === 'company' && (
+                                <>
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Business Information
+                                        </Typography>
+                                    </Grid>
 
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Business Type</InputLabel>
-                                        <Select
-                                            value={formData.business_type}
-                                            label="Business Type"
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Business Type</InputLabel>
+                                            <Select
+                                                value={formData.business_type}
+                                                label="Business Type"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'business_type',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {businessTypes.map(type => (
+                                                    <MenuItem key={type.value} value={type.value}>
+                                                        {type.label}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="MCC (Merchant Category Code)"
+                                            value={formData.business_profile_mcc}
                                             onChange={e =>
-                                                handleInputChange('business_type', e.target.value)
+                                                handleInputChange(
+                                                    'business_profile_mcc',
+                                                    e.target.value
+                                                )
                                             }
-                                        >
-                                            {businessTypes.map(type => (
-                                                <MenuItem key={type.value} value={type.value}>
-                                                    {type.label}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
+                                            placeholder="5734"
+                                            helperText="4-digit merchant category code"
+                                        />
+                                    </Grid>
 
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="MCC (Merchant Category Code)"
-                                        value={formData.business_profile_mcc}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'business_profile_mcc',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="5734"
-                                        helperText="4-digit merchant category code"
-                                    />
-                                </Grid>
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Business URL"
+                                            value={formData.business_profile_url}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'business_profile_url',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="https://example-merchant.com"
+                                        />
+                                    </Grid>
+                                </>
+                            )}
 
-                                <Grid size={{ xs: 12 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Business URL"
-                                        value={formData.business_profile_url}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'business_profile_url',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="https://example-merchant.com"
-                                    />
-                                </Grid>
-                            </>
-                        )}
-
-                        {/* Personal Information - Only show when business type is Individual */}
-                        {/* {formData.business_type === 'individual' && (
+                            {/* Personal Information - Only show when business type is Individual */}
+                            {/* {formData.business_type === 'individual' && (
                             <>
                                 <Grid size={{ xs: 12 }}>
                                     <Typography variant="h6" gutterBottom sx={{ color: 'green' }}>
@@ -636,48 +780,788 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                             </>
                         )} */}
 
-                        {/* Individual Fields - Only show when business type is Individual */}
-                        {formData.business_type === 'individual' && (
-                            <Grid size={{ xs: 12, sm: 6 }}>
-                                <TextField
-                                    fullWidth
-                                    label="First Name"
-                                    value={formData.individual_first_name}
-                                    onChange={e =>
-                                        handleInputChange('individual_first_name', e.target.value)
-                                    }
-                                    placeholder="First Name"
-                                />
-                            </Grid>
-                        )}
+                            {/* Individual Fields - Only show when business type is Individual */}
+                            {formData.business_type === 'individual' && (
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="First Name"
+                                        value={formData.individual_first_name}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'individual_first_name',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="First Name"
+                                    />
+                                </Grid>
+                            )}
 
-                        {formData.business_type === 'individual' && (
-                            <Grid size={{ xs: 12, sm: 6 }}>
-                                <TextField
-                                    fullWidth
-                                    label="Last Name"
-                                    value={formData.individual_last_name}
-                                    onChange={e =>
-                                        handleInputChange('individual_last_name', e.target.value)
-                                    }
-                                    placeholder="Last Name"
-                                />
-                            </Grid>
-                        )}
+                            {formData.business_type === 'individual' && (
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Last Name"
+                                        value={formData.individual_last_name}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'individual_last_name',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Last Name"
+                                    />
+                                </Grid>
+                            )}
 
-                        {formData.business_type === 'individual' && (
+                            {formData.business_type === 'individual' && (
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Email"
+                                        type="email"
+                                        value={formData.individual_email}
+                                        onChange={e =>
+                                            handleInputChange('individual_email', e.target.value)
+                                        }
+                                        placeholder="merchant@example.com"
+                                        InputProps={{
+                                            readOnly: !!email,
+                                        }}
+                                        sx={{
+                                            '& .MuiInputBase-input.Mui-readOnly': {
+                                                backgroundColor: 'grey.100',
+                                            },
+                                        }}
+                                    />
+                                </Grid>
+                            )}
+
+                            {formData.business_type === 'individual' && (
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Phone"
+                                        value={formData.individual_phone}
+                                        onChange={e =>
+                                            handleInputChange('individual_phone', e.target.value)
+                                        }
+                                        placeholder="+15551234567"
+                                    />
+                                </Grid>
+                            )}
+
+                            {/* Date of Birth - Only show when business type is Individual */}
+                            {formData.business_type === 'individual' && (
+                                <Grid size={{ xs: 12 }}>
+                                    <Typography variant="subtitle1" gutterBottom>
+                                        Date of Birth
+                                    </Typography>
+                                </Grid>
+                            )}
+
+                            {formData.business_type === 'individual' && (
+                                <Grid size={{ xs: 4 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Day</InputLabel>
+                                        <Select
+                                            value={formData.individual_dob_day}
+                                            label="Day"
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_dob_day',
+                                                    e.target.value
+                                                )
+                                            }
+                                        >
+                                            {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                                                day => (
+                                                    <MenuItem key={day} value={day}>
+                                                        {day}
+                                                    </MenuItem>
+                                                )
+                                            )}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            )}
+
+                            {formData.business_type === 'individual' && (
+                                <Grid size={{ xs: 4 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Month</InputLabel>
+                                        <Select
+                                            value={formData.individual_dob_month}
+                                            label="Month"
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_dob_month',
+                                                    e.target.value
+                                                )
+                                            }
+                                        >
+                                            {months.map(month => (
+                                                <MenuItem key={month.value} value={month.value}>
+                                                    {month.name}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            )}
+
+                            {formData.business_type === 'individual' && (
+                                <Grid size={{ xs: 4 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Year"
+                                        type="number"
+                                        value={formData.individual_dob_year}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'individual_dob_year',
+                                                parseInt(e.target.value)
+                                            )
+                                        }
+                                        inputProps={{
+                                            min: 1900,
+                                            max: new Date().getFullYear(),
+                                        }}
+                                    />
+                                </Grid>
+                            )}
+
+                            {/* Address - Only show when business type is Individual */}
+                            {formData.business_type === 'individual' && (
+                                <>
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Address
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Address Line 1"
+                                            value={formData.individual_address_line1}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_line1',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="123 Main Street"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Address Line 2"
+                                            value={formData.individual_address_line2}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_line2',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Apartment, suite, unit, or building"
+                                            helperText="Optional"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="City"
+                                            value={formData.individual_address_city}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_city',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="New York"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="State"
+                                            value={formData.individual_address_state}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_state',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="NY"
+                                            helperText="State, county, province, or region"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Postal Code"
+                                            value={formData.individual_address_postal_code}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_postal_code',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="12345"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Country</InputLabel>
+                                            <Select
+                                                value={formData.individual_address_country}
+                                                label="Country"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'individual_address_country',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {countries.map(country => (
+                                                    <MenuItem
+                                                        key={country.code}
+                                                        value={country.code}
+                                                    >
+                                                        {country.name}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+                                </>
+                            )}
+
+                            {/* Identity Document Upload - Only show when business type is Individual */}
+                            {formData.business_type === 'individual' && (
+                                <>
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Identity Verification (Optional)
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            gutterBottom
+                                        >
+                                            Upload an identity document (driver's license, passport,
+                                            etc.) to verify your identity
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.individual_front ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'individual_front'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'individual_front'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.individual_front
+                                                  ? `Uploaded: ${uploadedFiles.individual_front.name}`
+                                                  : 'Upload ID Document (Front)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(file, 'individual_front');
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.individual_back ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'individual_back'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'individual_back'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.individual_back
+                                                  ? `Uploaded: ${uploadedFiles.individual_back.name}`
+                                                  : 'Upload ID Document (Back)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(file, 'individual_back');
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                                            Additional Document (Address Proof - Optional)
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            gutterBottom
+                                        >
+                                            Upload a utility bill, bank statement, or official
+                                            correspondence
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.individual_additional_front ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={
+                                                uploadingFile === 'individual_additional_front'
+                                            }
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'individual_additional_front'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.individual_additional_front
+                                                  ? `Uploaded: ${uploadedFiles.individual_additional_front.name}`
+                                                  : 'Upload Address Proof (Front)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'individual_additional_front'
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.individual_additional_back ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={
+                                                uploadingFile === 'individual_additional_back'
+                                            }
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'individual_additional_back'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.individual_additional_back
+                                                  ? `Uploaded: ${uploadedFiles.individual_additional_back.name}`
+                                                  : 'Upload Address Proof (Back)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'individual_additional_back'
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+                                </>
+                            )}
+
+                            {/* Business Information - Show for individual profiles after address */}
+                            {formData.business_type === 'individual' && (
+                                <>
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Business Information
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Business Type</InputLabel>
+                                            <Select
+                                                value={formData.business_type}
+                                                label="Business Type"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'business_type',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {businessTypes.map(type => (
+                                                    <MenuItem key={type.value} value={type.value}>
+                                                        {type.label}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="MCC (Merchant Category Code)"
+                                            value={formData.business_profile_mcc}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'business_profile_mcc',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="5734"
+                                            helperText="4-digit merchant category code"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Business URL"
+                                            value={formData.business_profile_url}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'business_profile_url',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="https://example-merchant.com"
+                                        />
+                                    </Grid>
+                                </>
+                            )}
+
+                            {/* Company Information - Only show when business type is Company */}
+                            {formData.business_type === 'company' && (
+                                <>
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Company Information
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Company Name"
+                                            value={formData.company_name}
+                                            onChange={e =>
+                                                handleInputChange('company_name', e.target.value)
+                                            }
+                                            placeholder="ABC Technologies LLC"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Tax ID"
+                                            value={formData.company_tax_id}
+                                            onChange={e =>
+                                                handleInputChange('company_tax_id', e.target.value)
+                                            }
+                                            placeholder="12-3456789"
+                                            helperText="EIN or Tax Identification Number"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Company Structure</InputLabel>
+                                            <Select
+                                                value={formData.company_structure}
+                                                label="Company Structure"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'company_structure',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {companyStructures.map(structure => (
+                                                    <MenuItem
+                                                        key={structure.value}
+                                                        value={structure.value}
+                                                    >
+                                                        {structure.label}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    {/* Company Address */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                                            Company Address
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Street Address"
+                                            value={formData.company_address_line1}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'company_address_line1',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="123 Main St"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Apartment, unit, or other (optional)"
+                                            value={formData.company_address_line2}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'company_address_line2',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Apt 4B, Suite 200, etc."
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="City"
+                                            value={formData.company_address_city}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'company_address_city',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="New York"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="State"
+                                            value={formData.company_address_state}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'company_address_state',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="NY"
+                                            helperText="State, county, province, or region"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Postal Code"
+                                            value={formData.company_address_postal_code}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'company_address_postal_code',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="10001"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Country</InputLabel>
+                                            <Select
+                                                value={formData.company_address_country}
+                                                label="Country"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'company_address_country',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {countries.map(country => (
+                                                    <MenuItem
+                                                        key={country.code}
+                                                        value={country.code}
+                                                    >
+                                                        {country.name}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    {/* Company Verification Documents */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Company Verification Documents (Optional)
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            gutterBottom
+                                        >
+                                            Upload company legal documents (IRS Letter 147C, EIN
+                                            Assistance Letter, etc.)
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.company_front ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'company_front'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'company_front'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.company_front
+                                                  ? `Uploaded: ${uploadedFiles.company_front.name}`
+                                                  : 'Upload Company Document (Front)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(file, 'company_front');
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.company_back ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'company_back'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'company_back'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.company_back
+                                                  ? `Uploaded: ${uploadedFiles.company_back.name}`
+                                                  : 'Upload Company Document (Back)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(file, 'company_back');
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+                                </>
+                            )}
+
+                            {/* ToS Acceptance */}
+                            <Grid size={{ xs: 12 }}>
+                                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                    Terms of Service Acceptance
+                                </Typography>
+                            </Grid>
+
                             <Grid size={{ xs: 12, sm: 6 }}>
                                 <TextField
                                     fullWidth
-                                    label="Email"
-                                    type="email"
-                                    value={formData.individual_email}
+                                    label="Acceptance Date (Unix Timestamp)"
+                                    type="number"
+                                    value={formData.tos_acceptance_date}
                                     onChange={e =>
-                                        handleInputChange('individual_email', e.target.value)
+                                        handleInputChange(
+                                            'tos_acceptance_date',
+                                            parseInt(e.target.value)
+                                        )
                                     }
-                                    placeholder="merchant@example.com"
+                                    helperText="Unix timestamp of when ToS was accepted"
                                     InputProps={{
-                                        readOnly: !!email,
+                                        readOnly: true,
                                     }}
                                     sx={{
                                         '& .MuiInputBase-input.Mui-readOnly': {
@@ -686,1873 +1570,1273 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                     }}
                                 />
                             </Grid>
-                        )}
 
-                        {formData.business_type === 'individual' && (
                             <Grid size={{ xs: 12, sm: 6 }}>
                                 <TextField
                                     fullWidth
-                                    label="Phone"
-                                    value={formData.individual_phone}
+                                    label="IP Address"
+                                    value={formData.tos_acceptance_ip}
                                     onChange={e =>
-                                        handleInputChange('individual_phone', e.target.value)
+                                        handleInputChange('tos_acceptance_ip', e.target.value)
                                     }
-                                    placeholder="+15551234567"
-                                />
-                            </Grid>
-                        )}
-
-                        {/* Date of Birth - Only show when business type is Individual */}
-                        {formData.business_type === 'individual' && (
-                            <Grid size={{ xs: 12 }}>
-                                <Typography variant="subtitle1" gutterBottom>
-                                    Date of Birth
-                                </Typography>
-                            </Grid>
-                        )}
-
-                        {formData.business_type === 'individual' && (
-                            <Grid size={{ xs: 4 }}>
-                                <FormControl fullWidth>
-                                    <InputLabel>Day</InputLabel>
-                                    <Select
-                                        value={formData.individual_dob_day}
-                                        label="Day"
-                                        onChange={e =>
-                                            handleInputChange('individual_dob_day', e.target.value)
-                                        }
-                                    >
-                                        {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                                            <MenuItem key={day} value={day}>
-                                                {day}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-                        )}
-
-                        {formData.business_type === 'individual' && (
-                            <Grid size={{ xs: 4 }}>
-                                <FormControl fullWidth>
-                                    <InputLabel>Month</InputLabel>
-                                    <Select
-                                        value={formData.individual_dob_month}
-                                        label="Month"
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'individual_dob_month',
-                                                e.target.value
-                                            )
-                                        }
-                                    >
-                                        {months.map(month => (
-                                            <MenuItem key={month.value} value={month.value}>
-                                                {month.name}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-                        )}
-
-                        {formData.business_type === 'individual' && (
-                            <Grid size={{ xs: 4 }}>
-                                <TextField
-                                    fullWidth
-                                    label="Year"
-                                    type="number"
-                                    value={formData.individual_dob_year}
-                                    onChange={e =>
-                                        handleInputChange(
-                                            'individual_dob_year',
-                                            parseInt(e.target.value)
-                                        )
+                                    placeholder={ipLoading ? 'Detecting IP...' : '203.0.113.1'}
+                                    helperText={
+                                        ipLoading
+                                            ? 'Auto-detecting your IP address...'
+                                            : ipError
+                                              ? `Auto-detection failed: ${ipError}. You can enter manually.`
+                                              : 'IP address of the user accepting ToS (auto-detected)'
                                     }
-                                    inputProps={{
-                                        min: 1900,
-                                        max: new Date().getFullYear(),
+                                    InputProps={{
+                                        endAdornment: ipLoading ? (
+                                            <CircularProgress size={20} />
+                                        ) : ipError ? (
+                                            <Button
+                                                size="small"
+                                                onClick={retryIP}
+                                                sx={{ minWidth: 'auto', px: 1 }}
+                                            >
+                                                Retry
+                                            </Button>
+                                        ) : null,
+                                    }}
+                                    sx={{
+                                        '& .MuiInputBase-input': {
+                                            color:
+                                                detectedIP && !ipError ? 'success.main' : 'inherit',
+                                        },
                                     }}
                                 />
                             </Grid>
-                        )}
 
-                        {/* Address - Only show when business type is Individual */}
-                        {formData.business_type === 'individual' && (
-                            <>
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Address
-                                    </Typography>
-                                </Grid>
+                            {/* Representative Person Fields - Only show when business type is Company */}
+                            {formData.business_type === 'company' && (
+                                <>
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Representative Person Information
+                                        </Typography>
+                                    </Grid>
 
-                                <Grid size={{ xs: 12 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Address Line 1"
-                                        value={formData.individual_address_line1}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'individual_address_line1',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="123 Main Street"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Address Line 2"
-                                        value={formData.individual_address_line2}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'individual_address_line2',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="Apartment, suite, unit, or building"
-                                        helperText="Optional"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="City"
-                                        value={formData.individual_address_city}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'individual_address_city',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="New York"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="State"
-                                        value={formData.individual_address_state}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'individual_address_state',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="NY"
-                                        helperText="State, county, province, or region"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Postal Code"
-                                        value={formData.individual_address_postal_code}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'individual_address_postal_code',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="12345"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Country</InputLabel>
-                                        <Select
-                                            value={formData.individual_address_country}
-                                            label="Country"
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="First Name"
+                                            value={formData.representative_first_name}
                                             onChange={e =>
                                                 handleInputChange(
-                                                    'individual_address_country',
+                                                    'representative_first_name',
                                                     e.target.value
                                                 )
                                             }
-                                        >
-                                            {countries.map(country => (
-                                                <MenuItem key={country.code} value={country.code}>
-                                                    {country.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-                            </>
-                        )}
-
-                        {/* Identity Document Upload - Only show when business type is Individual */}
-                        {formData.business_type === 'individual' && (
-                            <>
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Identity Verification (Optional)
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                                        Upload an identity document (driver's license, passport,
-                                        etc.) to verify your identity
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.individual_front ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={uploadingFile === 'individual_front'}
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'individual_front'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.individual_front
-                                              ? `Uploaded: ${uploadedFiles.individual_front.name}`
-                                              : 'Upload ID Document (Front)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(file, 'individual_front');
-                                                }
-                                            }}
+                                            placeholder="Representative First Name"
                                         />
-                                    </Button>
-                                </Grid>
+                                    </Grid>
 
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.individual_back ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={uploadingFile === 'individual_back'}
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'individual_back'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.individual_back
-                                              ? `Uploaded: ${uploadedFiles.individual_back.name}`
-                                              : 'Upload ID Document (Back)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(file, 'individual_back');
-                                                }
-                                            }}
-                                        />
-                                    </Button>
-                                </Grid>
-
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
-                                        Additional Document (Address Proof - Optional)
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                                        Upload a utility bill, bank statement, or official
-                                        correspondence
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.individual_additional_front ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={uploadingFile === 'individual_additional_front'}
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'individual_additional_front'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.individual_additional_front
-                                              ? `Uploaded: ${uploadedFiles.individual_additional_front.name}`
-                                              : 'Upload Address Proof (Front)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(
-                                                        file,
-                                                        'individual_additional_front'
-                                                    );
-                                                }
-                                            }}
-                                        />
-                                    </Button>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.individual_additional_back ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={uploadingFile === 'individual_additional_back'}
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'individual_additional_back'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.individual_additional_back
-                                              ? `Uploaded: ${uploadedFiles.individual_additional_back.name}`
-                                              : 'Upload Address Proof (Back)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(
-                                                        file,
-                                                        'individual_additional_back'
-                                                    );
-                                                }
-                                            }}
-                                        />
-                                    </Button>
-                                </Grid>
-                            </>
-                        )}
-
-                        {/* Business Information - Show for individual profiles after address */}
-                        {formData.business_type === 'individual' && (
-                            <>
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Business Information
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Business Type</InputLabel>
-                                        <Select
-                                            value={formData.business_type}
-                                            label="Business Type"
-                                            onChange={e =>
-                                                handleInputChange('business_type', e.target.value)
-                                            }
-                                        >
-                                            {businessTypes.map(type => (
-                                                <MenuItem key={type.value} value={type.value}>
-                                                    {type.label}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="MCC (Merchant Category Code)"
-                                        value={formData.business_profile_mcc}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'business_profile_mcc',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="5734"
-                                        helperText="4-digit merchant category code"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Business URL"
-                                        value={formData.business_profile_url}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'business_profile_url',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="https://example-merchant.com"
-                                    />
-                                </Grid>
-                            </>
-                        )}
-
-                        {/* Company Information - Only show when business type is Company */}
-                        {formData.business_type === 'company' && (
-                            <>
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Company Information
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Company Name"
-                                        value={formData.company_name}
-                                        onChange={e =>
-                                            handleInputChange('company_name', e.target.value)
-                                        }
-                                        placeholder="ABC Technologies LLC"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Tax ID"
-                                        value={formData.company_tax_id}
-                                        onChange={e =>
-                                            handleInputChange('company_tax_id', e.target.value)
-                                        }
-                                        placeholder="12-3456789"
-                                        helperText="EIN or Tax Identification Number"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Company Structure</InputLabel>
-                                        <Select
-                                            value={formData.company_structure}
-                                            label="Company Structure"
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Last Name"
+                                            value={formData.representative_last_name}
                                             onChange={e =>
                                                 handleInputChange(
-                                                    'company_structure',
+                                                    'representative_last_name',
                                                     e.target.value
                                                 )
                                             }
-                                        >
-                                            {companyStructures.map(structure => (
-                                                <MenuItem
-                                                    key={structure.value}
-                                                    value={structure.value}
-                                                >
-                                                    {structure.label}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
+                                            placeholder="Representative Last Name"
+                                        />
+                                    </Grid>
 
-                                {/* Company Address */}
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
-                                        Company Address
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Street Address"
-                                        value={formData.company_address_line1}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'company_address_line1',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="123 Main St"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Apartment, unit, or other (optional)"
-                                        value={formData.company_address_line2}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'company_address_line2',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="Apt 4B, Suite 200, etc."
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="City"
-                                        value={formData.company_address_city}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'company_address_city',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="New York"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="State"
-                                        value={formData.company_address_state}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'company_address_state',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="NY"
-                                        helperText="State, county, province, or region"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Postal Code"
-                                        value={formData.company_address_postal_code}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'company_address_postal_code',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="10001"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Country</InputLabel>
-                                        <Select
-                                            value={formData.company_address_country}
-                                            label="Country"
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Email Address"
+                                            type="email"
+                                            value={formData.representative_email}
                                             onChange={e =>
                                                 handleInputChange(
-                                                    'company_address_country',
+                                                    'representative_email',
                                                     e.target.value
                                                 )
                                             }
-                                        >
-                                            {countries.map(country => (
-                                                <MenuItem key={country.code} value={country.code}>
-                                                    {country.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-
-                                {/* Company Verification Documents */}
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Company Verification Documents (Optional)
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                                        Upload company legal documents (IRS Letter 147C, EIN
-                                        Assistance Letter, etc.)
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.company_front ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={uploadingFile === 'company_front'}
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'company_front'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.company_front
-                                              ? `Uploaded: ${uploadedFiles.company_front.name}`
-                                              : 'Upload Company Document (Front)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(file, 'company_front');
-                                                }
-                                            }}
+                                            placeholder="representative@example.com"
                                         />
-                                    </Button>
-                                </Grid>
+                                    </Grid>
 
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.company_back ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={uploadingFile === 'company_back'}
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'company_back'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.company_back
-                                              ? `Uploaded: ${uploadedFiles.company_back.name}`
-                                              : 'Upload Company Document (Back)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(file, 'company_back');
-                                                }
-                                            }}
-                                        />
-                                    </Button>
-                                </Grid>
-                            </>
-                        )}
-
-                        {/* ToS Acceptance */}
-                        <Grid size={{ xs: 12 }}>
-                            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                Terms of Service Acceptance
-                            </Typography>
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Acceptance Date (Unix Timestamp)"
-                                type="number"
-                                value={formData.tos_acceptance_date}
-                                onChange={e =>
-                                    handleInputChange(
-                                        'tos_acceptance_date',
-                                        parseInt(e.target.value)
-                                    )
-                                }
-                                helperText="Unix timestamp of when ToS was accepted"
-                                InputProps={{
-                                    readOnly: true,
-                                }}
-                                sx={{
-                                    '& .MuiInputBase-input.Mui-readOnly': {
-                                        backgroundColor: 'grey.100',
-                                    },
-                                }}
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="IP Address"
-                                value={formData.tos_acceptance_ip}
-                                onChange={e =>
-                                    handleInputChange('tos_acceptance_ip', e.target.value)
-                                }
-                                placeholder={ipLoading ? 'Detecting IP...' : '203.0.113.1'}
-                                helperText={
-                                    ipLoading
-                                        ? 'Auto-detecting your IP address...'
-                                        : ipError
-                                          ? `Auto-detection failed: ${ipError}. You can enter manually.`
-                                          : 'IP address of the user accepting ToS (auto-detected)'
-                                }
-                                InputProps={{
-                                    endAdornment: ipLoading ? (
-                                        <CircularProgress size={20} />
-                                    ) : ipError ? (
-                                        <Button
-                                            size="small"
-                                            onClick={retryIP}
-                                            sx={{ minWidth: 'auto', px: 1 }}
-                                        >
-                                            Retry
-                                        </Button>
-                                    ) : null,
-                                }}
-                                sx={{
-                                    '& .MuiInputBase-input': {
-                                        color: detectedIP && !ipError ? 'success.main' : 'inherit',
-                                    },
-                                }}
-                            />
-                        </Grid>
-
-                        {/* Representative Person Fields - Only show when business type is Company */}
-                        {formData.business_type === 'company' && (
-                            <>
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Representative Person Information
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="First Name"
-                                        value={formData.representative_first_name}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'representative_first_name',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="Representative First Name"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Last Name"
-                                        value={formData.representative_last_name}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'representative_last_name',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="Representative Last Name"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Email Address"
-                                        type="email"
-                                        value={formData.representative_email}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'representative_email',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="representative@example.com"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Phone Number"
-                                        value={formData.representative_phone}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'representative_phone',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="+31612345678"
-                                        helperText="Include country code (e.g., +1 for US, +31 for Netherlands)"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Job Title"
-                                        value={formData.representative_relationship_title}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'representative_relationship_title',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="CEO, Manager, etc."
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="SSN Last 4 Digits"
-                                        value={formData.representative_ssn_last_4}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'representative_ssn_last_4',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="1234"
-                                        inputProps={{ maxLength: 4 }}
-                                        helperText="Last 4 digits of Social Security Number (US only)"
-                                    />
-                                </Grid>
-
-                                {/* Representative Date of Birth */}
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="subtitle1" gutterBottom>
-                                        Representative Date of Birth
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 4 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Day</InputLabel>
-                                        <Select
-                                            value={formData.representative_dob_day}
-                                            label="Day"
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Phone Number"
+                                            value={formData.representative_phone}
                                             onChange={e =>
                                                 handleInputChange(
-                                                    'representative_dob_day',
+                                                    'representative_phone',
                                                     e.target.value
                                                 )
                                             }
-                                        >
-                                            {Array.from({ length: 31 }, (_, i) => i + 1).map(
-                                                day => (
-                                                    <MenuItem key={day} value={day}>
-                                                        {day}
+                                            placeholder="+31612345678"
+                                            helperText="Include country code (e.g., +1 for US, +31 for Netherlands)"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Job Title"
+                                            value={formData.representative_relationship_title}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_relationship_title',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="CEO, Manager, etc."
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="SSN Last 4 Digits"
+                                            value={formData.representative_ssn_last_4}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_ssn_last_4',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="1234"
+                                            inputProps={{ maxLength: 4 }}
+                                            helperText="Last 4 digits of Social Security Number (US only)"
+                                        />
+                                    </Grid>
+
+                                    {/* Representative Date of Birth */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="subtitle1" gutterBottom>
+                                            Representative Date of Birth
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 4 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Day</InputLabel>
+                                            <Select
+                                                value={formData.representative_dob_day}
+                                                label="Day"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'representative_dob_day',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                                                    day => (
+                                                        <MenuItem key={day} value={day}>
+                                                            {day}
+                                                        </MenuItem>
+                                                    )
+                                                )}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 4 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Month</InputLabel>
+                                            <Select
+                                                value={formData.representative_dob_month}
+                                                label="Month"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'representative_dob_month',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {months.map(month => (
+                                                    <MenuItem key={month.value} value={month.value}>
+                                                        {month.name}
                                                     </MenuItem>
-                                                )
-                                            )}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
 
-                                <Grid size={{ xs: 4 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Month</InputLabel>
-                                        <Select
-                                            value={formData.representative_dob_month}
-                                            label="Month"
+                                    <Grid size={{ xs: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Year"
+                                            type="number"
+                                            value={formData.representative_dob_year}
                                             onChange={e =>
                                                 handleInputChange(
-                                                    'representative_dob_month',
+                                                    'representative_dob_year',
+                                                    parseInt(e.target.value)
+                                                )
+                                            }
+                                            inputProps={{
+                                                min: 1900,
+                                                max: new Date().getFullYear(),
+                                            }}
+                                        />
+                                    </Grid>
+
+                                    {/* Representative Address */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Representative Address
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Street Address"
+                                            value={formData.representative_address_line1}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_line1',
                                                     e.target.value
                                                 )
                                             }
-                                        >
-                                            {months.map(month => (
-                                                <MenuItem key={month.value} value={month.value}>
-                                                    {month.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
+                                            placeholder="123 Main Street"
+                                        />
+                                    </Grid>
 
-                                <Grid size={{ xs: 4 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Year"
-                                        type="number"
-                                        value={formData.representative_dob_year}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'representative_dob_year',
-                                                parseInt(e.target.value)
-                                            )
-                                        }
-                                        inputProps={{
-                                            min: 1900,
-                                            max: new Date().getFullYear(),
-                                        }}
-                                    />
-                                </Grid>
-
-                                {/* Representative Address */}
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Representative Address
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Street Address"
-                                        value={formData.representative_address_line1}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'representative_address_line1',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="123 Main Street"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="City"
-                                        value={formData.representative_address_city}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'representative_address_city',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="New York"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="State Code"
-                                        value={formData.representative_address_state}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'representative_address_state',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="NY"
-                                        helperText="2-letter state code"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="ZIP Code"
-                                        value={formData.representative_address_postal_code}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'representative_address_postal_code',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="12345"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Country Code</InputLabel>
-                                        <Select
-                                            value={formData.representative_address_country}
-                                            label="Country Code"
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="City"
+                                            value={formData.representative_address_city}
                                             onChange={e =>
                                                 handleInputChange(
-                                                    'representative_address_country',
+                                                    'representative_address_city',
                                                     e.target.value
                                                 )
                                             }
+                                            placeholder="New York"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="State Code"
+                                            value={formData.representative_address_state}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_state',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="NY"
+                                            helperText="2-letter state code"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="ZIP Code"
+                                            value={formData.representative_address_postal_code}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_postal_code',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="12345"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Country Code</InputLabel>
+                                            <Select
+                                                value={formData.representative_address_country}
+                                                label="Country Code"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'representative_address_country',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {countries.map(country => (
+                                                    <MenuItem
+                                                        key={country.code}
+                                                        value={country.code}
+                                                    >
+                                                        {country.name}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    {/* Identity Document Upload for Representative */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Representative Identity Verification (Optional)
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            gutterBottom
                                         >
-                                            {countries.map(country => (
-                                                <MenuItem key={country.code} value={country.code}>
-                                                    {country.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
+                                            Upload an identity document (driver's license, passport,
+                                            etc.) for the representative
+                                        </Typography>
+                                    </Grid>
 
-                                {/* Identity Document Upload for Representative */}
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Representative Identity Verification (Optional)
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                                        Upload an identity document (driver's license, passport,
-                                        etc.) for the representative
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.representative_front ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={uploadingFile === 'representative_front'}
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'representative_front'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.representative_front
-                                              ? `Uploaded: ${uploadedFiles.representative_front.name}`
-                                              : 'Upload ID Document (Front)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(file, 'representative_front');
-                                                }
-                                            }}
-                                        />
-                                    </Button>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.representative_back ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={uploadingFile === 'representative_back'}
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'representative_back'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.representative_back
-                                              ? `Uploaded: ${uploadedFiles.representative_back.name}`
-                                              : 'Upload ID Document (Back)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(file, 'representative_back');
-                                                }
-                                            }}
-                                        />
-                                    </Button>
-                                </Grid>
-
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
-                                        Additional Document (Address Proof - Optional)
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                                        Upload utility bill, bank statement, or official
-                                        correspondence for the representative
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.representative_additional_front ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={
-                                            uploadingFile === 'representative_additional_front'
-                                        }
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'representative_additional_front'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.representative_additional_front
-                                              ? `Uploaded: ${uploadedFiles.representative_additional_front.name}`
-                                              : 'Upload Address Proof (Front)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(
-                                                        file,
-                                                        'representative_additional_front'
-                                                    );
-                                                }
-                                            }}
-                                        />
-                                    </Button>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.representative_additional_back ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={
-                                            uploadingFile === 'representative_additional_back'
-                                        }
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'representative_additional_back'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.representative_additional_back
-                                              ? `Uploaded: ${uploadedFiles.representative_additional_back.name}`
-                                              : 'Upload Address Proof (Back)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(
-                                                        file,
-                                                        'representative_additional_back'
-                                                    );
-                                                }
-                                            }}
-                                        />
-                                    </Button>
-                                </Grid>
-
-                                {/* Owner Checkbox */}
-                                <Grid size={{ xs: 12 }}>
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={representativeIsOwner}
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.representative_front ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'representative_front'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'representative_front'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.representative_front
+                                                  ? `Uploaded: ${uploadedFiles.representative_front.name}`
+                                                  : 'Upload ID Document (Front)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
                                                 onChange={e => {
-                                                    const isChecked = e.target.checked;
-                                                    setRepresentativeIsOwner(isChecked);
-
-                                                    // Clear owner fields when representative is also owner
-                                                    if (isChecked) {
-                                                        setFormData(prev => ({
-                                                            ...prev,
-                                                            owner_first_name: '',
-                                                            owner_last_name: '',
-                                                            owner_email: '',
-                                                            owner_phone: '',
-                                                            owner_dob_day: 1,
-                                                            owner_dob_month: 1,
-                                                            owner_dob_year: 1990,
-                                                            owner_address_line1: '',
-                                                            owner_address_city: '',
-                                                            owner_address_state: '',
-                                                            owner_address_postal_code: '',
-                                                            owner_address_country: country || 'US',
-                                                            owner_relationship_owner: true,
-                                                            owner_relationship_title: '',
-                                                            owner_ssn_last_4: '',
-                                                        }));
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'representative_front'
+                                                        );
                                                     }
                                                 }}
                                             />
-                                        }
-                                        label="This representative is also the owner"
-                                    />
-                                </Grid>
-                            </>
-                        )}
+                                        </Button>
+                                    </Grid>
 
-                        {/* Owner Person Fields - Only show when business type is Company and representative is NOT owner */}
-                        {formData.business_type === 'company' && !representativeIsOwner && (
-                            <>
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Owner Information
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="First Name"
-                                        value={formData.owner_first_name}
-                                        onChange={e =>
-                                            handleInputChange('owner_first_name', e.target.value)
-                                        }
-                                        placeholder="Owner First Name"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Last Name"
-                                        value={formData.owner_last_name}
-                                        onChange={e =>
-                                            handleInputChange('owner_last_name', e.target.value)
-                                        }
-                                        placeholder="Owner Last Name"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Email Address"
-                                        type="email"
-                                        value={formData.owner_email}
-                                        onChange={e =>
-                                            handleInputChange('owner_email', e.target.value)
-                                        }
-                                        placeholder="owner@example.com"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Phone Number"
-                                        value={formData.owner_phone}
-                                        onChange={e =>
-                                            handleInputChange('owner_phone', e.target.value)
-                                        }
-                                        placeholder="+31612345678"
-                                        helperText="Include country code (e.g., +1 for US, +31 for Netherlands)"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Job Title"
-                                        value={formData.owner_relationship_title}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'owner_relationship_title',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="Owner, Founder, etc."
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="SSN Last 4 Digits"
-                                        value={formData.owner_ssn_last_4}
-                                        onChange={e =>
-                                            handleInputChange('owner_ssn_last_4', e.target.value)
-                                        }
-                                        placeholder="1234"
-                                        inputProps={{ maxLength: 4 }}
-                                        helperText="Last 4 digits of Social Security Number (US only)"
-                                    />
-                                </Grid>
-
-                                {/* Owner Date of Birth */}
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="subtitle1" gutterBottom>
-                                        Owner Date of Birth
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 4 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Day</InputLabel>
-                                        <Select
-                                            value={formData.owner_dob_day}
-                                            label="Day"
-                                            onChange={e =>
-                                                handleInputChange('owner_dob_day', e.target.value)
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.representative_back ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
                                             }
+                                            disabled={uploadingFile === 'representative_back'}
+                                            sx={{ height: '56px' }}
                                         >
-                                            {Array.from({ length: 31 }, (_, i) => i + 1).map(
-                                                day => (
-                                                    <MenuItem key={day} value={day}>
-                                                        {day}
+                                            {uploadingFile === 'representative_back'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.representative_back
+                                                  ? `Uploaded: ${uploadedFiles.representative_back.name}`
+                                                  : 'Upload ID Document (Back)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'representative_back'
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                                            Additional Document (Address Proof - Optional)
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            gutterBottom
+                                        >
+                                            Upload utility bill, bank statement, or official
+                                            correspondence for the representative
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.representative_additional_front ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={
+                                                uploadingFile === 'representative_additional_front'
+                                            }
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'representative_additional_front'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.representative_additional_front
+                                                  ? `Uploaded: ${uploadedFiles.representative_additional_front.name}`
+                                                  : 'Upload Address Proof (Front)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'representative_additional_front'
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.representative_additional_back ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={
+                                                uploadingFile === 'representative_additional_back'
+                                            }
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'representative_additional_back'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.representative_additional_back
+                                                  ? `Uploaded: ${uploadedFiles.representative_additional_back.name}`
+                                                  : 'Upload Address Proof (Back)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'representative_additional_back'
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    {/* Owner Checkbox */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <FormControlLabel
+                                            control={
+                                                <Checkbox
+                                                    checked={representativeIsOwner}
+                                                    onChange={e => {
+                                                        const isChecked = e.target.checked;
+                                                        setRepresentativeIsOwner(isChecked);
+
+                                                        // Clear owner fields when representative is also owner
+                                                        if (isChecked) {
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                owner_first_name: '',
+                                                                owner_last_name: '',
+                                                                owner_email: '',
+                                                                owner_phone: '',
+                                                                owner_dob_day: 1,
+                                                                owner_dob_month: 1,
+                                                                owner_dob_year: 1990,
+                                                                owner_address_line1: '',
+                                                                owner_address_city: '',
+                                                                owner_address_state: '',
+                                                                owner_address_postal_code: '',
+                                                                owner_address_country:
+                                                                    country || 'US',
+                                                                owner_relationship_owner: true,
+                                                                owner_relationship_title: '',
+                                                                owner_ssn_last_4: '',
+                                                            }));
+                                                        }
+                                                    }}
+                                                />
+                                            }
+                                            label="This representative is also the owner"
+                                        />
+                                    </Grid>
+                                </>
+                            )}
+
+                            {/* Owner Person Fields - Only show when business type is Company and representative is NOT owner */}
+                            {formData.business_type === 'company' && !representativeIsOwner && (
+                                <>
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Owner Information
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="First Name"
+                                            value={formData.owner_first_name}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_first_name',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Owner First Name"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Last Name"
+                                            value={formData.owner_last_name}
+                                            onChange={e =>
+                                                handleInputChange('owner_last_name', e.target.value)
+                                            }
+                                            placeholder="Owner Last Name"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Email Address"
+                                            type="email"
+                                            value={formData.owner_email}
+                                            onChange={e =>
+                                                handleInputChange('owner_email', e.target.value)
+                                            }
+                                            placeholder="owner@example.com"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Phone Number"
+                                            value={formData.owner_phone}
+                                            onChange={e =>
+                                                handleInputChange('owner_phone', e.target.value)
+                                            }
+                                            placeholder="+31612345678"
+                                            helperText="Include country code (e.g., +1 for US, +31 for Netherlands)"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Job Title"
+                                            value={formData.owner_relationship_title}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_relationship_title',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Owner, Founder, etc."
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="SSN Last 4 Digits"
+                                            value={formData.owner_ssn_last_4}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_ssn_last_4',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="1234"
+                                            inputProps={{ maxLength: 4 }}
+                                            helperText="Last 4 digits of Social Security Number (US only)"
+                                        />
+                                    </Grid>
+
+                                    {/* Owner Date of Birth */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="subtitle1" gutterBottom>
+                                            Owner Date of Birth
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 4 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Day</InputLabel>
+                                            <Select
+                                                value={formData.owner_dob_day}
+                                                label="Day"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'owner_dob_day',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                                                    day => (
+                                                        <MenuItem key={day} value={day}>
+                                                            {day}
+                                                        </MenuItem>
+                                                    )
+                                                )}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 4 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Month</InputLabel>
+                                            <Select
+                                                value={formData.owner_dob_month}
+                                                label="Month"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'owner_dob_month',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {months.map(month => (
+                                                    <MenuItem key={month.value} value={month.value}>
+                                                        {month.name}
                                                     </MenuItem>
-                                                )
-                                            )}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
 
-                                <Grid size={{ xs: 4 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Month</InputLabel>
-                                        <Select
-                                            value={formData.owner_dob_month}
-                                            label="Month"
-                                            onChange={e =>
-                                                handleInputChange('owner_dob_month', e.target.value)
-                                            }
-                                        >
-                                            {months.map(month => (
-                                                <MenuItem key={month.value} value={month.value}>
-                                                    {month.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-
-                                <Grid size={{ xs: 4 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Year"
-                                        type="number"
-                                        value={formData.owner_dob_year}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'owner_dob_year',
-                                                parseInt(e.target.value)
-                                            )
-                                        }
-                                        inputProps={{
-                                            min: 1900,
-                                            max: new Date().getFullYear(),
-                                        }}
-                                    />
-                                </Grid>
-
-                                {/* Owner Address */}
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Owner Address
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Street Address"
-                                        value={formData.owner_address_line1}
-                                        onChange={e =>
-                                            handleInputChange('owner_address_line1', e.target.value)
-                                        }
-                                        placeholder="123 Main Street"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="City"
-                                        value={formData.owner_address_city}
-                                        onChange={e =>
-                                            handleInputChange('owner_address_city', e.target.value)
-                                        }
-                                        placeholder="New York"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="State Code"
-                                        value={formData.owner_address_state}
-                                        onChange={e =>
-                                            handleInputChange('owner_address_state', e.target.value)
-                                        }
-                                        placeholder="NY"
-                                        helperText="2-letter state code"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="ZIP Code"
-                                        value={formData.owner_address_postal_code}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'owner_address_postal_code',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="12345"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Country Code</InputLabel>
-                                        <Select
-                                            value={formData.owner_address_country}
-                                            label="Country Code"
+                                    <Grid size={{ xs: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Year"
+                                            type="number"
+                                            value={formData.owner_dob_year}
                                             onChange={e =>
                                                 handleInputChange(
-                                                    'owner_address_country',
-                                                    e.target.value
+                                                    'owner_dob_year',
+                                                    parseInt(e.target.value)
                                                 )
                                             }
-                                        >
-                                            {countries.map(country => (
-                                                <MenuItem key={country.code} value={country.code}>
-                                                    {country.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-
-                                {/* Owner Identity Verification Documents */}
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                        Owner Identity Verification (Optional)
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                                        Upload identity document for the owner (driver's license,
-                                        passport, etc.)
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.owner_front ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={uploadingFile === 'owner_front'}
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'owner_front'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.owner_front
-                                              ? `Uploaded: ${uploadedFiles.owner_front.name}`
-                                              : 'Upload Owner ID (Front)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(file, 'owner_front');
-                                                }
+                                            inputProps={{
+                                                min: 1900,
+                                                max: new Date().getFullYear(),
                                             }}
                                         />
-                                    </Button>
-                                </Grid>
+                                    </Grid>
 
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.owner_back ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={uploadingFile === 'owner_back'}
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'owner_back'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.owner_back
-                                              ? `Uploaded: ${uploadedFiles.owner_back.name}`
-                                              : 'Upload Owner ID (Back)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(file, 'owner_back');
-                                                }
-                                            }}
+                                    {/* Owner Address */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Owner Address
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Street Address"
+                                            value={formData.owner_address_line1}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_address_line1',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="123 Main Street"
                                         />
-                                    </Button>
-                                </Grid>
+                                    </Grid>
 
-                                <Grid size={{ xs: 12 }}>
-                                    <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
-                                        Additional Document (Address Proof - Optional)
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                                        Upload utility bill, bank statement, or official
-                                        correspondence for the owner
-                                    </Typography>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.owner_additional_front ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={uploadingFile === 'owner_additional_front'}
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'owner_additional_front'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.owner_additional_front
-                                              ? `Uploaded: ${uploadedFiles.owner_additional_front.name}`
-                                              : 'Upload Address Proof (Front)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(
-                                                        file,
-                                                        'owner_additional_front'
-                                                    );
-                                                }
-                                            }}
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="City"
+                                            value={formData.owner_address_city}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_address_city',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="New York"
                                         />
-                                    </Button>
-                                </Grid>
+                                    </Grid>
 
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <Button
-                                        variant="outlined"
-                                        component="label"
-                                        fullWidth
-                                        startIcon={
-                                            uploadedFiles.owner_additional_back ? (
-                                                <CheckCircleIcon color="success" />
-                                            ) : (
-                                                <CloudUploadIcon />
-                                            )
-                                        }
-                                        disabled={uploadingFile === 'owner_additional_back'}
-                                        sx={{ height: '56px' }}
-                                    >
-                                        {uploadingFile === 'owner_additional_back'
-                                            ? 'Uploading...'
-                                            : uploadedFiles.owner_additional_back
-                                              ? `Uploaded: ${uploadedFiles.owner_additional_back.name}`
-                                              : 'Upload Address Proof (Back)'}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="image/*,.pdf"
-                                            onChange={e => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    handleFileUpload(file, 'owner_additional_back');
-                                                }
-                                            }}
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="State Code"
+                                            value={formData.owner_address_state}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_address_state',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="NY"
+                                            helperText="2-letter state code"
                                         />
-                                    </Button>
-                                </Grid>
-                            </>
-                        )}
+                                    </Grid>
 
-                        {/* External Account */}
-                        <Grid size={{ xs: 12 }}>
-                            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                External Account Information
-                            </Typography>
-                        </Grid>
-
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <FormControl fullWidth>
-                                <InputLabel>Account Type</InputLabel>
-                                <Select
-                                    value={formData.external_account_object}
-                                    label="Account Type"
-                                    onChange={e =>
-                                        handleInputChange('external_account_object', e.target.value)
-                                    }
-                                >
-                                    <MenuItem value="bank_account">Bank Account</MenuItem>
-                                    <MenuItem value="card">Debit Card</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-
-                        {/* Bank Account Fields */}
-                        {formData.external_account_object === 'bank_account' && (
-                            <>
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Country</InputLabel>
-                                        <Select
-                                            value={formData.external_account_country}
-                                            label="Country"
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="ZIP Code"
+                                            value={formData.owner_address_postal_code}
                                             onChange={e =>
                                                 handleInputChange(
-                                                    'external_account_country',
+                                                    'owner_address_postal_code',
                                                     e.target.value
                                                 )
                                             }
-                                        >
-                                            {countries.map(country => (
-                                                <MenuItem key={country.code} value={country.code}>
-                                                    {country.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
+                                            placeholder="12345"
+                                        />
+                                    </Grid>
 
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Currency</InputLabel>
-                                        <Select
-                                            value={formData.external_account_currency}
-                                            label="Currency"
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'external_account_currency',
-                                                    e.target.value
-                                                )
-                                            }
-                                        >
-                                            {currencies.map(currency => (
-                                                <MenuItem key={currency.code} value={currency.code}>
-                                                    {currency.name}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Routing Number"
-                                        value={formData.external_account_routing_number}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'external_account_routing_number',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="110000000"
-                                        helperText="Bank routing number (US: 9 digits)"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Account Number"
-                                        value={formData.external_account_account_number}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'external_account_account_number',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="000123456789"
-                                        helperText="Bank account number"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Account Holder Name"
-                                        value={formData.external_account_account_holder_name}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'external_account_account_holder_name',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="John Doe"
-                                        helperText="Name on the bank account"
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 12, sm: 6 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Account Holder Type</InputLabel>
-                                        <Select
-                                            value={formData.external_account_account_holder_type}
-                                            label="Account Holder Type"
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'external_account_account_holder_type',
-                                                    e.target.value
-                                                )
-                                            }
-                                        >
-                                            <MenuItem value="individual">Individual</MenuItem>
-                                            <MenuItem value="company">Company</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-                            </>
-                        )}
-
-                        {/* Debit Card Fields */}
-                        {formData.external_account_object === 'card' && (
-                            <>
-                                <Grid size={{ xs: 12 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Card Number"
-                                        value={formData.external_account_card_number}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'external_account_card_number',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="4242424242424242"
-                                        helperText="16-digit card number"
-                                        inputProps={{ maxLength: 16 }}
-                                    />
-                                </Grid>
-
-                                <Grid size={{ xs: 4 }}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Exp. Month</InputLabel>
-                                        <Select
-                                            value={formData.external_account_exp_month}
-                                            label="Exp. Month"
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'external_account_exp_month',
-                                                    e.target.value
-                                                )
-                                            }
-                                        >
-                                            {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                                                month => (
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Country Code</InputLabel>
+                                            <Select
+                                                value={formData.owner_address_country}
+                                                label="Country Code"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'owner_address_country',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {countries.map(country => (
                                                     <MenuItem
-                                                        key={month}
-                                                        value={month.toString().padStart(2, '0')}
+                                                        key={country.code}
+                                                        value={country.code}
                                                     >
-                                                        {month.toString().padStart(2, '0')}
+                                                        {country.name}
                                                     </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    {/* Owner Identity Verification Documents */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Owner Identity Verification (Optional)
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            gutterBottom
+                                        >
+                                            Upload identity document for the owner (driver's
+                                            license, passport, etc.)
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.owner_front ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
                                                 )
-                                            )}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
+                                            }
+                                            disabled={uploadingFile === 'owner_front'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'owner_front'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.owner_front
+                                                  ? `Uploaded: ${uploadedFiles.owner_front.name}`
+                                                  : 'Upload Owner ID (Front)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(file, 'owner_front');
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
 
-                                <Grid size={{ xs: 4 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="Exp. Year"
-                                        type="number"
-                                        value={formData.external_account_exp_year}
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.owner_back ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'owner_back'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'owner_back'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.owner_back
+                                                  ? `Uploaded: ${uploadedFiles.owner_back.name}`
+                                                  : 'Upload Owner ID (Back)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(file, 'owner_back');
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                                            Additional Document (Address Proof - Optional)
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            gutterBottom
+                                        >
+                                            Upload utility bill, bank statement, or official
+                                            correspondence for the owner
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.owner_additional_front ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'owner_additional_front'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'owner_additional_front'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.owner_additional_front
+                                                  ? `Uploaded: ${uploadedFiles.owner_additional_front.name}`
+                                                  : 'Upload Address Proof (Front)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'owner_additional_front'
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.owner_additional_back ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'owner_additional_back'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'owner_additional_back'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.owner_additional_back
+                                                  ? `Uploaded: ${uploadedFiles.owner_additional_back.name}`
+                                                  : 'Upload Address Proof (Back)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'owner_additional_back'
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+                                </>
+                            )}
+
+                            {/* External Account */}
+                            <Grid size={{ xs: 12 }}>
+                                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                    External Account Information
+                                </Typography>
+                            </Grid>
+
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <FormControl fullWidth>
+                                    <InputLabel>Account Type</InputLabel>
+                                    <Select
+                                        value={formData.external_account_object}
+                                        label="Account Type"
                                         onChange={e =>
                                             handleInputChange(
-                                                'external_account_exp_year',
+                                                'external_account_object',
                                                 e.target.value
                                             )
                                         }
-                                        placeholder="2030"
-                                        inputProps={{
-                                            min: new Date().getFullYear(),
-                                            max: new Date().getFullYear() + 20,
-                                        }}
-                                    />
-                                </Grid>
+                                    >
+                                        <MenuItem value="bank_account">Bank Account</MenuItem>
+                                        <MenuItem value="card">Debit Card</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Grid>
 
-                                <Grid size={{ xs: 4 }}>
-                                    <TextField
-                                        fullWidth
-                                        label="CVC"
-                                        value={formData.external_account_cvc}
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'external_account_cvc',
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="123"
-                                        helperText="3-4 digit security code"
-                                        inputProps={{ maxLength: 4 }}
-                                    />
-                                </Grid>
-                            </>
+                            {/* Bank Account Fields */}
+                            {formData.external_account_object === 'bank_account' && (
+                                <>
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Country</InputLabel>
+                                            <Select
+                                                value={formData.external_account_country}
+                                                label="Country"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'external_account_country',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {countries.map(country => (
+                                                    <MenuItem
+                                                        key={country.code}
+                                                        value={country.code}
+                                                    >
+                                                        {country.name}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Currency</InputLabel>
+                                            <Select
+                                                value={formData.external_account_currency}
+                                                label="Currency"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'external_account_currency',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {currencies.map(currency => (
+                                                    <MenuItem
+                                                        key={currency.code}
+                                                        value={currency.code}
+                                                    >
+                                                        {currency.name}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Routing Number"
+                                            value={formData.external_account_routing_number}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'external_account_routing_number',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="110000000"
+                                            helperText="Bank routing number (US: 9 digits)"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Account Number"
+                                            value={formData.external_account_account_number}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'external_account_account_number',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="000123456789"
+                                            helperText="Bank account number"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Account Holder Name"
+                                            value={formData.external_account_account_holder_name}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'external_account_account_holder_name',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="John Doe"
+                                            helperText="Name on the bank account"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Account Holder Type</InputLabel>
+                                            <Select
+                                                value={
+                                                    formData.external_account_account_holder_type
+                                                }
+                                                label="Account Holder Type"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'external_account_account_holder_type',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                <MenuItem value="individual">Individual</MenuItem>
+                                                <MenuItem value="company">Company</MenuItem>
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+                                </>
+                            )}
+
+                            {/* Debit Card Fields */}
+                            {formData.external_account_object === 'card' && (
+                                <>
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Card Number"
+                                            value={formData.external_account_card_number}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'external_account_card_number',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="4242424242424242"
+                                            helperText="16-digit card number"
+                                            inputProps={{ maxLength: 16 }}
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 4 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Exp. Month</InputLabel>
+                                            <Select
+                                                value={formData.external_account_exp_month}
+                                                label="Exp. Month"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'external_account_exp_month',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                                                    month => (
+                                                        <MenuItem
+                                                            key={month}
+                                                            value={month
+                                                                .toString()
+                                                                .padStart(2, '0')}
+                                                        >
+                                                            {month.toString().padStart(2, '0')}
+                                                        </MenuItem>
+                                                    )
+                                                )}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Exp. Year"
+                                            type="number"
+                                            value={formData.external_account_exp_year}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'external_account_exp_year',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="2030"
+                                            inputProps={{
+                                                min: new Date().getFullYear(),
+                                                max: new Date().getFullYear() + 20,
+                                            }}
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="CVC"
+                                            value={formData.external_account_cvc}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'external_account_cvc',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="123"
+                                            helperText="3-4 digit security code"
+                                            inputProps={{ maxLength: 4 }}
+                                        />
+                                    </Grid>
+                                </>
+                            )}
+                        </Grid>
+
+                        {error && (
+                            <Alert severity="error" sx={{ mt: 2 }}>
+                                {error}
+                            </Alert>
                         )}
-                    </Grid>
 
-                    {error && (
-                        <Alert severity="error" sx={{ mt: 2 }}>
-                            {error}
-                        </Alert>
+                        {success && (
+                            <Alert severity="success" sx={{ mt: 2 }}>
+                                Merchant onboarded successfully!
+                            </Alert>
+                        )}
+                    </Box>
+                </CardContent>
+                <CardActions sx={{ p: 3 }}>
+                    {onClose && (
+                        <Button onClick={handleClose} disabled={loading} size="large">
+                            Cancel
+                        </Button>
                     )}
-
-                    {success && (
-                        <Alert severity="success" sx={{ mt: 2 }}>
-                            Merchant onboarded successfully!
-                        </Alert>
-                    )}
-                </Box>
-            </CardContent>
-            <CardActions sx={{ p: 3 }}>
-                {onClose && (
-                    <Button onClick={handleClose} disabled={loading} size="large">
-                        Cancel
+                    <Button
+                        onClick={handleReset}
+                        disabled={loading}
+                        size="large"
+                        variant="outlined"
+                    >
+                        Reset
                     </Button>
-                )}
-                <Button
-                    onClick={handleSubmit}
-                    variant="contained"
-                    startIcon={loading ? <CircularProgress size={20} /> : <PersonAddIcon />}
-                    disabled={loading}
-                    size="large"
-                >
-                    {loading ? 'Onboarding...' : 'Onboard Merchant'}
-                </Button>
-            </CardActions>
-        </Card>
+                    <Button
+                        onClick={handleSubmit}
+                        variant="contained"
+                        startIcon={loading ? <CircularProgress size={20} /> : <PersonAddIcon />}
+                        disabled={loading}
+                        size="large"
+                    >
+                        {loading ? 'Onboarding...' : 'Onboard Merchant'}
+                    </Button>
+                </CardActions>
+            </Card>
+
+            {/* Unsaved Changes Warning Dialog */}
+            <Dialog
+                open={showUnsavedWarning}
+                onClose={() => setShowUnsavedWarning(false)}
+                aria-labelledby="unsaved-warning-title"
+            >
+                <DialogTitle id="unsaved-warning-title">Unsaved Changes</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        You have unsaved changes in the form. If you refresh the page or navigate
+                        away, your progress will be lost. Do you want to continue?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setShowUnsavedWarning(false)}>Cancel</Button>
+                    <Button
+                        onClick={() => {
+                            setShowUnsavedWarning(false);
+                            window.location.reload();
+                        }}
+                        color="primary"
+                        autoFocus
+                    >
+                        Continue Anyway
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </>
     );
 };
 

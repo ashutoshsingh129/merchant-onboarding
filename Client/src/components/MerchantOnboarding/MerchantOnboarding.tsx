@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     Box,
     Card,
@@ -15,9 +15,15 @@ import {
     Alert,
     CircularProgress,
     Grid2 as Grid,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    DialogActions,
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { StyledContainer } from './MerchantOnboarding.styles';
+import { useLocation } from 'react-router-dom';
 import SuccessModal from './SuccessModal';
 import DirectOnboardForm from '../DirectOnboardForm';
 import { createStripeAccount } from '../../services/stripeApi';
@@ -34,22 +40,101 @@ interface MerchantFormData {
 }
 
 const MerchantOnboarding: React.FC = () => {
-    const [formData, setFormData] = useState<MerchantFormData>({
-        type: 'custom',
-        country: 'US',
-        email: '',
-        business_type: 'individual',
-        capabilities: {
-            card_payments: true,
-            transfers: true,
-        },
-    });
+    const location = useLocation();
+    const STORAGE_KEY = 'merchantOnboardingForm';
+
+    const defaultFormData: MerchantFormData = useMemo(
+        () => ({
+            type: 'custom',
+            country: 'US',
+            email: '',
+            business_type: 'individual',
+            capabilities: {
+                card_payments: true,
+                transfers: true,
+            },
+        }),
+        []
+    );
+    const [formData, setFormData] = useState<MerchantFormData>(defaultFormData);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successModalOpen, setSuccessModalOpen] = useState(false);
     const [createdAccount, setCreatedAccount] = useState<any>(null);
     const [showDirectOnboard, setShowDirectOnboard] = useState(false);
+    const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
+
+    // Load from storage on mount, unless explicitly opening a brand new form
+    useEffect(() => {
+        const isNewForm = (location.state as any)?.newForm;
+        if (isNewForm) {
+            localStorage.removeItem(STORAGE_KEY);
+            setFormData(defaultFormData);
+            return;
+        }
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Merge with defaults to ensure structure
+                setFormData({
+                    ...defaultFormData,
+                    ...parsed,
+                    capabilities: {
+                        ...defaultFormData.capabilities,
+                        ...(parsed?.capabilities || {}),
+                    },
+                });
+            }
+        } catch {
+            // ignore invalid storage
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Check if form has unsaved changes
+    const hasUnsavedChanges = useMemo(() => {
+        return (
+            formData.email !== '' ||
+            formData.country !== 'US' ||
+            formData.business_type !== 'individual' ||
+            formData.type !== 'custom' ||
+            !formData.capabilities.card_payments ||
+            !formData.capabilities.transfers
+        );
+    }, [formData]);
+
+    // Handle beforeunload event to warn about unsaved changes
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+                return 'You have unsaved changes. Are you sure you want to leave?';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasUnsavedChanges]);
+
+    // Persist on changes
+    useEffect(() => {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+        } catch {
+            // ignore quota/storage errors
+        }
+    }, [formData]);
+
+    const handleReset = () => {
+        localStorage.removeItem(STORAGE_KEY);
+        setFormData(defaultFormData);
+        setCreatedAccount(null);
+        setShowDirectOnboard(false);
+        setError(null);
+    };
 
     const countries = [
         { code: 'NL', name: 'Netherlands' },
@@ -265,6 +350,15 @@ const MerchantOnboarding: React.FC = () => {
                             >
                                 {loading ? 'Creating Account...' : 'Create Account'}
                             </Button>
+                            <Button
+                                type="button"
+                                variant="outlined"
+                                onClick={handleReset}
+                                disabled={loading}
+                                size="large"
+                            >
+                                Reset
+                            </Button>
                         </Box>
                     </Box>
                 </CardContent>
@@ -287,6 +381,34 @@ const MerchantOnboarding: React.FC = () => {
                     onSuccess={handleDirectOnboardSuccess}
                 />
             )}
+
+            {/* Unsaved Changes Warning Dialog */}
+            <Dialog
+                open={showUnsavedWarning}
+                onClose={() => setShowUnsavedWarning(false)}
+                aria-labelledby="unsaved-warning-title"
+            >
+                <DialogTitle id="unsaved-warning-title">Unsaved Changes</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        You have unsaved changes in the form. If you refresh the page or navigate
+                        away, your progress will be lost. Do you want to continue?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setShowUnsavedWarning(false)}>Cancel</Button>
+                    <Button
+                        onClick={() => {
+                            setShowUnsavedWarning(false);
+                            window.location.reload();
+                        }}
+                        color="primary"
+                        autoFocus
+                    >
+                        Continue Anyway
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </StyledContainer>
     );
 };
