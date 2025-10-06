@@ -972,4 +972,81 @@ router.get("/accounts/:account_id", async (req, res) => {
   }
 });
 
+// Delete a Stripe account
+router.delete("/accounts/:account_id", async (req, res) => {
+  try {
+    const { account_id } = req.params;
+
+    // Delete the account from Stripe
+    const deletedAccount = await stripe.accounts.del(account_id);
+
+    res.json({
+      success: true,
+      deleted: true,
+      account_id: deletedAccount.id,
+      message: "Account deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting Stripe account:", error);
+    res.status(500).json({
+      error: "Failed to delete Stripe account",
+      message: error.message,
+    });
+  }
+});
+
+// Reject a Stripe account
+router.post("/accounts/:account_id/reject", async (req, res) => {
+  try {
+    const { account_id } = req.params;
+    const { reason } = req.body;
+
+    // Validate required fields
+    if (!reason) {
+      return res.status(400).json({
+        error: "Missing required field: reason",
+        required: ["reason"],
+        valid_reasons: ["fraud", "terms_of_service", "other"],
+      });
+    }
+
+    // Validate reason
+    const validReasons = ["fraud", "terms_of_service", "other"];
+    if (!validReasons.includes(reason)) {
+      return res.status(400).json({
+        error: "Invalid reason",
+        valid_reasons: validReasons,
+      });
+    }
+
+    // Reject the account
+    const rejectedAccount = await stripe.accounts.reject(account_id, {
+      reason: reason,
+    });
+
+    res.json({
+      success: true,
+      account: {
+        id: rejectedAccount.id,
+        email: rejectedAccount.email,
+        country: rejectedAccount.country,
+        type: rejectedAccount.type,
+        business_type: rejectedAccount.business_type,
+        charges_enabled: rejectedAccount.charges_enabled,
+        payouts_enabled: rejectedAccount.payouts_enabled,
+        details_submitted: rejectedAccount.details_submitted,
+        requirements: rejectedAccount.requirements,
+        created: rejectedAccount.created,
+      },
+      message: "Account rejected successfully",
+    });
+  } catch (error) {
+    console.error("Error rejecting Stripe account:", error);
+    res.status(500).json({
+      error: "Failed to reject Stripe account",
+      message: error.message,
+    });
+  }
+});
+
 module.exports = router;

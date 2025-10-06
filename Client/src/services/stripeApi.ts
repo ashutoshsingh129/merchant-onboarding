@@ -338,3 +338,74 @@ export const createExternalAccount = async (
         throw error;
     }
 };
+
+interface DeleteAccountResponse {
+    success: boolean;
+    deleted?: boolean;
+    account_id?: string;
+    error?: string;
+    message?: string;
+}
+
+interface RejectAccountRequest {
+    account_id: string;
+    reason: 'fraud' | 'terms_of_service' | 'other';
+}
+
+interface RejectAccountResponse {
+    success: boolean;
+    account?: any;
+    error?: string;
+    message?: string;
+}
+
+export const deleteMerchantAccount = async (accountId: string): Promise<DeleteAccountResponse> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/stripe/accounts/${accountId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to delete account');
+        }
+
+        return result;
+    } catch (error: any) {
+        // eslint-disable-next-line no-console
+        console.error('Error deleting account:', error);
+        throw error;
+    }
+};
+
+export const rejectMerchantAccount = async (
+    data: RejectAccountRequest
+): Promise<RejectAccountResponse> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/stripe/accounts/${data.account_id}/reject`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                reason: data.reason,
+            }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to reject account');
+        }
+
+        return result;
+    } catch (error: any) {
+        // eslint-disable-next-line no-console
+        console.error('Error rejecting account:', error);
+        throw error;
+    }
+};

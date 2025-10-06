@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { MerchantAccount, PaginatedResponse, PaginationParams, ApiResponse } from '../../types';
 import { apiService } from '../../services/api';
+import { deleteMerchantAccount, rejectMerchantAccount } from '../../services/stripeApi';
 
 // Async thunk for fetching merchant accounts with pagination
 export const fetchMerchantAccounts = createAsyncThunk(
@@ -44,12 +45,50 @@ export const fetchMerchantAccountById = createAsyncThunk(
     }
 );
 
+// Async thunk for deleting a merchant account
+export const deleteAccount = createAsyncThunk(
+    'merchantAccounts/deleteAccount',
+    async (accountId: string, { rejectWithValue }) => {
+        try {
+            const response = await deleteMerchantAccount(accountId);
+            return { accountId, response };
+        } catch (error) {
+            return rejectWithValue(
+                error instanceof Error ? error.message : 'Failed to delete account'
+            );
+        }
+    }
+);
+
+// Async thunk for rejecting a merchant account
+export const rejectAccount = createAsyncThunk(
+    'merchantAccounts/rejectAccount',
+    async (
+        {
+            accountId,
+            reason,
+        }: { accountId: string; reason: 'fraud' | 'terms_of_service' | 'other' },
+        { rejectWithValue }
+    ) => {
+        try {
+            const response = await rejectMerchantAccount({ account_id: accountId, reason });
+            return { accountId, response };
+        } catch (error) {
+            return rejectWithValue(
+                error instanceof Error ? error.message : 'Failed to reject account'
+            );
+        }
+    }
+);
+
 interface MerchantAccountsState {
     accounts: MerchantAccount[];
     selectedAccount: MerchantAccount | null;
     loading: boolean;
     error: string | null;
     lastFetch: string | null;
+    deleteLoading: boolean;
+    rejectLoading: boolean;
     pagination: {
         has_more: boolean;
         total_count?: number;
@@ -66,6 +105,8 @@ const initialState: MerchantAccountsState = {
     loading: false,
     error: null,
     lastFetch: null,
+    deleteLoading: false,
+    rejectLoading: false,
     pagination: {
         has_more: false,
         total_count: 0,
@@ -140,6 +181,43 @@ const merchantAccountsSlice = createSlice({
             })
             .addCase(fetchMerchantAccountById.rejected, (state, action) => {
                 state.loading = false;
+                state.error = action.payload as string;
+            })
+            // Delete account
+            .addCase(deleteAccount.pending, state => {
+                state.deleteLoading = true;
+                state.error = null;
+            })
+            .addCase(deleteAccount.fulfilled, (state, action) => {
+                state.deleteLoading = false;
+                // Remove the deleted account from the list
+                state.accounts = state.accounts.filter(
+                    account => account.id !== action.payload.accountId
+                );
+                state.error = null;
+            })
+            .addCase(deleteAccount.rejected, (state, action) => {
+                state.deleteLoading = false;
+                state.error = action.payload as string;
+            })
+            // Reject account
+            .addCase(rejectAccount.pending, state => {
+                state.rejectLoading = true;
+                state.error = null;
+            })
+            .addCase(rejectAccount.fulfilled, (state, action) => {
+                state.rejectLoading = false;
+                // Update the rejected account in the list
+                const index = state.accounts.findIndex(
+                    account => account.id === action.payload.accountId
+                );
+                if (index !== -1) {
+                    state.accounts[index] = action.payload.response.account;
+                }
+                state.error = null;
+            })
+            .addCase(rejectAccount.rejected, (state, action) => {
+                state.rejectLoading = false;
                 state.error = action.payload as string;
             });
     },

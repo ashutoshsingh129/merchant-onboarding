@@ -12,6 +12,7 @@ import {
     Button,
     TablePagination,
     Tooltip,
+    IconButton,
 } from '@mui/material';
 import {
     Refresh,
@@ -21,10 +22,19 @@ import {
     Business,
     Person,
     Warning,
+    Delete,
+    Block,
 } from '@mui/icons-material';
 import { TableColumn, MerchantAccount } from '../../types';
 import { useAppSelector, useAppDispatch } from '../../store';
-import { fetchMerchantAccounts, clearError } from '../../store/slices/merchantAccountsSlice';
+import {
+    fetchMerchantAccounts,
+    clearError,
+    deleteAccount,
+    rejectAccount,
+} from '../../store/slices/merchantAccountsSlice';
+import ConfirmationModal from '../ConfirmationModal';
+import NotificationModal, { NotificationType } from '../NotificationModal';
 import {
     StyledContainer,
     StyledCard,
@@ -36,11 +46,26 @@ import {
 
 const Dashboard: React.FC = () => {
     const dispatch = useAppDispatch();
-    const { accounts, loading, error, pagination } = useAppSelector(
+    const { accounts, loading, error, pagination, deleteLoading, rejectLoading } = useAppSelector(
         state => state.merchantAccounts
     );
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
+
+    // Modal states
+    const [confirmationModal, setConfirmationModal] = useState({
+        open: false,
+        type: 'delete' as 'delete' | 'reject',
+        accountId: '',
+        businessName: '',
+    });
+    const [notificationModal, setNotificationModal] = useState({
+        open: false,
+        type: 'success' as NotificationType,
+        title: '',
+        message: '',
+        details: '',
+    });
 
     // Fetch merchant accounts on component mount
     useEffect(() => {
@@ -81,6 +106,83 @@ const Dashboard: React.FC = () => {
         dispatch(fetchMerchantAccounts({ limit: newRowsPerPage }));
     };
 
+    // Modal handlers
+    const handleDeleteClick = (accountId: string, businessName: string) => {
+        setConfirmationModal({
+            open: true,
+            type: 'delete',
+            accountId,
+            businessName,
+        });
+    };
+
+    const handleRejectClick = (accountId: string, businessName: string) => {
+        setConfirmationModal({
+            open: true,
+            type: 'reject',
+            accountId,
+            businessName,
+        });
+    };
+
+    const handleConfirmationClose = () => {
+        setConfirmationModal({
+            open: false,
+            type: 'delete',
+            accountId: '',
+            businessName: '',
+        });
+    };
+
+    const handleConfirmationConfirm = async (reason?: string) => {
+        try {
+            if (confirmationModal.type === 'delete') {
+                await dispatch(deleteAccount(confirmationModal.accountId)).unwrap();
+                setNotificationModal({
+                    open: true,
+                    type: 'success',
+                    title: 'Account Deleted',
+                    message: 'The merchant account has been successfully deleted.',
+                    details: '',
+                });
+            } else if (confirmationModal.type === 'reject' && reason) {
+                await dispatch(
+                    rejectAccount({
+                        accountId: confirmationModal.accountId,
+                        reason: reason as 'fraud' | 'terms_of_service' | 'other',
+                    })
+                ).unwrap();
+                setNotificationModal({
+                    open: true,
+                    type: 'success',
+                    title: 'Account Rejected',
+                    message: 'The merchant account has been successfully rejected.',
+                    details: `Reason: ${reason}`,
+                });
+            }
+            handleConfirmationClose();
+        } catch (error) {
+            setNotificationModal({
+                open: true,
+                type: 'error',
+                title: `${confirmationModal.type === 'delete' ? 'Delete' : 'Reject'} Failed`,
+                message: error instanceof Error ? error.message : 'An unexpected error occurred.',
+                details: '',
+            });
+            handleConfirmationClose();
+        }
+    };
+
+    const handleNotificationClose = () => {
+        setNotificationModal({
+            open: false,
+            type: 'success',
+            title: '',
+            message: '',
+            details: '',
+        });
+    };
+
     const columns: TableColumn[] = [
         { id: 'id', label: 'Account ID', minWidth: 300 },
         { id: 'business_name', label: 'Business Name', minWidth: 200 },
@@ -91,6 +193,7 @@ const Dashboard: React.FC = () => {
         { id: 'capabilities', label: 'Capabilities', minWidth: 150 },
         { id: 'tos_acceptance', label: 'TOS Accepted', minWidth: 120 },
         { id: 'created', label: 'Created', minWidth: 120 },
+        { id: 'actions', label: 'Actions', minWidth: 120 },
     ];
 
     const getBusinessTypeIcon = (businessType: string) => {
@@ -142,7 +245,7 @@ const Dashboard: React.FC = () => {
     };
 
     const getTosAcceptanceStatus = (account: MerchantAccount) => {
-        if (account.tos_acceptance.date) {
+        if (account.tos_acceptance?.date) {
             return (
                 <Tooltip
                     title={`Accepted on ${new Date(account.tos_acceptance.date * 1000).toLocaleDateString()}`}
@@ -256,7 +359,7 @@ const Dashboard: React.FC = () => {
                                                         </Typography>
                                                     </StyledTableCell>
                                                     <StyledTableCell>
-                                                        {account.business_profile.name || 'N/A'}
+                                                        {account.business_profile?.name || 'N/A'}
                                                     </StyledTableCell>
                                                     <StyledTableCell>
                                                         {account.email || 'N/A'}
@@ -313,7 +416,8 @@ const Dashboard: React.FC = () => {
                                                             >
                                                                 {getCapabilityStatus(
                                                                     account.capabilities
-                                                                        .card_payments
+                                                                        ?.card_payments ||
+                                                                        'inactive'
                                                                 )}
                                                                 <Typography variant="caption">
                                                                     Cards
@@ -325,7 +429,8 @@ const Dashboard: React.FC = () => {
                                                                 gap={0.5}
                                                             >
                                                                 {getCapabilityStatus(
-                                                                    account.capabilities.transfers
+                                                                    account.capabilities
+                                                                        ?.transfers || 'inactive'
                                                                 )}
                                                                 <Typography variant="caption">
                                                                     Transfers
@@ -340,6 +445,42 @@ const Dashboard: React.FC = () => {
                                                         {new Date(
                                                             account.created * 1000
                                                         ).toLocaleDateString('en-GB')}
+                                                    </StyledTableCell>
+                                                    <StyledTableCell>
+                                                        <Box display="flex" gap={1}>
+                                                            <Tooltip title="Delete Account">
+                                                                <IconButton
+                                                                    size="small"
+                                                                    color="error"
+                                                                    onClick={() =>
+                                                                        handleDeleteClick(
+                                                                            account.id,
+                                                                            account.business_profile
+                                                                                ?.name || 'Unknown'
+                                                                        )
+                                                                    }
+                                                                    disabled={deleteLoading}
+                                                                >
+                                                                    <Delete fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                            <Tooltip title="Reject Account">
+                                                                <IconButton
+                                                                    size="small"
+                                                                    color="warning"
+                                                                    onClick={() =>
+                                                                        handleRejectClick(
+                                                                            account.id,
+                                                                            account.business_profile
+                                                                                ?.name || 'Unknown'
+                                                                        )
+                                                                    }
+                                                                    disabled={rejectLoading}
+                                                                >
+                                                                    <Block fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        </Box>
                                                     </StyledTableCell>
                                                 </TableRow>
                                             ))
@@ -365,6 +506,28 @@ const Dashboard: React.FC = () => {
                     )}
                 </CardContent>
             </StyledCard>
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                open={confirmationModal.open}
+                onClose={handleConfirmationClose}
+                onConfirm={handleConfirmationConfirm}
+                type={confirmationModal.type}
+                accountId={confirmationModal.accountId}
+                businessName={confirmationModal.businessName}
+                loading={deleteLoading || rejectLoading}
+            />
+
+            {/* Notification Modal */}
+            <NotificationModal
+                open={notificationModal.open}
+                onClose={handleNotificationClose}
+                type={notificationModal.type}
+                title={notificationModal.title}
+                message={notificationModal.message}
+                details={notificationModal.details}
+                showDetails={!!notificationModal.details}
+            />
         </StyledContainer>
     );
 };
