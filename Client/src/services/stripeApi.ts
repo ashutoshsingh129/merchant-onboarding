@@ -409,3 +409,65 @@ export const rejectMerchantAccount = async (
         throw error;
     }
 };
+
+interface ClearKeysResponse {
+    success: boolean;
+    message?: string;
+    data?: {
+        deleted_count: number;
+    };
+    error?: string;
+}
+
+export const clearStripeKeys = async (): Promise<ClearKeysResponse> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/stripe/keys`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to clear Stripe keys');
+        }
+
+        return result;
+    } catch (error: any) {
+        // eslint-disable-next-line no-console
+        console.error('Error clearing Stripe keys:', error);
+        throw error;
+    }
+};
+
+interface KeysStatusResponse {
+    success: boolean;
+    hasKeys: boolean;
+    message?: string;
+    error?: string;
+}
+
+export const checkKeysStatus = async (): Promise<KeysStatusResponse> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/stripe/keys/status`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to check keys status');
+        }
+
+        return result;
+    } catch (error: any) {
+        // eslint-disable-next-line no-console
+        console.error('Error checking keys status:', error);
+        throw error;
+    }
+};

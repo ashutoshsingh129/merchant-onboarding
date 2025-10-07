@@ -1,0 +1,226 @@
+import React, { useState } from 'react';
+import {
+    Box,
+    Card,
+    CardContent,
+    TextField,
+    Button,
+    Typography,
+    Alert,
+    CircularProgress,
+    InputAdornment,
+    IconButton,
+} from '@mui/material';
+import { Visibility, VisibilityOff, Save, Security } from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
+
+const StyledCard = styled(Card)(({ theme }) => ({
+    maxWidth: 600,
+    margin: '0 auto',
+    marginTop: theme.spacing(3),
+}));
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+    marginBottom: theme.spacing(2),
+}));
+
+interface StripeKeysFormProps {
+    onSuccess?: () => void;
+    onError?: (error: string) => void;
+}
+
+interface FormData {
+    secretKey: string;
+    publishableKey: string;
+}
+
+const StripeKeysForm: React.FC<StripeKeysFormProps> = ({ onSuccess, onError }) => {
+    const [formData, setFormData] = useState<FormData>({
+        secretKey: '',
+        publishableKey: '',
+    });
+    const [showSecretKey, setShowSecretKey] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+
+    const handleInputChange =
+        (field: keyof FormData) => (event: React.ChangeEvent<HTMLInputElement>) => {
+            setFormData(prev => ({
+                ...prev,
+                [field]: event.target.value,
+            }));
+            // Clear error when user starts typing
+            if (error) setError(null);
+            if (success) setSuccess(null);
+        };
+
+    const toggleSecretKeyVisibility = () => {
+        setShowSecretKey(prev => !prev);
+    };
+
+    const validateForm = (): boolean => {
+        if (!formData.secretKey.trim()) {
+            setError('Secret key is required');
+            return false;
+        }
+        if (!formData.publishableKey.trim()) {
+            setError('Publishable key is required');
+            return false;
+        }
+
+        // Basic validation for Stripe keys
+        if (!formData.secretKey.startsWith('sk_')) {
+            setError('Secret key must start with "sk_"');
+            return false;
+        }
+        if (!formData.publishableKey.startsWith('pk_')) {
+            setError('Publishable key must start with "pk_"');
+            return false;
+        }
+
+        return true;
+    };
+
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
+
+        if (!validateForm()) {
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        setSuccess(null);
+
+        try {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${API_BASE_URL}/stripe/keys`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    secret_key: formData.secretKey.trim(),
+                    publishable_key: formData.publishableKey.trim(),
+                }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to save Stripe keys');
+            }
+
+            setSuccess('Stripe keys saved successfully! All future API calls will use these keys.');
+            setFormData({ secretKey: '', publishableKey: '' });
+
+            if (onSuccess) {
+                onSuccess();
+            }
+        } catch (err) {
+            const errorMessage =
+                err instanceof Error ? err.message : 'An unexpected error occurred';
+            setError(errorMessage);
+            if (onError) {
+                onError(errorMessage);
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <StyledCard>
+            <CardContent>
+                <Box display="flex" alignItems="center" marginBottom={3}>
+                    <Security color="primary" sx={{ marginRight: 1 }} />
+                    <Typography variant="h5" component="h2">
+                        Configure Stripe Keys
+                    </Typography>
+                </Box>
+
+                <Typography variant="body2" color="text.secondary" marginBottom={3}>
+                    Enter your Stripe API keys to configure the system. Keys are stored securely in
+                    the database. HTTPS ensures data is encrypted in transit.
+                </Typography>
+
+                {error && (
+                    <Alert severity="error" sx={{ marginBottom: 2 }}>
+                        {error}
+                    </Alert>
+                )}
+
+                {success && (
+                    <Alert severity="success" sx={{ marginBottom: 2 }}>
+                        {success}
+                    </Alert>
+                )}
+
+                <form onSubmit={handleSubmit}>
+                    <StyledTextField
+                        fullWidth
+                        label="Secret Key"
+                        type={showSecretKey ? 'text' : 'password'}
+                        value={formData.secretKey}
+                        onChange={handleInputChange('secretKey')}
+                        placeholder="sk_test_..."
+                        disabled={loading}
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        aria-label="toggle secret key visibility"
+                                        onClick={toggleSecretKeyVisibility}
+                                        edge="end"
+                                        disabled={loading}
+                                    >
+                                        {showSecretKey ? <VisibilityOff /> : <Visibility />}
+                                    </IconButton>
+                                </InputAdornment>
+                            ),
+                        }}
+                        helperText="Your Stripe secret key (starts with sk_)"
+                    />
+
+                    <StyledTextField
+                        fullWidth
+                        label="Publishable Key"
+                        type="text"
+                        value={formData.publishableKey}
+                        onChange={handleInputChange('publishableKey')}
+                        placeholder="pk_test_..."
+                        disabled={loading}
+                        helperText="Your Stripe publishable key (starts with pk_)"
+                    />
+
+                    <Box display="flex" justifyContent="flex-end" marginTop={3}>
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            startIcon={loading ? <CircularProgress size={20} /> : <Save />}
+                            disabled={
+                                loading ||
+                                !formData.secretKey.trim() ||
+                                !formData.publishableKey.trim()
+                            }
+                            size="large"
+                        >
+                            {loading ? 'Saving...' : 'Save Keys'}
+                        </Button>
+                    </Box>
+                </form>
+
+                <Box marginTop={3}>
+                    <Typography variant="caption" color="text.secondary">
+                        <strong>Security Note:</strong> Your keys are stored securely in the
+                        database. HTTPS ensures data is encrypted in transit. In production,
+                        consider additional security measures for key storage.
+                    </Typography>
+                </Box>
+            </CardContent>
+        </StyledCard>
+    );
+};
+
+export default StripeKeysForm;

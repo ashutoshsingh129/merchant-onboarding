@@ -24,6 +24,8 @@ import {
     Warning,
     Delete,
     Block,
+    Settings,
+    Logout,
 } from '@mui/icons-material';
 import { TableColumn, MerchantAccount } from '../../types';
 import { useAppSelector, useAppDispatch } from '../../store';
@@ -35,6 +37,8 @@ import {
 } from '../../store/slices/merchantAccountsSlice';
 import ConfirmationModal from '../ConfirmationModal';
 import NotificationModal, { NotificationType } from '../NotificationModal';
+import StripeKeysForm from '../StripeKeysForm';
+import { clearStripeKeys, checkKeysStatus } from '../../services/stripeApi';
 import {
     StyledContainer,
     StyledCard,
@@ -66,11 +70,45 @@ const Dashboard: React.FC = () => {
         message: '',
         details: '',
     });
+    const [showKeysForm, setShowKeysForm] = useState(false);
+    const [logoutLoading, setLogoutLoading] = useState(false);
+    const [hasKeys, setHasKeys] = useState<boolean | null>(null);
+    const [keysLoading, setKeysLoading] = useState(true);
 
-    // Fetch merchant accounts on component mount
+    // Check keys status on component mount
     useEffect(() => {
-        dispatch(fetchMerchantAccounts({ limit: rowsPerPage }));
+        const checkKeys = async () => {
+            try {
+                setKeysLoading(true);
+                const result = await checkKeysStatus();
+                setHasKeys(result.hasKeys);
+
+                // Auto-open keys form if no keys are present
+                if (!result.hasKeys) {
+                    setShowKeysForm(true);
+                } else {
+                    // Only fetch merchant accounts if keys are present
+                    dispatch(fetchMerchantAccounts({ limit: rowsPerPage }));
+                }
+            } catch (error) {
+                console.error('Error checking keys status:', error);
+                setHasKeys(false);
+                setShowKeysForm(true);
+            } finally {
+                setKeysLoading(false);
+            }
+        };
+
+        checkKeys();
     }, [dispatch, rowsPerPage]);
+
+    // Auto-open keys form if there's an error (likely no keys configured)
+    useEffect(() => {
+        if (error && error.includes('No Stripe secret key available')) {
+            setShowKeysForm(true);
+            setHasKeys(false);
+        }
+    }, [error]);
 
     // Handle refresh button click
     const handleRefresh = () => {
@@ -183,6 +221,33 @@ const Dashboard: React.FC = () => {
         });
     };
 
+    // Handle logout (clear keys)
+    const handleLogout = async () => {
+        setLogoutLoading(true);
+        try {
+            await clearStripeKeys();
+            setHasKeys(false);
+            setShowKeysForm(true);
+            setNotificationModal({
+                open: true,
+                type: 'success',
+                title: 'Keys Cleared',
+                message: 'All Stripe keys have been cleared successfully.',
+                details: 'Please configure new keys to continue using the system.',
+            });
+        } catch (error) {
+            setNotificationModal({
+                open: true,
+                type: 'error',
+                title: 'Logout Failed',
+                message: error instanceof Error ? error.message : 'Failed to clear keys',
+                details: '',
+            });
+        } finally {
+            setLogoutLoading(false);
+        }
+    };
+
     const columns: TableColumn[] = [
         { id: 'id', label: 'Account ID', minWidth: 300 },
         { id: 'business_name', label: 'Business Name', minWidth: 200 },
@@ -288,14 +353,37 @@ const Dashboard: React.FC = () => {
                         <Typography variant="h6">
                             Merchant Accounts ({accounts.length} accounts)
                         </Typography>
-                        <Button
-                            variant="outlined"
-                            startIcon={<Refresh />}
-                            onClick={handleRefresh}
-                            disabled={loading}
-                        >
-                            Refresh
-                        </Button>
+                        <Box display="flex" gap={1}>
+                            <Button
+                                variant="outlined"
+                                startIcon={<Settings />}
+                                onClick={() => setShowKeysForm(true)}
+                                disabled={loading || keysLoading}
+                            >
+                                Configure Keys
+                            </Button>
+                            {hasKeys && (
+                                <>
+                                    <Button
+                                        variant="outlined"
+                                        startIcon={<Refresh />}
+                                        onClick={handleRefresh}
+                                        disabled={loading}
+                                    >
+                                        Refresh
+                                    </Button>
+                                    <Button
+                                        variant="outlined"
+                                        color="error"
+                                        startIcon={<Logout />}
+                                        onClick={handleLogout}
+                                        disabled={loading || logoutLoading}
+                                    >
+                                        {logoutLoading ? 'Clearing...' : 'Logout'}
+                                    </Button>
+                                </>
+                            )}
+                        </Box>
                     </Box>
 
                     {error && (
@@ -304,7 +392,40 @@ const Dashboard: React.FC = () => {
                         </Alert>
                     )}
 
-                    {loading ? (
+                    {keysLoading ? (
+                        <Box
+                            display="flex"
+                            justifyContent="center"
+                            alignItems="center"
+                            minHeight={200}
+                        >
+                            <CircularProgress />
+                        </Box>
+                    ) : !hasKeys ? (
+                        <Box
+                            display="flex"
+                            flexDirection="column"
+                            alignItems="center"
+                            justifyContent="center"
+                            minHeight={300}
+                            textAlign="center"
+                        >
+                            <Typography variant="h5" color="text.secondary" gutterBottom>
+                                Welcome to Stripe Merchant Dashboard
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary" marginBottom={3}>
+                                Please configure your Stripe API keys to get started.
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                size="large"
+                                startIcon={<Settings />}
+                                onClick={() => setShowKeysForm(true)}
+                            >
+                                Configure Stripe Keys
+                            </Button>
+                        </Box>
+                    ) : loading ? (
                         <Box
                             display="flex"
                             justifyContent="center"
@@ -528,6 +649,50 @@ const Dashboard: React.FC = () => {
                 details={notificationModal.details}
                 showDetails={!!notificationModal.details}
             />
+
+            {/* Stripe Keys Form Modal */}
+            {showKeysForm && (
+                <Box
+                    position="fixed"
+                    top={0}
+                    left={0}
+                    right={0}
+                    bottom={0}
+                    bgcolor="rgba(0, 0, 0, 0.5)"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    zIndex={1300}
+                    onClick={() => setShowKeysForm(false)}
+                >
+                    <Box onClick={e => e.stopPropagation()}>
+                        <StripeKeysForm
+                            onSuccess={() => {
+                                setShowKeysForm(false);
+                                setHasKeys(true);
+                                setNotificationModal({
+                                    open: true,
+                                    type: 'success',
+                                    title: 'Keys Updated',
+                                    message: 'Stripe keys have been updated successfully.',
+                                    details: 'All future API calls will use the new keys.',
+                                });
+                                // Fetch merchant accounts after keys are configured
+                                dispatch(fetchMerchantAccounts({ limit: rowsPerPage }));
+                            }}
+                            onError={error => {
+                                setNotificationModal({
+                                    open: true,
+                                    type: 'error',
+                                    title: 'Key Update Failed',
+                                    message: error,
+                                    details: '',
+                                });
+                            }}
+                        />
+                    </Box>
+                </Box>
+            )}
         </StyledContainer>
     );
 };
