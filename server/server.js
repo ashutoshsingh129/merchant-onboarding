@@ -6,7 +6,9 @@ require("dotenv").config();
 
 const stripeRoutes = require("./routes/stripe");
 const stripeKeysRoutes = require("./routes/stripeKeys");
-const { testConnection, initializeDatabase } = require("./config/database");
+const { testConnection, initializeDatabase, pool } = require("./config/database");
+const stripeKeysCache = require("./utils/stripeKeysCache");
+const { decrypt } = require("./utils/encryption");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -60,6 +62,33 @@ app.use("*", (req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
 
+// Load Stripe keys from database into cache on startup
+const loadKeysIntoCache = async () => {
+  try {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        'SELECT secret_key, publishable_key FROM stripe_keys WHERE is_active = true ORDER BY created_at DESC LIMIT 1'
+      );
+
+      if (result.rows.length > 0) {
+        const { secret_key: encryptedSecretKey, publishable_key } = result.rows[0];
+        // Decrypt the secret key before caching
+        const decryptedSecretKey = decrypt(encryptedSecretKey);
+        stripeKeysCache.updateKeys(decryptedSecretKey, publishable_key);
+        console.log('Stripe keys loaded into cache successfully');
+      } else {
+        console.log('No active Stripe keys found in database');
+      }
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Error loading keys into cache:', error.message);
+    // Don't fail server startup if keys can't be loaded
+  }
+};
+
 // Initialize database and start server
 const startServer = async () => {
   try {
@@ -76,6 +105,9 @@ const startServer = async () => {
       console.error('Failed to initialize database tables. Server will not start.');
       process.exit(1);
     }
+
+    // Load Stripe keys into cache
+    await loadKeysIntoCache();
 
     // Start the server
     app.listen(PORT, () => {

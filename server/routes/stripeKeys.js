@@ -1,25 +1,9 @@
 const express = require('express');
 const { pool } = require('../config/database');
 const stripeKeysCache = require('../utils/stripeKeysCache');
+const { encrypt, decrypt, validateStripeKey } = require('../utils/encryption');
 
 const router = express.Router();
-
-// Validate Stripe key format
-const validateStripeKey = (key, type) => {
-    if (!key || typeof key !== 'string') {
-        return false;
-    }
-    
-    const trimmedKey = key.trim();
-    
-    if (type === 'secret') {
-        return trimmedKey.startsWith('sk_test_') || trimmedKey.startsWith('sk_live_');
-    } else if (type === 'publishable') {
-        return trimmedKey.startsWith('pk_test_') || trimmedKey.startsWith('pk_live_');
-    }
-    
-    return false;
-};
 
 // Store Stripe keys
 router.post('/keys', async (req, res) => {
@@ -52,6 +36,9 @@ router.post('/keys', async (req, res) => {
             });
         }
 
+        // Encrypt the secret key before storing
+        const encryptedSecretKey = encrypt(secret_key.trim());
+
         const client = await pool.connect();
         
         try {
@@ -63,16 +50,16 @@ router.post('/keys', async (req, res) => {
                 'UPDATE stripe_keys SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE is_active = true'
             );
 
-            // Insert new keys
+            // Insert new keys (secret_key encrypted, publishable_key plain)
             const result = await client.query(
                 'INSERT INTO stripe_keys (secret_key, publishable_key) VALUES ($1, $2) RETURNING id, created_at',
-                [secret_key.trim(), publishable_key.trim()]
+                [encryptedSecretKey, publishable_key.trim()]
             );
 
             // Commit transaction
             await client.query('COMMIT');
 
-            // Update cache with new keys
+            // Update cache with decrypted secret key and plain publishable key
             const cacheUpdated = stripeKeysCache.updateKeys(secret_key.trim(), publishable_key.trim());
 
             if (!cacheUpdated) {
@@ -223,8 +210,11 @@ router.post('/keys/load-cache', async (req, res) => {
                 });
             }
 
-            const { secret_key, publishable_key } = result.rows[0];
-            const cacheUpdated = stripeKeysCache.updateKeys(secret_key, publishable_key);
+            const { secret_key: encryptedSecretKey, publishable_key } = result.rows[0];
+            
+            // Decrypt the secret key before caching
+            const decryptedSecretKey = decrypt(encryptedSecretKey);
+            const cacheUpdated = stripeKeysCache.updateKeys(decryptedSecretKey, publishable_key);
 
             res.json({
                 success: true,

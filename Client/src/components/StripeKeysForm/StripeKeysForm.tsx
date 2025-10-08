@@ -141,8 +141,8 @@ const StripeKeysForm: React.FC<StripeKeysFormProps> = ({ onSuccess, onError }) =
                 </Box>
 
                 <Typography variant="body2" color="text.secondary" marginBottom={3}>
-                    Enter your Stripe API keys to configure the system. Keys are stored securely in
-                    the database. HTTPS ensures data is encrypted in transit.
+                    Enter your Stripe API keys to configure the system. Secret keys are encrypted
+                    using AES-256-CBC before storage. HTTPS ensures data is encrypted in transit.
                 </Typography>
 
                 {error && (
@@ -213,9 +213,10 @@ const StripeKeysForm: React.FC<StripeKeysFormProps> = ({ onSuccess, onError }) =
 
                 <Box marginTop={3}>
                     <Typography variant="caption" color="text.secondary">
-                        <strong>Security Note:</strong> Your keys are stored securely in the
-                        database. HTTPS ensures data is encrypted in transit. In production,
-                        consider additional security measures for key storage.
+                        <strong>Security Note:</strong> Secret keys are encrypted using AES-256-CBC
+                        with a server-side encryption key before being stored in the database. HTTPS
+                        ensures data is encrypted in transit. Keys are cached in memory for optimal
+                        performance.
                     </Typography>
                 </Box>
             </CardContent>
