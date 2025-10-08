@@ -26,6 +26,9 @@ import {
     PersonAdd as PersonAddIcon,
     CloudUpload as CloudUploadIcon,
     CheckCircle as CheckCircleIcon,
+    AccountBalance as AccountBalanceIcon,
+    CreditCard as CreditCardIcon,
+    Close as CloseIcon,
 } from '@mui/icons-material';
 import { directOnboardMerchant, uploadDocument } from '../../services/stripeApi';
 import { useIPDetection } from '../../services/ipService';
@@ -45,6 +48,7 @@ interface DirectOnboardFormData {
     individual_address_state: string;
     individual_address_postal_code: string;
     individual_address_country: string;
+    individual_ssn_last_4: string;
     business_type: string;
     business_profile_mcc: string;
     business_profile_url: string;
@@ -167,6 +171,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         individual_address_state: '',
         individual_address_postal_code: '',
         individual_address_country: country || 'US',
+        individual_ssn_last_4: '',
         business_type: businessType || 'individual',
         business_profile_mcc: '5734',
         business_profile_url: '',
@@ -237,6 +242,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
     const [success, setSuccess] = useState(false);
     const [representativeIsOwner, setRepresentativeIsOwner] = useState(false);
     const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
+    const [showExternalAccount, setShowExternalAccount] = useState(false);
 
     // File upload states
     const [uploadingFile, setUploadingFile] = useState<string | null>(null);
@@ -501,6 +507,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         individual_address_state: '',
                         individual_address_postal_code: '',
                         individual_address_country: country || 'US',
+                        individual_ssn_last_4: '',
                         business_type: businessType || 'individual',
                         business_profile_mcc: '5734',
                         business_profile_url: '',
@@ -606,6 +613,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
             individual_address_state: '',
             individual_address_postal_code: '',
             individual_address_country: country || 'US',
+            individual_ssn_last_4: '',
             business_type: businessType || 'individual',
             business_profile_mcc: '5734',
             business_profile_url: '',
@@ -1002,23 +1010,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             helperText="State, county, province, or region"
                                         />
                                     </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Postal Code"
-                                            value={formData.individual_address_postal_code}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'individual_address_postal_code',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="12345"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12 }}>
+                                    <Grid size={{ xs: 4 }}>
                                         <FormControl fullWidth>
                                             <InputLabel>Country</InputLabel>
                                             <Select
@@ -1041,6 +1033,38 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 ))}
                                             </Select>
                                         </FormControl>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 4, sm: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Postal Code"
+                                            value={formData.individual_address_postal_code}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_postal_code',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="12345"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 4, sm: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="SSN Last 4 Digits"
+                                            value={formData.individual_ssn_last_4}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_ssn_last_4',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="1234"
+                                            inputProps={{ maxLength: 4 }}
+                                            helperText="Last 4 digits of Social Security Number (US only)"
+                                        />
                                     </Grid>
                                 </>
                             )}
@@ -2533,156 +2557,213 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
 
                             {/* External Account */}
                             <Grid size={{ xs: 12 }}>
-                                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                    External Account Information
-                                </Typography>
+                                <Box
+                                    sx={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        mt: 2,
+                                    }}
+                                >
+                                    <Typography variant="h6" gutterBottom>
+                                        External Account Information
+                                    </Typography>
+                                    {showExternalAccount && (
+                                        <Button
+                                            variant="outlined"
+                                            color="error"
+                                            size="small"
+                                            startIcon={<CloseIcon />}
+                                            onClick={() => {
+                                                setShowExternalAccount(false);
+                                                // Clear external account fields
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    external_account_object: 'bank_account',
+                                                    external_account_routing_number: '',
+                                                    external_account_account_number: '',
+                                                    external_account_account_holder_name: '',
+                                                    external_account_account_holder_type:
+                                                        'individual',
+                                                    external_account_card_number: '',
+                                                    external_account_exp_month: '01',
+                                                    external_account_exp_year: new Date()
+                                                        .getFullYear()
+                                                        .toString(),
+                                                    external_account_cvc: '',
+                                                }));
+                                            }}
+                                        >
+                                            Remove
+                                        </Button>
+                                    )}
+                                </Box>
                             </Grid>
 
-                            <Grid size={{ xs: 12, sm: 6 }}>
-                                <FormControl fullWidth>
-                                    <InputLabel>Account Type</InputLabel>
-                                    <Select
-                                        value={formData.external_account_object}
-                                        label="Account Type"
-                                        onChange={e =>
-                                            handleInputChange(
-                                                'external_account_object',
-                                                e.target.value
-                                            )
-                                        }
-                                    >
-                                        <MenuItem value="bank_account">Bank Account</MenuItem>
-                                        <MenuItem value="card">Debit Card</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-
-                            {/* Bank Account Fields */}
-                            {formData.external_account_object === 'bank_account' && (
-                                <>
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <FormControl fullWidth>
-                                            <InputLabel>Country</InputLabel>
-                                            <Select
-                                                value={formData.external_account_country}
-                                                label="Country"
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'external_account_country',
-                                                        e.target.value
-                                                    )
-                                                }
-                                            >
-                                                {countries.map(country => (
-                                                    <MenuItem
-                                                        key={country.code}
-                                                        value={country.code}
-                                                    >
-                                                        {country.name}
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                        </FormControl>
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <FormControl fullWidth>
-                                            <InputLabel>Currency</InputLabel>
-                                            <Select
-                                                value={formData.external_account_currency}
-                                                label="Currency"
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'external_account_currency',
-                                                        e.target.value
-                                                    )
-                                                }
-                                            >
-                                                {currencies.map(currency => (
-                                                    <MenuItem
-                                                        key={currency.code}
-                                                        value={currency.code}
-                                                    >
-                                                        {currency.name}
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                        </FormControl>
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Routing Number"
-                                            value={formData.external_account_routing_number}
-                                            onChange={e =>
+                            {!showExternalAccount && (
+                                <Grid size={{ xs: 12 }}>
+                                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                                        <Button
+                                            variant="outlined"
+                                            startIcon={<AccountBalanceIcon />}
+                                            onClick={() => {
+                                                setShowExternalAccount(true);
                                                 handleInputChange(
-                                                    'external_account_routing_number',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="110000000"
-                                            helperText="Bank routing number (US: 9 digits)"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Account Number"
-                                            value={formData.external_account_account_number}
-                                            onChange={e =>
+                                                    'external_account_object',
+                                                    'bank_account'
+                                                );
+                                            }}
+                                        >
+                                            Attach Bank Account
+                                        </Button>
+                                        <Button
+                                            variant="outlined"
+                                            startIcon={<CreditCardIcon />}
+                                            onClick={() => {
+                                                setShowExternalAccount(true);
                                                 handleInputChange(
-                                                    'external_account_account_number',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="000123456789"
-                                            helperText="Bank account number"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Account Holder Name"
-                                            value={formData.external_account_account_holder_name}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'external_account_account_holder_name',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="John Doe"
-                                            helperText="Name on the bank account"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <FormControl fullWidth>
-                                            <InputLabel>Account Holder Type</InputLabel>
-                                            <Select
-                                                value={
-                                                    formData.external_account_account_holder_type
-                                                }
-                                                label="Account Holder Type"
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'external_account_account_holder_type',
-                                                        e.target.value
-                                                    )
-                                                }
-                                            >
-                                                <MenuItem value="individual">Individual</MenuItem>
-                                                <MenuItem value="company">Company</MenuItem>
-                                            </Select>
-                                        </FormControl>
-                                    </Grid>
-                                </>
+                                                    'external_account_object',
+                                                    'card'
+                                                );
+                                            }}
+                                        >
+                                            Attach Card
+                                        </Button>
+                                    </Box>
+                                </Grid>
                             )}
 
+                            {/* Bank Account Fields */}
+                            {showExternalAccount &&
+                                formData.external_account_object === 'bank_account' && (
+                                    <>
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <FormControl fullWidth>
+                                                <InputLabel>Country</InputLabel>
+                                                <Select
+                                                    value={formData.external_account_country}
+                                                    label="Country"
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'external_account_country',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                >
+                                                    {countries.map(country => (
+                                                        <MenuItem
+                                                            key={country.code}
+                                                            value={country.code}
+                                                        >
+                                                            {country.name}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <FormControl fullWidth>
+                                                <InputLabel>Currency</InputLabel>
+                                                <Select
+                                                    value={formData.external_account_currency}
+                                                    label="Currency"
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'external_account_currency',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                >
+                                                    {currencies.map(currency => (
+                                                        <MenuItem
+                                                            key={currency.code}
+                                                            value={currency.code}
+                                                        >
+                                                            {currency.name}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <TextField
+                                                fullWidth
+                                                label="Routing Number"
+                                                value={formData.external_account_routing_number}
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'external_account_routing_number',
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="110000000"
+                                                helperText="Bank routing number (US: 9 digits)"
+                                            />
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <TextField
+                                                fullWidth
+                                                label="Account Number"
+                                                value={formData.external_account_account_number}
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'external_account_account_number',
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="000123456789"
+                                                helperText="Bank account number"
+                                            />
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <TextField
+                                                fullWidth
+                                                label="Account Holder Name"
+                                                value={
+                                                    formData.external_account_account_holder_name
+                                                }
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'external_account_account_holder_name',
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="John Doe"
+                                                helperText="Name on the bank account"
+                                            />
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <FormControl fullWidth>
+                                                <InputLabel>Account Holder Type</InputLabel>
+                                                <Select
+                                                    value={
+                                                        formData.external_account_account_holder_type
+                                                    }
+                                                    label="Account Holder Type"
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'external_account_account_holder_type',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                >
+                                                    <MenuItem value="individual">
+                                                        Individual
+                                                    </MenuItem>
+                                                    <MenuItem value="company">Company</MenuItem>
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+                                    </>
+                                )}
+
                             {/* Debit Card Fields */}
-                            {formData.external_account_object === 'card' && (
+                            {showExternalAccount && formData.external_account_object === 'card' && (
                                 <>
                                     <Grid size={{ xs: 12 }}>
                                         <TextField

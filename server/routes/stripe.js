@@ -177,6 +177,7 @@ router.post("/direct-onboard", async (req, res) => {
       individual_address_state,
       individual_address_postal_code,
       individual_address_country,
+      individual_ssn_last_4,
       tos_acceptance_date,
       tos_acceptance_ip,
       business_type,
@@ -304,6 +305,7 @@ router.post("/direct-onboard", async (req, res) => {
           postal_code: individual_address_postal_code,
           country: individual_address_country,
         },
+        ssn_last_4: individual_ssn_last_4,
       };
 
       // Add identity verification documents if provided
