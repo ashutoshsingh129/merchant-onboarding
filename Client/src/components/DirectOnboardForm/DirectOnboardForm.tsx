@@ -362,6 +362,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         { value: 'government_instrumentality', label: 'Government Instrumentality' },
         { value: 'governmental_unit', label: 'Governmental Unit' },
         { value: 'incorporated_non_profit', label: 'Incorporated Non-profit' },
+        { value: 'single_member_llc', label: 'Single-member LLC' },
         { value: 'multi_member_llc', label: 'Multi-member LLC' },
         { value: 'private_corporation', label: 'Private Corporation' },
         { value: 'private_partnership', label: 'Private Partnership' },
