@@ -161,6 +161,8 @@ interface DirectOnboardRequest {
     individual_address_state: string;
     individual_address_postal_code: string;
     individual_address_country: string;
+    individual_ssn_last_4?: string;
+    individual_id_number?: string;
     tos_acceptance_date?: number;
     tos_acceptance_ip?: string;
     business_type: string;
@@ -192,7 +194,8 @@ interface DirectOnboardRequest {
     representative_relationship_representative: boolean;
     representative_relationship_executive: boolean;
     representative_relationship_title: string;
-    representative_ssn_last_4: string;
+    representative_ssn_last_4?: string;
+    representative_id_number?: string;
     // Owner fields (for company business_type)
     owner_first_name: string;
     owner_last_name: string;
@@ -208,7 +211,8 @@ interface DirectOnboardRequest {
     owner_address_country: string;
     owner_relationship_owner: boolean;
     owner_relationship_title: string;
-    owner_ssn_last_4: string;
+    owner_ssn_last_4?: string;
+    owner_id_number?: string;
     // External Account fields
     external_account_object: string;
     external_account_country: string;

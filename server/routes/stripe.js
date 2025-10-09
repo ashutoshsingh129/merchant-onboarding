@@ -178,6 +178,7 @@ router.post("/direct-onboard", async (req, res) => {
       individual_address_postal_code,
       individual_address_country,
       individual_ssn_last_4,
+      individual_id_number,
       tos_acceptance_date,
       tos_acceptance_ip,
       business_type,
@@ -210,6 +211,7 @@ router.post("/direct-onboard", async (req, res) => {
       representative_relationship_executive,
       representative_relationship_title,
       representative_ssn_last_4,
+      representative_id_number,
       // Owner fields (for company business_type)
       owner_first_name,
       owner_last_name,
@@ -226,6 +228,7 @@ router.post("/direct-onboard", async (req, res) => {
       owner_relationship_owner,
       owner_relationship_title,
       owner_ssn_last_4,
+      owner_id_number,
       external_account_object,
       external_account_country,
       external_account_currency,
@@ -305,8 +308,14 @@ router.post("/direct-onboard", async (req, res) => {
           postal_code: individual_address_postal_code,
           country: individual_address_country,
         },
-        ssn_last_4: individual_ssn_last_4,
       };
+
+      // Add SSN information - use full SSN (id_number) if provided, otherwise use last 4 digits
+      if (individual_id_number) {
+        accountUpdateData.individual.id_number = individual_id_number;
+      } else if (individual_ssn_last_4) {
+        accountUpdateData.individual.ssn_last_4 = individual_ssn_last_4;
+      }
 
       // Add identity verification documents if provided
       if (individual_verification_document_front || individual_verification_document_back || 
@@ -450,8 +459,14 @@ router.post("/direct-onboard", async (req, res) => {
             owner: isRepresentativeAlsoOwner,
             title: representative_relationship_title,
           },
-          ssn_last_4: representative_ssn_last_4,
         };
+
+        // Add SSN information - use full SSN (id_number) if provided, otherwise use last 4 digits
+        if (representative_id_number) {
+          representativeData.id_number = representative_id_number;
+        } else if (representative_ssn_last_4) {
+          representativeData.ssn_last_4 = representative_ssn_last_4;
+        }
 
         // Add identity verification documents if provided
         if (representative_verification_document_front || representative_verification_document_back ||
@@ -516,8 +531,14 @@ router.post("/direct-onboard", async (req, res) => {
             owner: isRepresentativeAlsoOwner,
             title: representative_relationship_title,
           },
-          ssn_last_4: representative_ssn_last_4,
         };
+
+        // Add SSN information - use full SSN (id_number) if provided, otherwise use last 4 digits
+        if (representative_id_number) {
+          representativeData.id_number = representative_id_number;
+        } else if (representative_ssn_last_4) {
+          representativeData.ssn_last_4 = representative_ssn_last_4;
+        }
 
         // Add identity verification documents if provided
         if (representative_verification_document_front || representative_verification_document_back ||
@@ -597,8 +618,14 @@ router.post("/direct-onboard", async (req, res) => {
               owner: owner_relationship_owner,
               title: owner_relationship_title,
             },
-            ssn_last_4: owner_ssn_last_4,
           };
+
+          // Add SSN information - use full SSN (id_number) if provided, otherwise use last 4 digits
+          if (owner_id_number) {
+            ownerData.id_number = owner_id_number;
+          } else if (owner_ssn_last_4) {
+            ownerData.ssn_last_4 = owner_ssn_last_4;
+          }
 
           // Add identity verification documents if provided
           if (owner_verification_document_front || owner_verification_document_back ||
@@ -661,8 +688,14 @@ router.post("/direct-onboard", async (req, res) => {
               owner: owner_relationship_owner,
               title: owner_relationship_title,
             },
-            ssn_last_4: owner_ssn_last_4,
           };
+
+          // Add SSN information - use full SSN (id_number) if provided, otherwise use last 4 digits
+          if (owner_id_number) {
+            ownerData.id_number = owner_id_number;
+          } else if (owner_ssn_last_4) {
+            ownerData.ssn_last_4 = owner_ssn_last_4;
+          }
 
           // Add identity verification documents if provided
           if (owner_verification_document_front || owner_verification_document_back ||
