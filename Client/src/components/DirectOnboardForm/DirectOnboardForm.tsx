@@ -179,7 +179,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         individual_ssn_last_4: '',
         individual_id_number: '',
         business_type: businessType || 'individual',
-        business_profile_mcc: '5734',
+        business_profile_mcc: '',
         business_profile_url: '',
         // Company fields
         company_name: '',
@@ -589,7 +589,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         individual_ssn_last_4: '',
                         individual_id_number: '',
                         business_type: businessType || 'individual',
-                        business_profile_mcc: '5734',
+                        business_profile_mcc: '',
                         business_profile_url: '',
                         // Company fields
                         company_name: '',
@@ -698,7 +698,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
             individual_ssn_last_4: '',
             individual_id_number: '',
             business_type: businessType || 'individual',
-            business_profile_mcc: '5734',
+            business_profile_mcc: '',
             business_profile_url: '',
             company_name: '',
             company_tax_id: '',
