@@ -44,8 +44,8 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ open, onClose, account, onD
         try {
             const response = await createAccountLink({
                 account_id: account.id,
-                refresh_url: 'https://localhost:3000/reauth',
-                return_url: 'https://localhost:3000/return',
+                refresh_url: `${window.location.origin}/reauth`,
+                return_url: `${window.location.origin}/return`,
             });
 
             if (response.success && response.url) {

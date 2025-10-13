@@ -1,4 +1,7 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+    process.env.REACT_APP_API_URL ||
+    process.env.REACT_APP_API_BASE_URL + '/api' ||
+    'https://merchant-onboarding-api.onrender.com/api';
 
 interface UploadDocumentResponse {
     success: boolean;
@@ -127,8 +130,8 @@ export const createAccountLink = async (
             },
             body: JSON.stringify({
                 account_id: data.account_id,
-                refresh_url: data.refresh_url || 'https://localhost:3000/reauth',
-                return_url: data.return_url || 'https://localhost:3000/return',
+                refresh_url: data.refresh_url || `${window.location.origin}/reauth`,
+                return_url: data.return_url || `${window.location.origin}/return`,
             }),
         });
 
