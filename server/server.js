@@ -7,11 +7,11 @@ require("dotenv").config();
 const stripeRoutes = require("./routes/stripe");
 const stripeKeysRoutes = require("./routes/stripeKeys");
 const authRoutes = require("./routes/auth");
-const setupRoutes = require("./routes/setup");
 const { authenticateToken } = require("./middleware/auth");
 const { testConnection, initializeDatabase, pool } = require("./config/database");
 const stripeKeysCache = require("./utils/stripeKeysCache");
 const { decrypt } = require("./utils/encryption");
+const { setupUsers } = require("./scripts/setupUsers");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -41,7 +41,6 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/setup", setupRoutes);
 app.use("/api/stripe", authenticateToken, stripeRoutes);
 app.use("/api/stripe", authenticateToken, stripeKeysRoutes);
 
@@ -111,6 +110,16 @@ const startServer = async () => {
       process.exit(1);
     }
 
+    // Setup users table and admin user
+    try {
+      console.log('🚀 Setting up users table and admin user...');
+      await setupUsers();
+      console.log('✅ Users setup completed successfully!');
+    } catch (error) {
+      console.error('⚠️  Users setup failed, but continuing server startup:', error.message);
+      // Don't fail server startup if users setup fails
+    }
+
     // Load Stripe keys into cache
     await loadKeysIntoCache();
 
@@ -119,6 +128,7 @@ const startServer = async () => {
       console.log(`Server is running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV}`);
       console.log('Database connection established and tables initialized');
+      console.log('📧 Admin credentials: admin@example.com / password123');
     });
   } catch (error) {
     console.error('Failed to start server:', error);

@@ -47,7 +47,7 @@ const login = async (req, res) => {
         try {
             // Find user by email in database
             const result = await client.query(
-                'SELECT id, email, password_hash, name FROM users WHERE email = $1 AND is_active = true',
+                'SELECT id, email, password, name, role FROM users WHERE email = $1',
                 [email]
             );
 
@@ -61,7 +61,7 @@ const login = async (req, res) => {
             const user = result.rows[0];
 
             // Check password
-            const isValidPassword = await bcrypt.compare(password, user.password_hash);
+            const isValidPassword = await bcrypt.compare(password, user.password);
             if (!isValidPassword) {
                 return res.status(401).json({
                     success: false,
@@ -75,7 +75,7 @@ const login = async (req, res) => {
                     id: user.id, 
                     email: user.email, 
                     name: user.name,
-                    role: 'admin' // Default role since it's not in the current table
+                    role: user.role || 'admin' // Default role if not set
                 },
                 JWT_SECRET,
                 { expiresIn: JWT_EXPIRES_IN }
@@ -89,7 +89,7 @@ const login = async (req, res) => {
                     id: user.id,
                     email: user.email,
                     name: user.name,
-                    role: 'admin'
+                    role: user.role || 'admin'
                 }
             });
 
