@@ -1,4 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { getEnvironmentConfig } from '../../utils';
+
+const config = getEnvironmentConfig();
 
 interface User {
     id: string;
@@ -27,7 +30,7 @@ export const loginUser = createAsyncThunk(
     'auth/loginUser',
     async (credentials: { email: string; password: string }, { rejectWithValue }) => {
         try {
-            const response = await fetch('http://localhost:5000/api/auth/login', {
+            const response = await fetch(`${config.API_BASE_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -60,7 +63,7 @@ export const logoutUser = createAsyncThunk('auth/logoutUser', async (_, { reject
         const token = localStorage.getItem('authToken');
 
         if (token) {
-            await fetch('http://localhost:5000/api/auth/logout', {
+            await fetch(`${config.API_BASE_URL}/api/auth/logout`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -89,7 +92,7 @@ export const verifyToken = createAsyncThunk('auth/verifyToken', async (_, { reje
             return rejectWithValue('No token found');
         }
 
-        const response = await fetch('http://localhost:5000/api/auth/verify', {
+        const response = await fetch(`${config.API_BASE_URL}/api/auth/verify`, {
             method: 'GET',
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -125,7 +128,7 @@ export const clearKeys = createAsyncThunk('auth/clearKeys', async (_, { rejectWi
             return rejectWithValue('No authentication token found');
         }
 
-        const response = await fetch('http://localhost:5000/api/stripe/keys', {
+        const response = await fetch(`${config.API_BASE_URL}/api/stripe/keys`, {
             method: 'DELETE',
             headers: {
                 Authorization: `Bearer ${token}`,
