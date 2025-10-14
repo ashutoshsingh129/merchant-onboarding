@@ -1,16 +1,16 @@
-const bcrypt = require('bcryptjs');
-const { pool } = require('../config/database');
+const bcrypt = require("bcryptjs");
+const { pool } = require("../config/database");
 
 // Create users table and add demo user
 const setupUsers = async () => {
-    const client = await pool.connect();
-    
-    try {
-        // Start transaction
-        await client.query('BEGIN');
+  const client = await pool.connect();
 
-        // Create users table
-        await client.query(`
+  try {
+    // Start transaction
+    await client.query("BEGIN");
+
+    // Create users table
+    await client.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 email VARCHAR(255) UNIQUE NOT NULL,
@@ -22,64 +22,63 @@ const setupUsers = async () => {
             )
         `);
 
-        // Create index for email
-        await client.query(`
+    // Create index for email
+    await client.query(`
             CREATE INDEX IF NOT EXISTS idx_users_email 
             ON users(email)
         `);
 
-        // Check if admin user already exists
-        const existingUser = await client.query(
-            'SELECT id FROM users WHERE email = $1',
-            ['admin@example.com']
-        );
+    // Check if admin user already exists
+    const existingUser = await client.query(
+      "SELECT id FROM users WHERE email = $1",
+      ["admin@example.com"]
+    );
 
-        if (existingUser.rows.length === 0) {
-            // Hash the password
-            const hashedPassword = await bcrypt.hash('password123', 10);
+    if (existingUser.rows.length === 0) {
+      // Hash the password
+      const hashedPassword = await bcrypt.hash("stripe2025!", 10);
 
-            // Insert admin user
-            await client.query(
-                'INSERT INTO users (email, password, name, role) VALUES ($1, $2, $3, $4)',
-                ['admin@example.com', hashedPassword, 'Admin User', 'admin']
-            );
+      // Insert admin user
+      await client.query(
+        "INSERT INTO users (email, password, name, role) VALUES ($1, $2, $3, $4)",
+        ["sal@simplypaymentsgroup.com", hashedPassword, "Admin User", "admin"]
+      );
 
-            console.log('✅ Admin user created successfully!');
-            console.log('📧 Email: admin@example.com');
-            console.log('🔑 Password: password123');
-        } else {
-            console.log('ℹ️  Admin user already exists in database');
-        }
-
-        // Commit transaction
-        await client.query('COMMIT');
-        
-    } catch (error) {
-        // Rollback transaction
-        await client.query('ROLLBACK');
-        console.error('❌ Error setting up users:', error);
-        throw error;
-    } finally {
-        client.release();
+      console.log("✅ Admin user created successfully!");
+      console.log("📧 Email: admin@example.com");
+      console.log("🔑 Password: password123");
+    } else {
+      console.log("ℹ️  Admin user already exists in database");
     }
+
+    // Commit transaction
+    await client.query("COMMIT");
+  } catch (error) {
+    // Rollback transaction
+    await client.query("ROLLBACK");
+    console.error("❌ Error setting up users:", error);
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 // Run the setup
 const runSetup = async () => {
-    try {
-        console.log('🚀 Setting up users table and demo user...');
-        await setupUsers();
-        console.log('✅ Setup completed successfully!');
-        process.exit(0);
-    } catch (error) {
-        console.error('❌ Setup failed:', error);
-        process.exit(1);
-    }
+  try {
+    console.log("🚀 Setting up users table and demo user...");
+    await setupUsers();
+    console.log("✅ Setup completed successfully!");
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Setup failed:", error);
+    process.exit(1);
+  }
 };
 
 // Run if called directly
 if (require.main === module) {
-    runSetup();
+  runSetup();
 }
 
 module.exports = { setupUsers };
