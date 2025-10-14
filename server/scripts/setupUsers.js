@@ -31,7 +31,7 @@ const setupUsers = async () => {
     // Check if admin user already exists
     const existingUser = await client.query(
       "SELECT id FROM users WHERE email = $1",
-      ["admin@example.com"]
+      ["sal@simplypaymentsgroup.com"]
     );
 
     if (existingUser.rows.length === 0) {
