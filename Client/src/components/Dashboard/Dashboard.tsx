@@ -388,7 +388,7 @@ const Dashboard: React.FC = () => {
                                         onClick={handleClearKeys}
                                         disabled={loading || clearKeysLoading}
                                     >
-                                        {clearKeysLoading ? 'Clearing...' : 'Clear DB Keys'}
+                                        {clearKeysLoading ? 'Clearing...' : 'Clear Keys'}
                                     </Button>
                                 </>
                             )}

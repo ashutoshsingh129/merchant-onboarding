@@ -10,6 +10,7 @@ import { verifyToken } from './store/slices/authSlice';
 import Layout from './components/Layout/Layout';
 import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
+import ErrorPage from './components/ErrorPage';
 import Dashboard from './components/Dashboard/Dashboard';
 import MerchantOnboarding from './components/MerchantOnboarding/MerchantOnboarding';
 
@@ -94,6 +95,8 @@ const AppRoutes: React.FC = () => {
                             </ProtectedRoute>
                         }
                     />
+                    {/* Catch-all route for 404 errors */}
+                    <Route path="*" element={<ErrorPage type="not-found" />} />
                 </Routes>
             </Router>
         </ThemeProvider>

@@ -151,12 +151,6 @@ const Login: React.FC = () => {
                                 )}
                             </Button>
                         </StyledForm>
-
-                        <Box textAlign="center" mt={2}>
-                            <Typography variant="body2" color="text.secondary">
-                                Demo credentials: admin@example.com / password123
-                            </Typography>
-                        </Box>
                     </CardContent>
                 </StyledCard>
             </Container>
