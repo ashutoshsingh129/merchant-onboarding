@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff, Save, Security } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import { apiService } from '../../services/api';
 
 const StyledCard = styled(Card)(({ theme }) => ({
     maxWidth: 600,
@@ -94,29 +95,20 @@ const StripeKeysForm: React.FC<StripeKeysFormProps> = ({ onSuccess, onError }) =
         setSuccess(null);
 
         try {
-            const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-            const response = await fetch(`${API_BASE_URL}/stripe/keys`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    secret_key: formData.secretKey.trim(),
-                    publishable_key: formData.publishableKey.trim(),
-                }),
+            const result = await apiService.storeStripeKeys({
+                secret_key: formData.secretKey.trim(),
+                publishable_key: formData.publishableKey.trim(),
             });
 
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.message || 'Failed to save Stripe keys');
-            }
-
-            setSuccess('Stripe keys saved successfully! All future API calls will use these keys.');
-            setFormData({ secretKey: '', publishableKey: '' });
-
-            if (onSuccess) {
-                onSuccess();
+            if (result.success) {
+                setSuccess(
+                    'Stripe keys saved successfully! All future API calls will use these keys.'
+                );
+                setFormData({ secretKey: '', publishableKey: '' });
+                onSuccess?.();
+            } else {
+                setError(result.message || 'Failed to save Stripe keys');
+                onError?.(result.message || 'Failed to save Stripe keys');
             }
         } catch (err) {
             const errorMessage =

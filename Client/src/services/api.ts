@@ -56,12 +56,122 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // Simulate random API errors (10% chance)
 const shouldSimulateError = () => Math.random() < 0.1;
 
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+    const token = localStorage.getItem('authToken');
+    return {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+    };
+};
+
 export class ApiService {
     private baseUrl: string;
 
     constructor() {
         const config = getEnvironmentConfig();
         this.baseUrl = config.API_BASE_URL;
+    }
+
+    // Check if Stripe keys are configured
+    async checkKeysStatus(): Promise<ApiResponse<{ hasKeys: boolean }>> {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/stripe/keys/status`, {
+                method: 'GET',
+                headers: getAuthHeaders(),
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    // Token expired or invalid
+                    localStorage.removeItem('authToken');
+                    throw new Error('Authentication required');
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            return {
+                data: { hasKeys: result.hasKeys },
+                message: result.message || 'Keys status checked successfully',
+                success: result.success,
+            };
+        } catch (error) {
+            return {
+                data: { hasKeys: false },
+                message: error instanceof Error ? error.message : 'An unexpected error occurred',
+                success: false,
+            };
+        }
+    }
+
+    // Store Stripe keys
+    async storeStripeKeys(keys: {
+        secret_key: string;
+        publishable_key: string;
+    }): Promise<ApiResponse<any>> {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/stripe/keys`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(keys),
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    localStorage.removeItem('authToken');
+                    throw new Error('Authentication required');
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            return {
+                data: result.data,
+                message: result.message || 'Keys stored successfully',
+                success: result.success,
+            };
+        } catch (error) {
+            return {
+                data: null,
+                message: error instanceof Error ? error.message : 'An unexpected error occurred',
+                success: false,
+            };
+        }
+    }
+
+    // Clear Stripe keys
+    async clearStripeKeys(): Promise<ApiResponse<any>> {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/stripe/keys`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    localStorage.removeItem('authToken');
+                    throw new Error('Authentication required');
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            return {
+                data: result.data,
+                message: result.message || 'Keys cleared successfully',
+                success: result.success,
+            };
+        } catch (error) {
+            return {
+                data: null,
+                message: error instanceof Error ? error.message : 'An unexpected error occurred',
+                success: false,
+            };
+        }
     }
 
     // Simulate fetching users from API
@@ -238,12 +348,14 @@ export class ApiService {
 
             const response = await fetch(url, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders(),
             });
 
             if (!response.ok) {
+                if (response.status === 401) {
+                    localStorage.removeItem('authToken');
+                    throw new Error('Authentication required');
+                }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
@@ -278,12 +390,14 @@ export class ApiService {
 
             const response = await fetch(url, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders(),
             });
 
             if (!response.ok) {
+                if (response.status === 401) {
+                    localStorage.removeItem('authToken');
+                    throw new Error('Authentication required');
+                }
                 if (response.status === 404) {
                     return {
                         data: null,

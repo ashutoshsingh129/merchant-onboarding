@@ -6,6 +6,8 @@ require("dotenv").config();
 
 const stripeRoutes = require("./routes/stripe");
 const stripeKeysRoutes = require("./routes/stripeKeys");
+const authRoutes = require("./routes/auth");
+const { authenticateToken } = require("./middleware/auth");
 const { testConnection, initializeDatabase, pool } = require("./config/database");
 const stripeKeysCache = require("./utils/stripeKeysCache");
 const { decrypt } = require("./utils/encryption");
@@ -37,8 +39,9 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Routes
-app.use("/api/stripe", stripeRoutes);
-app.use("/api/stripe", stripeKeysRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/stripe", authenticateToken, stripeRoutes);
+app.use("/api/stripe", authenticateToken, stripeKeysRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

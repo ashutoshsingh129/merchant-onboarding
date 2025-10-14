@@ -38,7 +38,7 @@ import {
 import ConfirmationModal from '../ConfirmationModal';
 import NotificationModal, { NotificationType } from '../NotificationModal';
 import StripeKeysForm from '../StripeKeysForm';
-import { clearStripeKeys, checkKeysStatus } from '../../services/stripeApi';
+import { apiService } from '../../services/api';
 import {
     StyledContainer,
     StyledCard,
@@ -71,20 +71,24 @@ const Dashboard: React.FC = () => {
         details: '',
     });
     const [showKeysForm, setShowKeysForm] = useState(false);
-    const [logoutLoading, setLogoutLoading] = useState(false);
+    const [clearKeysLoading, setClearKeysLoading] = useState(false);
     const [hasKeys, setHasKeys] = useState<boolean | null>(null);
     const [keysLoading, setKeysLoading] = useState(true);
+    const [keysChecked, setKeysChecked] = useState(false);
 
     // Check keys status on component mount
     useEffect(() => {
+        if (keysChecked) return; // Prevent duplicate calls
+
         const checkKeys = async () => {
             try {
                 setKeysLoading(true);
-                const result = await checkKeysStatus();
-                setHasKeys(result.hasKeys);
+                const result = await apiService.checkKeysStatus();
+                setHasKeys(result.data.hasKeys);
+                setKeysChecked(true);
 
                 // Auto-open keys form if no keys are present
-                if (!result.hasKeys) {
+                if (!result.data.hasKeys) {
                     setShowKeysForm(true);
                 } else {
                     // Only fetch merchant accounts if keys are present
@@ -94,13 +98,14 @@ const Dashboard: React.FC = () => {
                 console.error('Error checking keys status:', error);
                 setHasKeys(false);
                 setShowKeysForm(true);
+                setKeysChecked(true);
             } finally {
                 setKeysLoading(false);
             }
         };
 
         checkKeys();
-    }, [dispatch, rowsPerPage]);
+    }, [dispatch, keysChecked]); // Added keysChecked to dependencies
 
     // Auto-open keys form if there's an error (likely no keys configured)
     useEffect(() => {
@@ -221,30 +226,34 @@ const Dashboard: React.FC = () => {
         });
     };
 
-    // Handle logout (clear keys)
-    const handleLogout = async () => {
-        setLogoutLoading(true);
+    // Handle clear database keys
+    const handleClearKeys = async () => {
+        setClearKeysLoading(true);
         try {
-            await clearStripeKeys();
-            setHasKeys(false);
-            setShowKeysForm(true);
-            setNotificationModal({
-                open: true,
-                type: 'success',
-                title: 'Keys Cleared',
-                message: 'All Stripe keys have been cleared successfully.',
-                details: 'Please configure new keys to continue using the system.',
-            });
+            const result = await apiService.clearStripeKeys();
+            if (result.success) {
+                setHasKeys(false);
+                setShowKeysForm(true);
+                setNotificationModal({
+                    open: true,
+                    type: 'success',
+                    title: 'Keys Cleared',
+                    message: 'All Stripe keys have been cleared successfully.',
+                    details: 'Please configure new keys to continue using the system.',
+                });
+            } else {
+                throw new Error(result.message);
+            }
         } catch (error) {
             setNotificationModal({
                 open: true,
                 type: 'error',
-                title: 'Logout Failed',
+                title: 'Clear Keys Failed',
                 message: error instanceof Error ? error.message : 'Failed to clear keys',
                 details: '',
             });
         } finally {
-            setLogoutLoading(false);
+            setClearKeysLoading(false);
         }
     };
 
@@ -375,11 +384,11 @@ const Dashboard: React.FC = () => {
                                     <Button
                                         variant="outlined"
                                         color="error"
-                                        startIcon={<Logout />}
-                                        onClick={handleLogout}
-                                        disabled={loading || logoutLoading}
+                                        startIcon={<Settings />}
+                                        onClick={handleClearKeys}
+                                        disabled={loading || clearKeysLoading}
                                     >
-                                        {logoutLoading ? 'Clearing...' : 'Logout'}
+                                        {clearKeysLoading ? 'Clearing...' : 'Clear DB Keys'}
                                     </Button>
                                 </>
                             )}
