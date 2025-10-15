@@ -12,6 +12,7 @@ const { testConnection, initializeDatabase, pool } = require("./config/database"
 const stripeKeysCache = require("./utils/stripeKeysCache");
 const { decrypt } = require("./utils/encryption");
 const { setupUsers } = require("./scripts/setupUsers");
+const { dropTables } = require("./scripts/dropTables");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -113,6 +114,16 @@ const startServer = async () => {
     if (!dbConnected) {
       console.error('Failed to connect to database. Server will not start.');
       process.exit(1);
+    }
+
+    // Drop existing tables to ensure clean schema
+    try {
+      console.log('🧹 Dropping existing tables for clean schema...');
+      await dropTables(pool);
+      console.log('✅ Tables dropped successfully');
+    } catch (error) {
+      console.error('⚠️  Warning: Failed to drop tables, but continuing:', error.message);
+      // Don't fail server startup if tables can't be dropped
     }
 
     // Initialize database tables
