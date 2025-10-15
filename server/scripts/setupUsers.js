@@ -11,46 +11,46 @@ const migrateStripeKeysTable = async (client) => {
       WHERE table_name = 'stripe_keys' 
       AND column_name = 'user_id'
     `);
-    
+
     if (columnExists.rows.length === 0) {
-      console.log('Adding user_id column to stripe_keys table...');
-      
+      console.log("Adding user_id column to stripe_keys table...");
+
       // Add user_id column
       await client.query(`
         ALTER TABLE stripe_keys 
         ADD COLUMN user_id INTEGER
       `);
-      
+
       // Add foreign key constraint
       await client.query(`
         ALTER TABLE stripe_keys 
         ADD CONSTRAINT fk_stripe_keys_user_id 
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       `);
-      
+
       // Create indexes
       await client.query(`
         CREATE INDEX IF NOT EXISTS idx_stripe_keys_user_active 
         ON stripe_keys(user_id, is_active) 
         WHERE is_active = true
       `);
-      
+
       await client.query(`
         CREATE INDEX IF NOT EXISTS idx_stripe_keys_user_id 
         ON stripe_keys(user_id)
       `);
-      
+
       // Drop old index if it exists
       await client.query(`
         DROP INDEX IF EXISTS idx_stripe_keys_active
       `);
-      
-      console.log('✅ Stripe keys migration completed successfully!');
+
+      console.log("✅ Stripe keys migration completed successfully!");
     } else {
-      console.log('ℹ️  user_id column already exists. Migration not needed.');
+      console.log("ℹ️  user_id column already exists. Migration not needed.");
     }
   } catch (error) {
-    console.error('❌ Stripe keys migration failed:', error);
+    console.error("❌ Stripe keys migration failed:", error);
     throw error;
   }
 };
@@ -90,39 +90,21 @@ const setupUsers = async () => {
       {
         email: "sal@simplypaymentsgroup.com",
         password: "stripe2025!",
-        name: "Admin User",
-        role: "admin"
+        name: "Salvador",
+        role: "admin",
       },
       {
-        email: "user1@example.com",
-        password: "password123",
-        name: "User 1",
-        role: "user"
+        email: "dmitry@simplypaymentsgroup.com",
+        password: "stripe2025!",
+        name: "Dmitry",
+        role: "admin",
       },
       {
-        email: "user2@example.com",
-        password: "password123",
-        name: "User 2",
-        role: "user"
+        email: "user@simplypaymentsgroup.com",
+        password: "stripe2025!",
+        name: "User ",
+        role: "user",
       },
-      {
-        email: "user3@example.com",
-        password: "password123",
-        name: "User 3",
-        role: "user"
-      },
-      {
-        email: "user4@example.com",
-        password: "password123",
-        name: "User 4",
-        role: "user"
-      },
-      {
-        email: "user5@example.com",
-        password: "password123",
-        name: "User 5",
-        role: "user"
-      }
     ];
 
     let createdCount = 0;
@@ -159,7 +141,9 @@ const setupUsers = async () => {
     console.log(`   - Database migrations: Completed`);
     console.log(`\n🔑 Login credentials:`);
     console.log(`   - Admin: sal@simplypaymentsgroup.com / stripe2025!`);
-    console.log(`   - Users: user1@example.com to user5@example.com / password123`);
+    console.log(
+      `   - Users: user1@example.com to user5@example.com / password123`
+    );
 
     // Commit transaction
     await client.query("COMMIT");
