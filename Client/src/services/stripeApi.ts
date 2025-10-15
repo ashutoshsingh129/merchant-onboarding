@@ -1,5 +1,14 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+    const token = localStorage.getItem('authToken');
+    return {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+    };
+};
+
 interface UploadDocumentResponse {
     success: boolean;
     file_id?: string;
@@ -25,8 +34,15 @@ export const uploadDocument = async (
         formData.append('file', file);
         formData.append('purpose', purpose);
 
+        const token = localStorage.getItem('authToken');
+        const headers: HeadersInit = {};
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+
         const response = await fetch(`${API_BASE_URL}/stripe/upload-document`, {
             method: 'POST',
+            headers,
             body: formData,
         });
 
@@ -83,9 +99,7 @@ export const createStripeAccount = async (
     try {
         const response = await fetch(`${API_BASE_URL}/stripe/create-account`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 type: data.type,
                 country: data.country,
@@ -122,9 +136,7 @@ export const createAccountLink = async (
     try {
         const response = await fetch(`${API_BASE_URL}/stripe/create-account-link`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 account_id: data.account_id,
                 refresh_url: data.refresh_url || 'https://localhost:3000/reauth',
@@ -258,9 +270,7 @@ export const directOnboardMerchant = async (
     try {
         const response = await fetch(`${API_BASE_URL}/stripe/direct-onboard`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(data),
         });
 
@@ -282,9 +292,7 @@ export const getAccountInfo = async (accountId: string) => {
     try {
         const response = await fetch(`${API_BASE_URL}/stripe/account/${accountId}`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
         });
 
         const result = await response.json();
@@ -323,9 +331,7 @@ export const createExternalAccount = async (
     try {
         const response = await fetch(`${API_BASE_URL}/stripe/create-external-account`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(data),
         });
 
@@ -367,9 +373,7 @@ export const deleteMerchantAccount = async (accountId: string): Promise<DeleteAc
     try {
         const response = await fetch(`${API_BASE_URL}/stripe/accounts/${accountId}`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
         });
 
         const result = await response.json();
@@ -392,9 +396,7 @@ export const rejectMerchantAccount = async (
     try {
         const response = await fetch(`${API_BASE_URL}/stripe/accounts/${data.account_id}/reject`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 reason: data.reason,
             }),
@@ -427,9 +429,7 @@ export const clearStripeKeys = async (): Promise<ClearKeysResponse> => {
     try {
         const response = await fetch(`${API_BASE_URL}/stripe/keys`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
         });
 
         const result = await response.json();
@@ -457,9 +457,7 @@ export const checkKeysStatus = async (): Promise<KeysStatusResponse> => {
     try {
         const response = await fetch(`${API_BASE_URL}/stripe/keys/status`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
         });
 
         const result = await response.json();

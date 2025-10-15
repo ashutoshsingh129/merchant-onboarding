@@ -41,10 +41,24 @@ const initializeDatabase = async () => {
     try {
         const client = await pool.connect();
         
+        // Create users table first
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                role VARCHAR(50) DEFAULT 'user',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         // Create stripe_keys table
         await client.query(`
             CREATE TABLE IF NOT EXISTS stripe_keys (
                 id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 secret_key TEXT NOT NULL,
                 publishable_key TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -53,11 +67,17 @@ const initializeDatabase = async () => {
             )
         `);
 
-        // Create index for active keys
+        // Create index for active keys by user
         await client.query(`
-            CREATE INDEX IF NOT EXISTS idx_stripe_keys_active 
-            ON stripe_keys(is_active) 
+            CREATE INDEX IF NOT EXISTS idx_stripe_keys_user_active 
+            ON stripe_keys(user_id, is_active) 
             WHERE is_active = true
+        `);
+
+        // Create index for user_id
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_stripe_keys_user_id 
+            ON stripe_keys(user_id)
         `);
 
         client.release();

@@ -2,18 +2,22 @@ const express = require("express");
 const multer = require("multer");
 const fs = require("fs");
 const stripeKeysCache = require("../utils/stripeKeysCache");
+const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
+
+// Apply authentication middleware to all routes
+router.use(authenticateToken);
 
 // Configure multer for file uploads
 const upload = multer({ dest: "uploads/" });
 
-// Helper function to get Stripe instance with cached keys
-const getStripeInstance = () => {
-    const keys = stripeKeysCache.getKeys();
+// Helper function to get Stripe instance with cached keys for specific user
+const getStripeInstance = (userId) => {
+    const keys = stripeKeysCache.getKeys(userId);
     
     if (!keys.secretKey) {
-        throw new Error('No Stripe secret key available. Please configure your Stripe keys first.');
+        throw new Error('No Stripe secret key available for this user. Please configure your Stripe keys first.');
     }
     
     return require("stripe")(keys.secretKey);
@@ -29,7 +33,8 @@ router.post("/upload-document", upload.single("file"), async (req, res) => {
     }
 
     const { purpose } = req.body;
-    const stripe = getStripeInstance();
+    const userId = req.user.id; // Get user ID from authenticated token
+    const stripe = getStripeInstance(userId);
 
     // Upload file to Stripe
     const file = await stripe.files.create({
@@ -76,7 +81,8 @@ router.post("/upload-document", upload.single("file"), async (req, res) => {
 router.post("/create-account", async (req, res) => {
   try {
     const { type, country, email, business_type, capabilities } = req.body;
-    const stripe = getStripeInstance();
+    const userId = req.user.id; // Get user ID from authenticated token
+    const stripe = getStripeInstance(userId);
 
     // Validate required fields
     if (!type || !country || !email) {
@@ -123,7 +129,8 @@ router.post("/create-account", async (req, res) => {
 router.post("/create-account-link", async (req, res) => {
   try {
     const { account_id, refresh_url, return_url } = req.body;
-    const stripe = getStripeInstance();
+    const userId = req.user.id; // Get user ID from authenticated token
+    const stripe = getStripeInstance(userId);
 
     // Validate required fields
     if (!account_id) {
@@ -161,7 +168,8 @@ router.post("/create-account-link", async (req, res) => {
 // Direct merchant onboarding with complete details
 router.post("/direct-onboard", async (req, res) => {
   try {
-    const stripe = getStripeInstance();
+    const userId = req.user.id; // Get user ID from authenticated token
+    const stripe = getStripeInstance(userId);
     const {
       account_id,
       individual_first_name,
@@ -828,7 +836,8 @@ router.post("/direct-onboard", async (req, res) => {
 router.get("/account/:account_id", async (req, res) => {
   try {
     const { account_id } = req.params;
-    const stripe = getStripeInstance();
+    const userId = req.user.id; // Get user ID from authenticated token
+    const stripe = getStripeInstance(userId);
 
     const account = await stripe.accounts.retrieve(account_id);
 
@@ -858,7 +867,8 @@ router.get("/account/:account_id", async (req, res) => {
 // Create external account (bank account)
 router.post("/create-external-account", async (req, res) => {
   try {
-    const stripe = getStripeInstance();
+    const userId = req.user.id; // Get user ID from authenticated token
+    const stripe = getStripeInstance(userId);
     const {
       account_id,
       object,
@@ -910,7 +920,8 @@ router.post("/create-external-account", async (req, res) => {
 // Get all Stripe accounts with pagination
 router.get("/accounts", async (req, res) => {
   try {
-    const stripe = getStripeInstance();
+    const userId = req.user.id; // Get user ID from authenticated token
+    const stripe = getStripeInstance(userId);
     const { limit = 10, starting_after, ending_before } = req.query;
 
     // Build query parameters for Stripe API
@@ -980,7 +991,8 @@ router.get("/accounts", async (req, res) => {
 router.get("/accounts/:account_id", async (req, res) => {
   try {
     const { account_id } = req.params;
-    const stripe = getStripeInstance();
+    const userId = req.user.id; // Get user ID from authenticated token
+    const stripe = getStripeInstance(userId);
 
     const account = await stripe.accounts.retrieve(account_id);
 
@@ -1030,7 +1042,8 @@ router.get("/accounts/:account_id", async (req, res) => {
 router.delete("/accounts/:account_id", async (req, res) => {
   try {
     const { account_id } = req.params;
-    const stripe = getStripeInstance();
+    const userId = req.user.id; // Get user ID from authenticated token
+    const stripe = getStripeInstance(userId);
 
     // Delete the account from Stripe
     const deletedAccount = await stripe.accounts.del(account_id);
@@ -1055,7 +1068,8 @@ router.post("/accounts/:account_id/reject", async (req, res) => {
   try {
     const { account_id } = req.params;
     const { reason } = req.body;
-    const stripe = getStripeInstance();
+    const userId = req.user.id; // Get user ID from authenticated token
+    const stripe = getStripeInstance(userId);
 
     // Validate required fields
     if (!reason) {

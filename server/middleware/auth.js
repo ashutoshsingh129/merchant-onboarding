@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { pool } = require('../config/database');
+const stripeKeysCache = require('../utils/stripeKeysCache');
 
 // JWT secret key (in production, this should be in environment variables)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
@@ -127,6 +128,11 @@ const verifyToken = (req, res) => {
 // Logout endpoint (optional - JWT is stateless, but useful for logging)
 const logout = (req, res) => {
     try {
+        // Clear user-specific cache if user ID is available
+        if (req.user && req.user.id) {
+            stripeKeysCache.clearUserCache(req.user.id);
+        }
+        
         // In a stateless JWT system, logout is handled client-side
         // This endpoint can be used for logging purposes
         res.json({

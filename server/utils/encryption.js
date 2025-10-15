@@ -90,9 +90,66 @@ const validateStripeKey = (key, type) => {
     return false;
 };
 
+// Validate Stripe keys by making a test API call
+const validateStripeKeysWithAPI = async (secretKey, publishableKey) => {
+    try {
+        const stripe = require('stripe')(secretKey);
+        
+        // Make a simple API call to validate the keys
+        const account = await stripe.accounts.retrieve();
+        
+        // Check if the account is accessible
+        if (account && account.id) {
+            return {
+                isValid: true,
+                accountId: account.id,
+                accountType: account.type,
+                country: account.country,
+                message: 'Keys are valid and account is accessible'
+            };
+        } else {
+            return {
+                isValid: false,
+                error: 'Account not accessible with provided keys',
+                message: 'The provided keys do not have access to a valid Stripe account'
+            };
+        }
+    } catch (error) {
+        console.error('Stripe API validation error:', error);
+        
+        // Handle specific Stripe errors
+        if (error.type === 'StripeAuthenticationError') {
+            return {
+                isValid: false,
+                error: 'Authentication failed',
+                message: 'Invalid secret key. Please check your Stripe secret key.'
+            };
+        } else if (error.type === 'StripePermissionError') {
+            return {
+                isValid: false,
+                error: 'Permission denied',
+                message: 'The provided keys do not have sufficient permissions.'
+            };
+        } else if (error.type === 'StripeAPIError') {
+            return {
+                isValid: false,
+                error: 'API error',
+                message: 'Stripe API error: ' + error.message
+            };
+        } else {
+            return {
+                isValid: false,
+                error: 'Validation failed',
+                message: 'Unable to validate keys: ' + error.message
+            };
+        }
+    }
+};
+
 module.exports = {
     encrypt,
     decrypt,
     validateStripeKey,
+    validateStripeKeysWithAPI,
     generateEncryptionKey,
 };

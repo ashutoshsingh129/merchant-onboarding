@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { getEnvironmentConfig } from '../../utils';
 
 const config = getEnvironmentConfig();
@@ -194,6 +194,8 @@ const authSlice = createSlice({
                 state.user = null;
                 state.token = null;
                 state.error = null;
+                // Clear any cached keys data on logout
+                localStorage.removeItem('stripeKeysStatus');
             })
             .addCase(logoutUser.rejected, (state, action) => {
                 state.isLoading = false;

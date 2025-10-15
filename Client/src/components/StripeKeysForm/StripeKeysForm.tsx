@@ -107,8 +107,23 @@ const StripeKeysForm: React.FC<StripeKeysFormProps> = ({ onSuccess, onError }) =
                 setFormData({ secretKey: '', publishableKey: '' });
                 onSuccess?.();
             } else {
-                setError(result.message || 'Failed to save Stripe keys');
-                onError?.(result.message || 'Failed to save Stripe keys');
+                // Handle specific error cases
+                let errorMessage = result.message || 'Failed to save Stripe keys';
+
+                if (result.error === 'Authentication failed') {
+                    errorMessage = 'Invalid secret key. Please check your Stripe secret key.';
+                } else if (result.error === 'Permission denied') {
+                    errorMessage = 'The provided keys do not have sufficient permissions.';
+                } else if (result.error === 'API error') {
+                    errorMessage = 'Stripe API error. Please try again later.';
+                } else if (result.error === 'Invalid secret key format') {
+                    errorMessage = 'Secret key must start with sk_test_ or sk_live_';
+                } else if (result.error === 'Invalid publishable key format') {
+                    errorMessage = 'Publishable key must start with pk_test_ or pk_live_';
+                }
+
+                setError(errorMessage);
+                onError?.(errorMessage);
             }
         } catch (err) {
             const errorMessage =

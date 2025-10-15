@@ -77,16 +77,22 @@ const loadKeysIntoCache = async () => {
   try {
     const client = await pool.connect();
     try {
+      // Load all active Stripe keys for all users
       const result = await client.query(
-        'SELECT secret_key, publishable_key FROM stripe_keys WHERE is_active = true ORDER BY created_at DESC LIMIT 1'
+        'SELECT user_id, secret_key, publishable_key FROM stripe_keys WHERE is_active = true'
       );
 
       if (result.rows.length > 0) {
-        const { secret_key: encryptedSecretKey, publishable_key } = result.rows[0];
-        // Decrypt the secret key before caching
-        const decryptedSecretKey = decrypt(encryptedSecretKey);
-        stripeKeysCache.updateKeys(decryptedSecretKey, publishable_key);
-        console.log('Stripe keys loaded into cache successfully');
+        let loadedCount = 0;
+        for (const row of result.rows) {
+          const { user_id, secret_key: encryptedSecretKey, publishable_key } = row;
+          // Decrypt the secret key before caching
+          const decryptedSecretKey = decrypt(encryptedSecretKey);
+          // Update cache with user-specific keys
+          stripeKeysCache.updateUserKeys(user_id, decryptedSecretKey, publishable_key);
+          loadedCount++;
+        }
+        console.log(`Stripe keys loaded into cache for ${loadedCount} user(s)`);
       } else {
         console.log('No active Stripe keys found in database');
       }
@@ -116,14 +122,14 @@ const startServer = async () => {
       process.exit(1);
     }
 
-    // Setup users table and admin user
+    // Setup users table, admin user, and run Stripe keys migration
     try {
-      console.log('🚀 Setting up users table and admin user...');
+      console.log('🚀 Setting up users table, admin user, and running migrations...');
       await setupUsers();
-      console.log('✅ Users setup completed successfully!');
+      console.log('✅ Users setup and migrations completed successfully!');
     } catch (error) {
-      console.error('⚠️  Users setup failed, but continuing server startup:', error.message);
-      // Don't fail server startup if users setup fails
+      console.error('⚠️  Users setup or migration failed, but continuing server startup:', error.message);
+      // Don't fail server startup if users setup or migration fails
     }
 
     // Load Stripe keys into cache
