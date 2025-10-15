@@ -1,5 +1,7 @@
-const API_BASE_URL =
-    process.env.REACT_APP_API_URL || 'https://merchant-onboarding-api.onrender.com/api';
+import { getEnvironmentConfig } from '../utils';
+
+const config = getEnvironmentConfig();
+const API_BASE_URL = `${config.API_BASE_URL}/api`;
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
@@ -140,8 +142,8 @@ export const createAccountLink = async (
             headers: getAuthHeaders(),
             body: JSON.stringify({
                 account_id: data.account_id,
-                refresh_url: data.refresh_url || 'https://localhost:3000/reauth',
-                return_url: data.return_url || 'https://localhost:3000/return',
+                refresh_url: data.refresh_url || `${config.FRONTEND_URL}/reauth`,
+                return_url: data.return_url || `${config.FRONTEND_URL}/return`,
             }),
         });
 

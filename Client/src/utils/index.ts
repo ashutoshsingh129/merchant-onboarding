@@ -1,8 +1,11 @@
 export const getEnvironmentConfig = () => {
     return {
-        API_BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000',
-        ENVIRONMENT: process.env.REACT_APP_ENVIRONMENT || 'development',
-        APP_NAME: process.env.REACT_APP_APP_NAME || 'React Template FE',
+        API_BASE_URL:
+            process.env.REACT_APP_API_BASE_URL || 'https://merchant-onboarding-api.onrender.com',
+        FRONTEND_URL:
+            process.env.REACT_APP_FRONTEND_URL || 'https://merchant-onboarding.onrender.com',
+        ENVIRONMENT: process.env.REACT_APP_ENVIRONMENT || 'production',
+        APP_NAME: process.env.REACT_APP_APP_NAME || 'Merchant Onboarding',
         VERSION: process.env.REACT_APP_VERSION || '1.0.0',
     };
 };
