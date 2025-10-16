@@ -179,7 +179,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         individual_ssn_last_4: '',
         individual_id_number: '',
         business_type: businessType || 'individual',
-        business_profile_mcc: '',
+        business_profile_mcc: '4816',
         business_profile_url: '',
         // Company fields
         company_name: '',
@@ -832,7 +832,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                     e.target.value
                                                 )
                                             }
-                                            placeholder="5734"
+                                            placeholder="4816"
                                             helperText="4-digit merchant category code"
                                         />
                                     </Grid>
@@ -1457,7 +1457,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                     e.target.value
                                                 )
                                             }
-                                            placeholder="5734"
+                                            placeholder="4816"
                                             helperText="4-digit merchant category code"
                                         />
                                     </Grid>

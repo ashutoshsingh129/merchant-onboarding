@@ -32,18 +32,41 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS configuration
-app.use(
-  cors({
-    origin: [
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
       process.env.FRONTEND_URL || "http://localhost:3000",
       "https://merchant-onboarding.onrender.com",
-      "https://merchant-onboarding-app.onrender.com"
-    ],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  }),
-);
+      "https://merchant-onboarding-app.onrender.com",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000"
+    ];
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+};
+
+app.use(cors(corsOptions));
+
+// Debug middleware for CORS issues
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log('Origin:', req.headers.origin);
+  console.log('User-Agent:', req.headers['user-agent']);
+  next();
+});
 
 // Body parsing middleware - increased limit for file uploads
 app.use(express.json({ limit: '50mb' }));
