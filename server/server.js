@@ -42,6 +42,7 @@ const corsOptions = {
       "https://merchant-onboarding.onrender.com",
       "https://merchant-onboarding-app.onrender.com",
       "https://merchant-onboarding-api.onrender.com",
+      "https://merchant-onboarding-frontend.onrender.com",
       "http://localhost:3000",
       "http://127.0.0.1:3000"
     ];
