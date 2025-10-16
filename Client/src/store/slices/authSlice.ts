@@ -52,7 +52,15 @@ export const loginUser = createAsyncThunk(
                 user: data.user,
             };
         } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : 'Login failed');
+            // Handle network errors and other fetch errors
+            if (error instanceof TypeError && error.message.includes('fetch')) {
+                return rejectWithValue(
+                    'Unable to connect to server. Please check your internet connection.'
+                );
+            }
+            return rejectWithValue(
+                error instanceof Error ? error.message : 'Login failed. Please try again.'
+            );
         }
     }
 );
@@ -168,7 +176,7 @@ const authSlice = createSlice({
             // Login cases
             .addCase(loginUser.pending, state => {
                 state.isLoading = true;
-                state.error = null;
+                // Don't clear error on pending - let user see previous error until new result
             })
             .addCase(loginUser.fulfilled, (state, action) => {
                 state.isLoading = false;
@@ -183,6 +191,8 @@ const authSlice = createSlice({
                 state.user = null;
                 state.token = null;
                 state.error = action.payload as string;
+                // Clear any existing token from localStorage on login failure
+                localStorage.removeItem('authToken');
             })
             // Logout cases
             .addCase(logoutUser.pending, state => {

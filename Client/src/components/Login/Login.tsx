@@ -16,7 +16,7 @@ import { StyledLoginContainer, StyledCard, StyledForm } from './Login.styles';
 
 const Login: React.FC = () => {
     const dispatch = useAppDispatch();
-    const { isLoading, error } = useAppSelector(state => state.auth);
+    const { isLoading, error, isAuthenticated } = useAppSelector(state => state.auth);
 
     const [formData, setFormData] = useState({
         email: '',
@@ -28,10 +28,10 @@ const Login: React.FC = () => {
         password: '',
     });
 
-    useEffect(() => {
-        // Clear any existing errors when component mounts
-        dispatch(clearError());
-    }, [dispatch]);
+    // Don't automatically clear errors on mount - this causes errors to disappear immediately
+    // useEffect(() => {
+    //     dispatch(clearError());
+    // }, [dispatch]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -81,7 +81,7 @@ const Login: React.FC = () => {
         try {
             await dispatch(loginUser(formData)).unwrap();
         } catch (error) {
-            // Error is handled by the auth slice
+            // Error is handled by the auth slice and will be displayed in the UI
             console.error('Login failed:', error);
         }
     };
@@ -101,7 +101,11 @@ const Login: React.FC = () => {
                         </Box>
 
                         {error && (
-                            <Alert severity="error" sx={{ mb: 2 }}>
+                            <Alert
+                                severity="error"
+                                sx={{ mb: 2 }}
+                                onClose={() => dispatch(clearError())}
+                            >
                                 {error}
                             </Alert>
                         )}
