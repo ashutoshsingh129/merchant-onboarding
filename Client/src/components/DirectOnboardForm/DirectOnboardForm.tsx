@@ -335,6 +335,28 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         }
     }, [detectedIP, formData.tos_acceptance_ip]);
 
+    // Update default company_structure when business_type changes to non_profit
+    useEffect(() => {
+        if (
+            formData.business_type === 'non_profit' &&
+            (formData.company_structure === 'private_corporation' || !formData.company_structure)
+        ) {
+            setFormData(prev => ({
+                ...prev,
+                company_structure: 'unincorporated_non_profit',
+            }));
+        } else if (
+            formData.business_type === 'company' &&
+            (formData.company_structure === 'unincorporated_non_profit' ||
+                formData.company_structure === 'incorporated_non_profit')
+        ) {
+            setFormData(prev => ({
+                ...prev,
+                company_structure: 'private_corporation',
+            }));
+        }
+    }, [formData.business_type]);
+
     // Update account_id and email when props change
     useEffect(() => {
         if (accountId) {
@@ -512,8 +534,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                 if (!formData.individual_id_number) delete payload.individual_id_number;
             }
 
-            // Handle representative SSN (for company business type)
-            if (formData.business_type === 'company') {
+            // Handle representative SSN (for company and non-profit business type)
+            if (formData.business_type === 'company' || formData.business_type === 'non_profit') {
                 if (representativeSsnType === 'last4') {
                     // Only send last 4 digits
                     if (formData.representative_ssn_last_4) {
@@ -790,8 +812,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 />
                             </Grid>
 
-                            {/* Business Information - Show immediately after Account ID for company profiles */}
-                            {formData.business_type === 'company' && (
+                            {/* Business Information - Show immediately after Account ID for company and non-profit profiles */}
+                            {(formData.business_type === 'company' ||
+                                formData.business_type === 'non_profit') && (
                                 <>
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
@@ -1479,24 +1502,35 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 </>
                             )}
 
-                            {/* Company Information - Only show when business type is Company */}
-                            {formData.business_type === 'company' && (
+                            {/* Company/Non-profit Information - Show when business type is Company or Non-profit */}
+                            {(formData.business_type === 'company' ||
+                                formData.business_type === 'non_profit') && (
                                 <>
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                            Company Information
+                                            {formData.business_type === 'non_profit'
+                                                ? 'Non-profit Information'
+                                                : 'Company Information'}
                                         </Typography>
                                     </Grid>
 
                                     <Grid size={{ xs: 12, sm: 6 }}>
                                         <TextField
                                             fullWidth
-                                            label="Company Name"
+                                            label={
+                                                formData.business_type === 'non_profit'
+                                                    ? 'Non-profit Name'
+                                                    : 'Company Name'
+                                            }
                                             value={formData.company_name}
                                             onChange={e =>
                                                 handleInputChange('company_name', e.target.value)
                                             }
-                                            placeholder="ABC Technologies LLC"
+                                            placeholder={
+                                                formData.business_type === 'non_profit'
+                                                    ? 'ABC Non-profit Organization'
+                                                    : 'ABC Technologies LLC'
+                                            }
                                         />
                                     </Grid>
 
@@ -1515,10 +1549,18 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
 
                                     <Grid size={{ xs: 12, sm: 6 }}>
                                         <FormControl fullWidth>
-                                            <InputLabel>Company Structure</InputLabel>
+                                            <InputLabel>
+                                                {formData.business_type === 'non_profit'
+                                                    ? 'Non-profit Structure'
+                                                    : 'Company Structure'}
+                                            </InputLabel>
                                             <Select
                                                 value={formData.company_structure}
-                                                label="Company Structure"
+                                                label={
+                                                    formData.business_type === 'non_profit'
+                                                        ? 'Non-profit Structure'
+                                                        : 'Company Structure'
+                                                }
                                                 onChange={e =>
                                                     handleInputChange(
                                                         'company_structure',
@@ -1538,10 +1580,12 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         </FormControl>
                                     </Grid>
 
-                                    {/* Company Address */}
+                                    {/* Company/Non-profit Address */}
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
-                                            Company Address
+                                            {formData.business_type === 'non_profit'
+                                                ? 'Non-profit Address'
+                                                : 'Company Address'}
                                         </Typography>
                                     </Grid>
 
@@ -1646,18 +1690,21 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         </FormControl>
                                     </Grid>
 
-                                    {/* Company Verification Documents */}
+                                    {/* Company/Non-profit Verification Documents */}
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                            Company Verification Documents (Optional)
+                                            {formData.business_type === 'non_profit'
+                                                ? 'Non-profit Verification Documents (Optional)'
+                                                : 'Company Verification Documents (Optional)'}
                                         </Typography>
                                         <Typography
                                             variant="body2"
                                             color="text.secondary"
                                             gutterBottom
                                         >
-                                            Upload company legal documents (IRS Letter 147C, EIN
-                                            Assistance Letter, etc.)
+                                            {formData.business_type === 'non_profit'
+                                                ? 'Upload non-profit legal documents (IRS Letter 147C, EIN Assistance Letter, etc.)'
+                                                : 'Upload company legal documents (IRS Letter 147C, EIN Assistance Letter, etc.)'}
                                         </Typography>
                                     </Grid>
 
@@ -1680,7 +1727,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 ? 'Uploading...'
                                                 : uploadedFiles.company_front
                                                   ? `Uploaded: ${uploadedFiles.company_front.name}`
-                                                  : 'Upload Company Document (Front)'}
+                                                  : formData.business_type === 'non_profit'
+                                                    ? 'Upload Non-profit Document (Front)'
+                                                    : 'Upload Company Document (Front)'}
                                             <input
                                                 type="file"
                                                 hidden
@@ -1714,7 +1763,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                 ? 'Uploading...'
                                                 : uploadedFiles.company_back
                                                   ? `Uploaded: ${uploadedFiles.company_back.name}`
-                                                  : 'Upload Company Document (Back)'}
+                                                  : formData.business_type === 'non_profit'
+                                                    ? 'Upload Non-profit Document (Back)'
+                                                    : 'Upload Company Document (Back)'}
                                             <input
                                                 type="file"
                                                 hidden
@@ -1800,8 +1851,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 />
                             </Grid>
 
-                            {/* Representative Person Fields - Only show when business type is Company */}
-                            {formData.business_type === 'company' && (
+                            {/* Representative Person Fields - Show when business type is Company or Non-profit */}
+                            {(formData.business_type === 'company' ||
+                                formData.business_type === 'non_profit') && (
                                 <>
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>

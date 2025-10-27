@@ -287,7 +287,7 @@ router.post("/direct-onboard", async (req, res) => {
       },
     };
 
-    // Add individual or company fields based on business_type
+    // Add individual, company, or non-profit fields based on business_type
     if (business_type === "individual") {
       accountUpdateData.individual = {
         first_name: individual_first_name,
@@ -738,6 +738,395 @@ router.post("/direct-onboard", async (req, res) => {
       }
 
       // For company accounts, we don't send individual fields
+      // The account owner information is handled through the person we just created/updated
+      // We only need to ensure the account has the correct business_type
+    } else if (business_type === "non_profit") {
+      // Handle non-profit the same way as company
+      // Add company information to account update data
+      const companyAddress = {};
+      
+      // Only include address fields that have values
+      if (company_address_line1) companyAddress.line1 = company_address_line1;
+      if (company_address_line2) companyAddress.line2 = company_address_line2;
+      if (company_address_city) companyAddress.city = company_address_city;
+      if (company_address_state) companyAddress.state = company_address_state;
+      if (company_address_postal_code) companyAddress.postal_code = company_address_postal_code;
+      if (company_address_country) companyAddress.country = company_address_country;
+
+      accountUpdateData.company = {
+        name: company_name,
+        structure: company_structure,
+        owners_provided: true, // Indicates that all owner information has been provided
+      };
+
+      // Only add tax_id if it's a valid 9-digit number
+      if (company_tax_id && company_tax_id.trim() !== '') {
+        const cleanTaxId = company_tax_id.replace(/[^\d]/g, ''); // Remove all non-digit characters
+        if (cleanTaxId.length === 9) {
+          accountUpdateData.company.tax_id = cleanTaxId;
+        }
+      }
+
+      // Only add phone if representative_phone has a value
+      if (representative_phone && representative_phone.trim() !== '') {
+        // Format US phone number for Stripe (E.164 format: +1XXXXXXXXXX)
+        let formattedPhone = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
+        
+        // Ensure US phone number starts with +1
+        if (formattedPhone.startsWith('1') && !formattedPhone.startsWith('+1')) {
+          formattedPhone = '+' + formattedPhone;
+        } else if (!formattedPhone.startsWith('+1') && formattedPhone.length === 10) {
+          formattedPhone = '+1' + formattedPhone;
+        } else if (formattedPhone.startsWith('+1') && formattedPhone.length === 12) {
+          // Already properly formatted
+        }
+        
+        if (formattedPhone.startsWith('+1') && formattedPhone.length === 12) {
+          accountUpdateData.company.phone = formattedPhone;
+        }
+      }
+
+      // Only add address if we have at least line1
+      if (company_address_line1) {
+        accountUpdateData.company.address = companyAddress;
+      }
+
+      // Add company verification documents if provided
+      if (company_verification_document_front || company_verification_document_back) {
+        accountUpdateData.company.verification = {
+          document: {},
+        };
+        if (company_verification_document_front) {
+          accountUpdateData.company.verification.document.front = company_verification_document_front;
+        }
+        if (company_verification_document_back) {
+          accountUpdateData.company.verification.document.back = company_verification_document_back;
+        }
+      }
+
+      // For non-profit accounts, we need to handle representative person the same as company
+      // First, check if there's already a representative
+      let existingRepresentative = null;
+      let representativePerson = null;
+      
+      // Check if owner information is provided separately
+      // If not, the representative should also be marked as owner
+      const isRepresentativeAlsoOwner = !owner_first_name || owner_first_name.trim() === '';
+      
+      try {
+        const persons = await stripe.accounts.listPersons(account_id);
+        existingRepresentative = persons.data.find(person => 
+          person.relationship && person.relationship.representative === true
+        );
+      } catch (error) {
+        // No existing persons found or error listing persons
+      }
+
+      if (existingRepresentative) {
+        // Update existing representative
+        const representativeData = {
+          first_name: representative_first_name,
+          last_name: representative_last_name,
+          email: representative_email,
+          phone: representative_phone ? (() => {
+            let formatted = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
+            if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
+              formatted = '+' + formatted;
+            } else if (!formatted.startsWith('+1') && formatted.length === 10) {
+              formatted = '+1' + formatted;
+            }
+            // Only return if properly formatted
+            return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+          })() : undefined,
+          dob: {
+            day: representative_dob_day,
+            month: representative_dob_month,
+            year: representative_dob_year,
+          },
+          address: {
+            line1: representative_address_line1,
+            city: representative_address_city,
+            state: representative_address_state,
+            postal_code: representative_address_postal_code,
+            country: representative_address_country,
+          },
+          relationship: {
+            representative: representative_relationship_representative,
+            executive: representative_relationship_executive,
+            owner: isRepresentativeAlsoOwner,
+            title: representative_relationship_title,
+          },
+        };
+
+        // Add SSN information - use full SSN (id_number) if provided, otherwise use last 4 digits
+        if (representative_id_number) {
+          representativeData.id_number = representative_id_number;
+        } else if (representative_ssn_last_4) {
+          representativeData.ssn_last_4 = representative_ssn_last_4;
+        }
+
+        // Add identity verification documents if provided
+        if (representative_verification_document_front || representative_verification_document_back ||
+            representative_verification_additional_document_front || representative_verification_additional_document_back) {
+          representativeData.verification = {};
+          
+          // Identity document (ID)
+          if (representative_verification_document_front || representative_verification_document_back) {
+            representativeData.verification.document = {};
+            if (representative_verification_document_front) {
+              representativeData.verification.document.front = representative_verification_document_front;
+            }
+            if (representative_verification_document_back) {
+              representativeData.verification.document.back = representative_verification_document_back;
+            }
+          }
+          
+          // Additional document (address proof)
+          if (representative_verification_additional_document_front || representative_verification_additional_document_back) {
+            representativeData.verification.additional_document = {};
+            if (representative_verification_additional_document_front) {
+              representativeData.verification.additional_document.front = representative_verification_additional_document_front;
+            }
+            if (representative_verification_additional_document_back) {
+              representativeData.verification.additional_document.back = representative_verification_additional_document_back;
+            }
+          }
+        }
+
+        representativePerson = await stripe.accounts.updatePerson(account_id, existingRepresentative.id, representativeData);
+      } else {
+        // Create new representative person
+        const representativeData = {
+          first_name: representative_first_name,
+          last_name: representative_last_name,
+          email: representative_email,
+          phone: representative_phone ? (() => {
+            let formatted = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
+            if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
+              formatted = '+' + formatted;
+            } else if (!formatted.startsWith('+1') && formatted.length === 10) {
+              formatted = '+1' + formatted;
+            }
+            // Only return if properly formatted
+            return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+          })() : undefined,
+          dob: {
+            day: representative_dob_day,
+            month: representative_dob_month,
+            year: representative_dob_year,
+          },
+          address: {
+            line1: representative_address_line1,
+            city: representative_address_city,
+            state: representative_address_state,
+            postal_code: representative_address_postal_code,
+            country: representative_address_country,
+          },
+          relationship: {
+            representative: representative_relationship_representative,
+            executive: representative_relationship_executive,
+            owner: isRepresentativeAlsoOwner,
+            title: representative_relationship_title,
+          },
+        };
+
+        // Add SSN information - use full SSN (id_number) if provided, otherwise use last 4 digits
+        if (representative_id_number) {
+          representativeData.id_number = representative_id_number;
+        } else if (representative_ssn_last_4) {
+          representativeData.ssn_last_4 = representative_ssn_last_4;
+        }
+
+        // Add identity verification documents if provided
+        if (representative_verification_document_front || representative_verification_document_back ||
+            representative_verification_additional_document_front || representative_verification_additional_document_back) {
+          representativeData.verification = {};
+          
+          // Identity document (ID)
+          if (representative_verification_document_front || representative_verification_document_back) {
+            representativeData.verification.document = {};
+            if (representative_verification_document_front) {
+              representativeData.verification.document.front = representative_verification_document_front;
+            }
+            if (representative_verification_document_back) {
+              representativeData.verification.document.back = representative_verification_document_back;
+            }
+          }
+          
+          // Additional document (address proof)
+          if (representative_verification_additional_document_front || representative_verification_additional_document_back) {
+            representativeData.verification.additional_document = {};
+            if (representative_verification_additional_document_front) {
+              representativeData.verification.additional_document.front = representative_verification_additional_document_front;
+            }
+            if (representative_verification_additional_document_back) {
+              representativeData.verification.additional_document.back = representative_verification_additional_document_back;
+            }
+          }
+        }
+
+        representativePerson = await stripe.accounts.createPerson(account_id, representativeData);
+      }
+
+      // Handle owner person separately if owner details are provided
+      // Check if owner_first_name is provided to determine if we should create/update owner
+      if (owner_first_name && owner_first_name.trim() !== '') {
+        // Check if there's already an owner person
+        let existingOwner = null;
+        let ownerPerson = null;
+        try {
+          const persons = await stripe.accounts.listPersons(account_id);
+          existingOwner = persons.data.find(person => 
+            person.relationship && person.relationship.owner === true && person.id !== representativePerson.id
+          );
+        } catch (error) {
+          // No existing owner found or error listing persons
+        }
+
+        if (existingOwner) {
+          // Update existing owner
+          const ownerData = {
+            first_name: owner_first_name,
+            last_name: owner_last_name,
+            email: owner_email,
+            phone: owner_phone ? (() => {
+              let formatted = owner_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
+              if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
+                formatted = '+' + formatted;
+              } else if (!formatted.startsWith('+1') && formatted.length === 10) {
+                formatted = '+1' + formatted;
+              }
+              // Only return if properly formatted
+              return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+            })() : undefined,
+            dob: {
+              day: owner_dob_day,
+              month: owner_dob_month,
+              year: owner_dob_year,
+            },
+            address: {
+              line1: owner_address_line1,
+              city: owner_address_city,
+              state: owner_address_state,
+              postal_code: owner_address_postal_code,
+              country: owner_address_country,
+            },
+            relationship: {
+              owner: owner_relationship_owner,
+              title: owner_relationship_title,
+            },
+          };
+
+          // Add SSN information - use full SSN (id_number) if provided, otherwise use last 4 digits
+          if (owner_id_number) {
+            ownerData.id_number = owner_id_number;
+          } else if (owner_ssn_last_4) {
+            ownerData.ssn_last_4 = owner_ssn_last_4;
+          }
+
+          // Add identity verification documents if provided
+          if (owner_verification_document_front || owner_verification_document_back ||
+              owner_verification_additional_document_front || owner_verification_additional_document_back) {
+            ownerData.verification = {};
+            
+            // Identity document (ID)
+            if (owner_verification_document_front || owner_verification_document_back) {
+              ownerData.verification.document = {};
+              if (owner_verification_document_front) {
+                ownerData.verification.document.front = owner_verification_document_front;
+              }
+              if (owner_verification_document_back) {
+                ownerData.verification.document.back = owner_verification_document_back;
+              }
+            }
+            
+            // Additional document (address proof)
+            if (owner_verification_additional_document_front || owner_verification_additional_document_back) {
+              ownerData.verification.additional_document = {};
+              if (owner_verification_additional_document_front) {
+                ownerData.verification.additional_document.front = owner_verification_additional_document_front;
+              }
+              if (owner_verification_additional_document_back) {
+                ownerData.verification.additional_document.back = owner_verification_additional_document_back;
+              }
+            }
+          }
+
+          ownerPerson = await stripe.accounts.updatePerson(account_id, existingOwner.id, ownerData);
+        } else {
+          // Create new owner person
+          const ownerData = {
+            first_name: owner_first_name,
+            last_name: owner_last_name,
+            email: owner_email,
+            phone: owner_phone ? (() => {
+              let formatted = owner_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
+              if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
+                formatted = '+' + formatted;
+              } else if (!formatted.startsWith('+1') && formatted.length === 10) {
+                formatted = '+1' + formatted;
+              }
+              // Only return if properly formatted
+              return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+            })() : undefined,
+            dob: {
+              day: owner_dob_day,
+              month: owner_dob_month,
+              year: owner_dob_year,
+            },
+            address: {
+              line1: owner_address_line1,
+              city: owner_address_city,
+              state: owner_address_state,
+              postal_code: owner_address_postal_code,
+              country: owner_address_country,
+            },
+            relationship: {
+              owner: owner_relationship_owner,
+              title: owner_relationship_title,
+            },
+          };
+
+          // Add SSN information - use full SSN (id_number) if provided, otherwise use last 4 digits
+          if (owner_id_number) {
+            ownerData.id_number = owner_id_number;
+          } else if (owner_ssn_last_4) {
+            ownerData.ssn_last_4 = owner_ssn_last_4;
+          }
+
+          // Add identity verification documents if provided
+          if (owner_verification_document_front || owner_verification_document_back ||
+              owner_verification_additional_document_front || owner_verification_additional_document_back) {
+            ownerData.verification = {};
+            
+            // Identity document (ID)
+            if (owner_verification_document_front || owner_verification_document_back) {
+              ownerData.verification.document = {};
+              if (owner_verification_document_front) {
+                ownerData.verification.document.front = owner_verification_document_front;
+              }
+              if (owner_verification_document_back) {
+                ownerData.verification.document.back = owner_verification_document_back;
+              }
+            }
+            
+            // Additional document (address proof)
+            if (owner_verification_additional_document_front || owner_verification_additional_document_back) {
+              ownerData.verification.additional_document = {};
+              if (owner_verification_additional_document_front) {
+                ownerData.verification.additional_document.front = owner_verification_additional_document_front;
+              }
+              if (owner_verification_additional_document_back) {
+                ownerData.verification.additional_document.back = owner_verification_additional_document_back;
+              }
+            }
+          }
+
+          ownerPerson = await stripe.accounts.createPerson(account_id, ownerData);
+        }
+      }
+
+      // For non-profit accounts, we don't send individual fields
       // The account owner information is handled through the person we just created/updated
       // We only need to ensure the account has the correct business_type
     }
