@@ -2412,45 +2412,47 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         </Button>
                                     </Grid>
 
-                                    {/* Owner Checkbox */}
-                                    <Grid size={{ xs: 12 }}>
-                                        <FormControlLabel
-                                            control={
-                                                <Checkbox
-                                                    checked={representativeIsOwner}
-                                                    onChange={e => {
-                                                        const isChecked = e.target.checked;
-                                                        setRepresentativeIsOwner(isChecked);
+                                    {/* Owner Checkbox - Only show for company, not non-profit */}
+                                    {formData.business_type === 'company' && (
+                                        <Grid size={{ xs: 12 }}>
+                                            <FormControlLabel
+                                                control={
+                                                    <Checkbox
+                                                        checked={representativeIsOwner}
+                                                        onChange={e => {
+                                                            const isChecked = e.target.checked;
+                                                            setRepresentativeIsOwner(isChecked);
 
-                                                        // Clear owner fields when representative is also owner
-                                                        if (isChecked) {
-                                                            setFormData(prev => ({
-                                                                ...prev,
-                                                                owner_first_name: '',
-                                                                owner_last_name: '',
-                                                                owner_email: '',
-                                                                owner_phone: '',
-                                                                owner_dob_day: 1,
-                                                                owner_dob_month: 1,
-                                                                owner_dob_year: 1990,
-                                                                owner_address_line1: '',
-                                                                owner_address_city: '',
-                                                                owner_address_state: '',
-                                                                owner_address_postal_code: '',
-                                                                owner_address_country:
-                                                                    country || 'US',
-                                                                owner_relationship_owner: true,
-                                                                owner_relationship_title: '',
-                                                                owner_ssn_last_4: '',
-                                                                owner_id_number: '',
-                                                            }));
-                                                        }
-                                                    }}
-                                                />
-                                            }
-                                            label="This representative is also the owner"
-                                        />
-                                    </Grid>
+                                                            // Clear owner fields when representative is also owner
+                                                            if (isChecked) {
+                                                                setFormData(prev => ({
+                                                                    ...prev,
+                                                                    owner_first_name: '',
+                                                                    owner_last_name: '',
+                                                                    owner_email: '',
+                                                                    owner_phone: '',
+                                                                    owner_dob_day: 1,
+                                                                    owner_dob_month: 1,
+                                                                    owner_dob_year: 1990,
+                                                                    owner_address_line1: '',
+                                                                    owner_address_city: '',
+                                                                    owner_address_state: '',
+                                                                    owner_address_postal_code: '',
+                                                                    owner_address_country:
+                                                                        country || 'US',
+                                                                    owner_relationship_owner: true,
+                                                                    owner_relationship_title: '',
+                                                                    owner_ssn_last_4: '',
+                                                                    owner_id_number: '',
+                                                                }));
+                                                            }
+                                                        }}
+                                                    />
+                                                }
+                                                label="This representative is also the owner"
+                                            />
+                                        </Grid>
+                                    )}
                                 </>
                             )}
 
