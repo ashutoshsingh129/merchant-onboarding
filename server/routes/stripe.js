@@ -192,6 +192,7 @@ router.post("/direct-onboard", async (req, res) => {
       business_type,
       business_profile_mcc,
       business_profile_url,
+      business_description,
       // Company fields (for company business_type)
       company_name,
       company_tax_id,
@@ -284,6 +285,7 @@ router.post("/direct-onboard", async (req, res) => {
       business_profile: {
         mcc: business_profile_mcc,
         url: business_profile_url || undefined, // Only send if not empty
+        product_description: business_description || undefined, // Organization mission for non-profits
       },
     };
 

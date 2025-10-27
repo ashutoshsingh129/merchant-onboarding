@@ -55,6 +55,7 @@ interface DirectOnboardFormData {
     business_type: string;
     business_profile_mcc: string;
     business_profile_url: string;
+    business_description: string; // For non-profit mission/description
     // Company fields (when business_type is 'company')
     company_name: string;
     company_tax_id: string;
@@ -181,6 +182,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         business_type: businessType || 'individual',
         business_profile_mcc: '4816',
         business_profile_url: '',
+        business_description: '',
         // Company fields
         company_name: '',
         company_tax_id: '',
@@ -613,6 +615,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         business_type: businessType || 'individual',
                         business_profile_mcc: '',
                         business_profile_url: '',
+                        business_description: '',
                         // Company fields
                         company_name: '',
                         company_tax_id: '',
@@ -722,6 +725,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
             business_type: businessType || 'individual',
             business_profile_mcc: '',
             business_profile_url: '',
+            business_description: '',
             company_name: '',
             company_tax_id: '',
             company_structure: 'private_corporation',
@@ -874,6 +878,27 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             placeholder="https://example-merchant.com"
                                         />
                                     </Grid>
+
+                                    {/* Business Description - Only for Non-profit */}
+                                    {formData.business_type === 'non_profit' && (
+                                        <Grid size={{ xs: 12 }}>
+                                            <TextField
+                                                fullWidth
+                                                label="Organization Mission & Activities"
+                                                value={formData.business_description}
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'business_description',
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="Describe your non-profit's mission, purpose, and main activities"
+                                                multiline
+                                                rows={4}
+                                                helperText="Provide a brief description of your organization's mission and activities (recommended for non-profit verification)"
+                                            />
+                                        </Grid>
+                                    )}
                                 </>
                             )}
 
@@ -1694,16 +1719,20 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
                                             {formData.business_type === 'non_profit'
-                                                ? 'Non-profit Verification Documents (Optional)'
+                                                ? 'Non-profit Verification Documents'
                                                 : 'Company Verification Documents (Optional)'}
                                         </Typography>
                                         <Typography
                                             variant="body2"
-                                            color="text.secondary"
+                                            color={
+                                                formData.business_type === 'non_profit'
+                                                    ? 'warning.main'
+                                                    : 'text.secondary'
+                                            }
                                             gutterBottom
                                         >
                                             {formData.business_type === 'non_profit'
-                                                ? 'Upload non-profit legal documents (IRS Letter 147C, EIN Assistance Letter, etc.)'
+                                                ? 'Upload tax-exempt status documents (IRS 501(c)(3) determination letter, tax-exempt certificate, etc.) - Recommended for verification'
                                                 : 'Upload company legal documents (IRS Letter 147C, EIN Assistance Letter, etc.)'}
                                         </Typography>
                                     </Grid>
