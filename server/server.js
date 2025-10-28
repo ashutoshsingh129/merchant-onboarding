@@ -41,10 +41,10 @@ const corsOptions = {
     if (!origin) return callback(null, true);
 
     const allowedOrigins = [
-      process.env.FRONTEND_URL || "http://localhost:3000",
+      process.env.REACT_APP_FRONTEND_URL || "http://localhost:3000",
     ];
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.log("CORS blocked origin:", origin);
@@ -155,7 +155,6 @@ const startServer = async () => {
       process.exit(1);
     }
 
-
     // Initialize database tables
     const dbInitialized = await initializeDatabase();
     if (!dbInitialized) {
@@ -187,8 +186,10 @@ const startServer = async () => {
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV}`);
-        console.log("Database connection established and tables initialized");
-        console.log("📧 Admin credentials: sal@simplypaymentsgroup.com / stripe2025!");
+      console.log("Database connection established and tables initialized");
+      console.log(
+        "📧 Admin credentials: sal@simplypaymentsgroup.com / stripe2025!"
+      );
     });
   } catch (error) {
     console.error("Failed to start server:", error);
