@@ -339,7 +339,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         }
     }, [detectedIP, formData.tos_acceptance_ip]);
 
-    // Update default company_structure when business_type changes to non_profit
+    // Update default company_structure when business_type changes to non_profit or government_entity
     useEffect(() => {
         if (
             formData.business_type === 'non_profit' &&
@@ -348,6 +348,18 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
             setFormData(prev => ({
                 ...prev,
                 company_structure: 'unincorporated_non_profit',
+            }));
+        } else if (
+            formData.business_type === 'government_entity' &&
+            ![
+                'governmental_unit',
+                'government_instrumentality',
+                'tax_exempt_government_instrumentality',
+            ].includes(formData.company_structure)
+        ) {
+            setFormData(prev => ({
+                ...prev,
+                company_structure: 'governmental_unit',
             }));
         } else if (
             formData.business_type === 'company' &&
@@ -538,8 +550,12 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                 if (!formData.individual_id_number) delete payload.individual_id_number;
             }
 
-            // Handle representative SSN (for company and non-profit business type)
-            if (formData.business_type === 'company' || formData.business_type === 'non_profit') {
+            // Handle representative SSN (for company, non-profit, and government_entity business type)
+            if (
+                formData.business_type === 'company' ||
+                formData.business_type === 'non_profit' ||
+                formData.business_type === 'government_entity'
+            ) {
                 if (representativeSsnType === 'last4') {
                     // Only send last 4 digits
                     if (formData.representative_ssn_last_4) {
@@ -820,9 +836,10 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 />
                             </Grid>
 
-                            {/* Business Information - Show immediately after Account ID for company and non-profit profiles */}
+                            {/* Business Information - Show immediately after Account ID for company, non-profit, and government_entity profiles */}
                             {(formData.business_type === 'company' ||
-                                formData.business_type === 'non_profit') && (
+                                formData.business_type === 'non_profit' ||
+                                formData.business_type === 'government_entity') && (
                                 <>
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
@@ -1567,15 +1584,18 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 </>
                             )}
 
-                            {/* Company/Non-profit Information - Show when business type is Company or Non-profit */}
+                            {/* Company/Non-profit/Government Information - Show when business type is Company, Non-profit, or Government Entity */}
                             {(formData.business_type === 'company' ||
-                                formData.business_type === 'non_profit') && (
+                                formData.business_type === 'non_profit' ||
+                                formData.business_type === 'government_entity') && (
                                 <>
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
                                             {formData.business_type === 'non_profit'
                                                 ? 'Non-profit Information'
-                                                : 'Company Information'}
+                                                : formData.business_type === 'government_entity'
+                                                  ? 'Government Entity Information'
+                                                  : 'Company Information'}
                                         </Typography>
                                     </Grid>
 
@@ -1585,7 +1605,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             label={
                                                 formData.business_type === 'non_profit'
                                                     ? 'Non-profit Name'
-                                                    : 'Company Name'
+                                                    : formData.business_type === 'government_entity'
+                                                      ? 'Government Entity Name'
+                                                      : 'Company Name'
                                             }
                                             value={formData.company_name}
                                             onChange={e =>
@@ -1594,7 +1616,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             placeholder={
                                                 formData.business_type === 'non_profit'
                                                     ? 'ABC Non-profit Organization'
-                                                    : 'ABC Technologies LLC'
+                                                    : formData.business_type === 'government_entity'
+                                                      ? 'City of Springfield'
+                                                      : 'ABC Technologies LLC'
                                             }
                                         />
                                     </Grid>
@@ -1617,14 +1641,19 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             <InputLabel>
                                                 {formData.business_type === 'non_profit'
                                                     ? 'Non-profit Structure'
-                                                    : 'Company Structure'}
+                                                    : formData.business_type === 'government_entity'
+                                                      ? 'Government Entity Structure'
+                                                      : 'Company Structure'}
                                             </InputLabel>
                                             <Select
                                                 value={formData.company_structure}
                                                 label={
                                                     formData.business_type === 'non_profit'
                                                         ? 'Non-profit Structure'
-                                                        : 'Company Structure'
+                                                        : formData.business_type ===
+                                                            'government_entity'
+                                                          ? 'Government Entity Structure'
+                                                          : 'Company Structure'
                                                 }
                                                 onChange={e =>
                                                     handleInputChange(
@@ -1633,24 +1662,58 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                     )
                                                 }
                                             >
-                                                {companyStructures.map(structure => (
-                                                    <MenuItem
-                                                        key={structure.value}
-                                                        value={structure.value}
-                                                    >
-                                                        {structure.label}
-                                                    </MenuItem>
-                                                ))}
+                                                {companyStructures
+                                                    .filter(structure => {
+                                                        // Filter structures based on business type
+                                                        if (
+                                                            formData.business_type === 'non_profit'
+                                                        ) {
+                                                            return [
+                                                                'unincorporated_non_profit',
+                                                                'incorporated_non_profit',
+                                                            ].includes(structure.value);
+                                                        } else if (
+                                                            formData.business_type ===
+                                                            'government_entity'
+                                                        ) {
+                                                            return [
+                                                                'governmental_unit',
+                                                                'government_instrumentality',
+                                                                'tax_exempt_government_instrumentality',
+                                                            ].includes(structure.value);
+                                                        } else if (
+                                                            formData.business_type === 'company'
+                                                        ) {
+                                                            return ![
+                                                                'governmental_unit',
+                                                                'government_instrumentality',
+                                                                'tax_exempt_government_instrumentality',
+                                                                'unincorporated_non_profit',
+                                                                'incorporated_non_profit',
+                                                            ].includes(structure.value);
+                                                        }
+                                                        return true;
+                                                    })
+                                                    .map(structure => (
+                                                        <MenuItem
+                                                            key={structure.value}
+                                                            value={structure.value}
+                                                        >
+                                                            {structure.label}
+                                                        </MenuItem>
+                                                    ))}
                                             </Select>
                                         </FormControl>
                                     </Grid>
 
-                                    {/* Company/Non-profit Address */}
+                                    {/* Company/Non-profit/Government Address */}
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
                                             {formData.business_type === 'non_profit'
                                                 ? 'Non-profit Address'
-                                                : 'Company Address'}
+                                                : formData.business_type === 'government_entity'
+                                                  ? 'Government Entity Address'
+                                                  : 'Company Address'}
                                         </Typography>
                                     </Grid>
 
@@ -1755,17 +1818,20 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         </FormControl>
                                     </Grid>
 
-                                    {/* Company/Non-profit Verification Documents */}
+                                    {/* Company/Non-profit/Government Verification Documents */}
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
                                             {formData.business_type === 'non_profit'
                                                 ? 'Non-profit Verification Documents'
-                                                : 'Company Verification Documents (Optional)'}
+                                                : formData.business_type === 'government_entity'
+                                                  ? 'Government Entity Verification Documents (Recommended)'
+                                                  : 'Company Verification Documents (Optional)'}
                                         </Typography>
                                         <Typography
                                             variant="body2"
                                             color={
-                                                formData.business_type === 'non_profit'
+                                                formData.business_type === 'non_profit' ||
+                                                formData.business_type === 'government_entity'
                                                     ? 'warning.main'
                                                     : 'text.secondary'
                                             }
@@ -1773,7 +1839,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         >
                                             {formData.business_type === 'non_profit'
                                                 ? 'Upload tax-exempt status documents (IRS 501(c)(3) determination letter, tax-exempt certificate, etc.) - Recommended for verification'
-                                                : 'Upload company legal documents (IRS Letter 147C, EIN Assistance Letter, etc.)'}
+                                                : formData.business_type === 'government_entity'
+                                                  ? 'Upload government entity documentation (charter, incorporation documents, tax-exempt status, etc.) - Recommended for verification'
+                                                  : 'Upload company legal documents (IRS Letter 147C, EIN Assistance Letter, etc.)'}
                                         </Typography>
                                     </Grid>
 
@@ -1798,7 +1866,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                   ? `Uploaded: ${uploadedFiles.company_front.name}`
                                                   : formData.business_type === 'non_profit'
                                                     ? 'Upload Non-profit Document (Front)'
-                                                    : 'Upload Company Document (Front)'}
+                                                    : formData.business_type === 'government_entity'
+                                                      ? 'Upload Government Document (Front)'
+                                                      : 'Upload Company Document (Front)'}
                                             <input
                                                 type="file"
                                                 hidden
@@ -1834,7 +1904,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                   ? `Uploaded: ${uploadedFiles.company_back.name}`
                                                   : formData.business_type === 'non_profit'
                                                     ? 'Upload Non-profit Document (Back)'
-                                                    : 'Upload Company Document (Back)'}
+                                                    : formData.business_type === 'government_entity'
+                                                      ? 'Upload Government Document (Back)'
+                                                      : 'Upload Company Document (Back)'}
                                             <input
                                                 type="file"
                                                 hidden
@@ -1920,9 +1992,10 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 />
                             </Grid>
 
-                            {/* Representative Person Fields - Show when business type is Company or Non-profit */}
+                            {/* Representative Person Fields - Show when business type is Company, Non-profit, or Government Entity */}
                             {(formData.business_type === 'company' ||
-                                formData.business_type === 'non_profit') && (
+                                formData.business_type === 'non_profit' ||
+                                formData.business_type === 'government_entity') && (
                                 <>
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
@@ -2494,150 +2567,120 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 </>
                             )}
 
-                            {/* Owner Person Fields - Only show when business type is Company and representative is NOT owner */}
-                            {formData.business_type === 'company' && !representativeIsOwner && (
-                                <>
-                                    <Grid size={{ xs: 12 }}>
-                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                            Owner Information
-                                        </Typography>
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="First Name"
-                                            value={formData.owner_first_name}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'owner_first_name',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="Owner First Name"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Last Name"
-                                            value={formData.owner_last_name}
-                                            onChange={e =>
-                                                handleInputChange('owner_last_name', e.target.value)
-                                            }
-                                            placeholder="Owner Last Name"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Email Address"
-                                            type="email"
-                                            value={formData.owner_email}
-                                            onChange={e =>
-                                                handleInputChange('owner_email', e.target.value)
-                                            }
-                                            placeholder="owner@example.com"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Phone Number"
-                                            value={formData.owner_phone}
-                                            onChange={e =>
-                                                handleInputChange('owner_phone', e.target.value)
-                                            }
-                                            placeholder="+31612345678"
-                                            helperText="Include country code (e.g., +1 for US, +31 for Netherlands)"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Job Title"
-                                            value={formData.owner_relationship_title}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'owner_relationship_title',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="Owner, Founder, etc."
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12 }}>
-                                        <Box sx={{ mb: 2 }}>
-                                            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                                                Owner Social Security Number (SSN)
+                            {/* Owner Person Fields - Only show when business type is Company or Government Entity and representative is NOT owner */}
+                            {(formData.business_type === 'company' ||
+                                formData.business_type === 'government_entity') &&
+                                !representativeIsOwner && (
+                                    <>
+                                        <Grid size={{ xs: 12 }}>
+                                            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                                Owner Information
                                             </Typography>
-                                            <ToggleButtonGroup
-                                                value={ownerSsnType}
-                                                exclusive
-                                                onChange={(e, newValue) => {
-                                                    if (newValue !== null) {
-                                                        setOwnerSsnType(newValue);
-                                                        // Clear both fields when switching
-                                                        setFormData(prev => ({
-                                                            ...prev,
-                                                            owner_ssn_last_4: '',
-                                                            owner_id_number: '',
-                                                        }));
-                                                    }
-                                                }}
-                                                size="small"
-                                                fullWidth
-                                            >
-                                                <ToggleButton value="last4">
-                                                    Last 4 Digits
-                                                </ToggleButton>
-                                                <ToggleButton value="full">Full SSN</ToggleButton>
-                                                <ToggleButton value="both">Both</ToggleButton>
-                                            </ToggleButtonGroup>
-                                        </Box>
-                                        {ownerSsnType === 'last4' ? (
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
                                             <TextField
                                                 fullWidth
-                                                label="SSN Last 4 Digits"
-                                                value={formData.owner_ssn_last_4}
+                                                label="First Name"
+                                                value={formData.owner_first_name}
                                                 onChange={e =>
                                                     handleInputChange(
-                                                        'owner_ssn_last_4',
-                                                        e.target.value.replace(/\D/g, '')
+                                                        'owner_first_name',
+                                                        e.target.value
                                                     )
                                                 }
-                                                placeholder="1234"
-                                                inputProps={{ maxLength: 4 }}
-                                                helperText="Last 4 digits of Social Security Number (US only)"
+                                                placeholder="Owner First Name"
                                             />
-                                        ) : ownerSsnType === 'full' ? (
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
                                             <TextField
                                                 fullWidth
-                                                label="Full SSN"
-                                                value={formData.owner_id_number}
+                                                label="Last Name"
+                                                value={formData.owner_last_name}
                                                 onChange={e =>
                                                     handleInputChange(
-                                                        'owner_id_number',
-                                                        e.target.value.replace(/\D/g, '')
+                                                        'owner_last_name',
+                                                        e.target.value
                                                     )
                                                 }
-                                                placeholder="123456789"
-                                                inputProps={{ maxLength: 9 }}
-                                                helperText="9-digit Social Security Number (US only)"
+                                                placeholder="Owner Last Name"
                                             />
-                                        ) : (
-                                            <Box
-                                                sx={{
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    gap: 2,
-                                                }}
-                                            >
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <TextField
+                                                fullWidth
+                                                label="Email Address"
+                                                type="email"
+                                                value={formData.owner_email}
+                                                onChange={e =>
+                                                    handleInputChange('owner_email', e.target.value)
+                                                }
+                                                placeholder="owner@example.com"
+                                            />
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <TextField
+                                                fullWidth
+                                                label="Phone Number"
+                                                value={formData.owner_phone}
+                                                onChange={e =>
+                                                    handleInputChange('owner_phone', e.target.value)
+                                                }
+                                                placeholder="+31612345678"
+                                                helperText="Include country code (e.g., +1 for US, +31 for Netherlands)"
+                                            />
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <TextField
+                                                fullWidth
+                                                label="Job Title"
+                                                value={formData.owner_relationship_title}
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'owner_relationship_title',
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="Owner, Founder, etc."
+                                            />
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12 }}>
+                                            <Box sx={{ mb: 2 }}>
+                                                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                                                    Owner Social Security Number (SSN)
+                                                </Typography>
+                                                <ToggleButtonGroup
+                                                    value={ownerSsnType}
+                                                    exclusive
+                                                    onChange={(e, newValue) => {
+                                                        if (newValue !== null) {
+                                                            setOwnerSsnType(newValue);
+                                                            // Clear both fields when switching
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                owner_ssn_last_4: '',
+                                                                owner_id_number: '',
+                                                            }));
+                                                        }
+                                                    }}
+                                                    size="small"
+                                                    fullWidth
+                                                >
+                                                    <ToggleButton value="last4">
+                                                        Last 4 Digits
+                                                    </ToggleButton>
+                                                    <ToggleButton value="full">
+                                                        Full SSN
+                                                    </ToggleButton>
+                                                    <ToggleButton value="both">Both</ToggleButton>
+                                                </ToggleButtonGroup>
+                                            </Box>
+                                            {ownerSsnType === 'last4' ? (
                                                 <TextField
                                                     fullWidth
                                                     label="SSN Last 4 Digits"
@@ -2650,8 +2693,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                     }
                                                     placeholder="1234"
                                                     inputProps={{ maxLength: 4 }}
-                                                    helperText="Last 4 digits of Social Security Number"
+                                                    helperText="Last 4 digits of Social Security Number (US only)"
                                                 />
+                                            ) : ownerSsnType === 'full' ? (
                                                 <TextField
                                                     fullWidth
                                                     label="Full SSN"
@@ -2664,349 +2708,395 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                     }
                                                     placeholder="123456789"
                                                     inputProps={{ maxLength: 9 }}
-                                                    helperText="9-digit Social Security Number"
+                                                    helperText="9-digit Social Security Number (US only)"
                                                 />
-                                            </Box>
-                                        )}
-                                    </Grid>
+                                            ) : (
+                                                <Box
+                                                    sx={{
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        gap: 2,
+                                                    }}
+                                                >
+                                                    <TextField
+                                                        fullWidth
+                                                        label="SSN Last 4 Digits"
+                                                        value={formData.owner_ssn_last_4}
+                                                        onChange={e =>
+                                                            handleInputChange(
+                                                                'owner_ssn_last_4',
+                                                                e.target.value.replace(/\D/g, '')
+                                                            )
+                                                        }
+                                                        placeholder="1234"
+                                                        inputProps={{ maxLength: 4 }}
+                                                        helperText="Last 4 digits of Social Security Number"
+                                                    />
+                                                    <TextField
+                                                        fullWidth
+                                                        label="Full SSN"
+                                                        value={formData.owner_id_number}
+                                                        onChange={e =>
+                                                            handleInputChange(
+                                                                'owner_id_number',
+                                                                e.target.value.replace(/\D/g, '')
+                                                            )
+                                                        }
+                                                        placeholder="123456789"
+                                                        inputProps={{ maxLength: 9 }}
+                                                        helperText="9-digit Social Security Number"
+                                                    />
+                                                </Box>
+                                            )}
+                                        </Grid>
 
-                                    {/* Owner Date of Birth */}
-                                    <Grid size={{ xs: 12 }}>
-                                        <Typography variant="subtitle1" gutterBottom>
-                                            Owner Date of Birth
-                                        </Typography>
-                                    </Grid>
+                                        {/* Owner Date of Birth */}
+                                        <Grid size={{ xs: 12 }}>
+                                            <Typography variant="subtitle1" gutterBottom>
+                                                Owner Date of Birth
+                                            </Typography>
+                                        </Grid>
 
-                                    <Grid size={{ xs: 4 }}>
-                                        <FormControl fullWidth>
-                                            <InputLabel>Day</InputLabel>
-                                            <Select
-                                                value={formData.owner_dob_day}
-                                                label="Day"
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'owner_dob_day',
-                                                        e.target.value
-                                                    )
-                                                }
-                                            >
-                                                {Array.from({ length: 31 }, (_, i) => i + 1).map(
-                                                    day => (
+                                        <Grid size={{ xs: 4 }}>
+                                            <FormControl fullWidth>
+                                                <InputLabel>Day</InputLabel>
+                                                <Select
+                                                    value={formData.owner_dob_day}
+                                                    label="Day"
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_dob_day',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                >
+                                                    {Array.from(
+                                                        { length: 31 },
+                                                        (_, i) => i + 1
+                                                    ).map(day => (
                                                         <MenuItem key={day} value={day}>
                                                             {day}
                                                         </MenuItem>
-                                                    )
-                                                )}
-                                            </Select>
-                                        </FormControl>
-                                    </Grid>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
 
-                                    <Grid size={{ xs: 4 }}>
-                                        <FormControl fullWidth>
-                                            <InputLabel>Month</InputLabel>
-                                            <Select
-                                                value={formData.owner_dob_month}
-                                                label="Month"
+                                        <Grid size={{ xs: 4 }}>
+                                            <FormControl fullWidth>
+                                                <InputLabel>Month</InputLabel>
+                                                <Select
+                                                    value={formData.owner_dob_month}
+                                                    label="Month"
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_dob_month',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                >
+                                                    {months.map(month => (
+                                                        <MenuItem
+                                                            key={month.value}
+                                                            value={month.value}
+                                                        >
+                                                            {month.name}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 4 }}>
+                                            <TextField
+                                                fullWidth
+                                                label="Year"
+                                                type="number"
+                                                value={formData.owner_dob_year}
                                                 onChange={e =>
                                                     handleInputChange(
-                                                        'owner_dob_month',
+                                                        'owner_dob_year',
+                                                        parseInt(e.target.value)
+                                                    )
+                                                }
+                                                inputProps={{
+                                                    min: 1900,
+                                                    max: new Date().getFullYear(),
+                                                }}
+                                            />
+                                        </Grid>
+
+                                        {/* Owner Address */}
+                                        <Grid size={{ xs: 12 }}>
+                                            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                                Owner Address
+                                            </Typography>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12 }}>
+                                            <TextField
+                                                fullWidth
+                                                label="Street Address"
+                                                value={formData.owner_address_line1}
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'owner_address_line1',
                                                         e.target.value
                                                     )
                                                 }
-                                            >
-                                                {months.map(month => (
-                                                    <MenuItem key={month.value} value={month.value}>
-                                                        {month.name}
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                        </FormControl>
-                                    </Grid>
+                                                placeholder="123 Main Street"
+                                            />
+                                        </Grid>
 
-                                    <Grid size={{ xs: 4 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Year"
-                                            type="number"
-                                            value={formData.owner_dob_year}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'owner_dob_year',
-                                                    parseInt(e.target.value)
-                                                )
-                                            }
-                                            inputProps={{
-                                                min: 1900,
-                                                max: new Date().getFullYear(),
-                                            }}
-                                        />
-                                    </Grid>
-
-                                    {/* Owner Address */}
-                                    <Grid size={{ xs: 12 }}>
-                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                            Owner Address
-                                        </Typography>
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Street Address"
-                                            value={formData.owner_address_line1}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'owner_address_line1',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="123 Main Street"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="City"
-                                            value={formData.owner_address_city}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'owner_address_city',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="New York"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="State Code"
-                                            value={formData.owner_address_state}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'owner_address_state',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="NY"
-                                            helperText="2-letter state code"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="ZIP Code"
-                                            value={formData.owner_address_postal_code}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'owner_address_postal_code',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="12345"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <FormControl fullWidth>
-                                            <InputLabel>Country Code</InputLabel>
-                                            <Select
-                                                value={formData.owner_address_country}
-                                                label="Country Code"
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <TextField
+                                                fullWidth
+                                                label="City"
+                                                value={formData.owner_address_city}
                                                 onChange={e =>
                                                     handleInputChange(
-                                                        'owner_address_country',
+                                                        'owner_address_city',
                                                         e.target.value
                                                     )
                                                 }
+                                                placeholder="New York"
+                                            />
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <TextField
+                                                fullWidth
+                                                label="State Code"
+                                                value={formData.owner_address_state}
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'owner_address_state',
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="NY"
+                                                helperText="2-letter state code"
+                                            />
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <TextField
+                                                fullWidth
+                                                label="ZIP Code"
+                                                value={formData.owner_address_postal_code}
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'owner_address_postal_code',
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="12345"
+                                            />
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <FormControl fullWidth>
+                                                <InputLabel>Country Code</InputLabel>
+                                                <Select
+                                                    value={formData.owner_address_country}
+                                                    label="Country Code"
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_address_country',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                >
+                                                    {countries.map(country => (
+                                                        <MenuItem
+                                                            key={country.code}
+                                                            value={country.code}
+                                                        >
+                                                            {country.name}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+
+                                        {/* Owner Identity Verification Documents */}
+                                        <Grid size={{ xs: 12 }}>
+                                            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                                Owner Identity Verification (Optional)
+                                            </Typography>
+                                            <Typography
+                                                variant="body2"
+                                                color="text.secondary"
+                                                gutterBottom
                                             >
-                                                {countries.map(country => (
-                                                    <MenuItem
-                                                        key={country.code}
-                                                        value={country.code}
-                                                    >
-                                                        {country.name}
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                        </FormControl>
-                                    </Grid>
+                                                Upload identity document for the owner (driver's
+                                                license, passport, etc.)
+                                            </Typography>
+                                        </Grid>
 
-                                    {/* Owner Identity Verification Documents */}
-                                    <Grid size={{ xs: 12 }}>
-                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                            Owner Identity Verification (Optional)
-                                        </Typography>
-                                        <Typography
-                                            variant="body2"
-                                            color="text.secondary"
-                                            gutterBottom
-                                        >
-                                            Upload identity document for the owner (driver's
-                                            license, passport, etc.)
-                                        </Typography>
-                                    </Grid>
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <Button
+                                                variant="outlined"
+                                                component="label"
+                                                fullWidth
+                                                startIcon={
+                                                    uploadedFiles.owner_front ? (
+                                                        <CheckCircleIcon color="success" />
+                                                    ) : (
+                                                        <CloudUploadIcon />
+                                                    )
+                                                }
+                                                disabled={uploadingFile === 'owner_front'}
+                                                sx={{ height: '56px' }}
+                                            >
+                                                {uploadingFile === 'owner_front'
+                                                    ? 'Uploading...'
+                                                    : uploadedFiles.owner_front
+                                                      ? `Uploaded: ${uploadedFiles.owner_front.name}`
+                                                      : 'Upload Owner ID (Front)'}
+                                                <input
+                                                    type="file"
+                                                    hidden
+                                                    accept="image/*,.pdf"
+                                                    onChange={e => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            handleFileUpload(file, 'owner_front');
+                                                        }
+                                                    }}
+                                                />
+                                            </Button>
+                                        </Grid>
 
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <Button
-                                            variant="outlined"
-                                            component="label"
-                                            fullWidth
-                                            startIcon={
-                                                uploadedFiles.owner_front ? (
-                                                    <CheckCircleIcon color="success" />
-                                                ) : (
-                                                    <CloudUploadIcon />
-                                                )
-                                            }
-                                            disabled={uploadingFile === 'owner_front'}
-                                            sx={{ height: '56px' }}
-                                        >
-                                            {uploadingFile === 'owner_front'
-                                                ? 'Uploading...'
-                                                : uploadedFiles.owner_front
-                                                  ? `Uploaded: ${uploadedFiles.owner_front.name}`
-                                                  : 'Upload Owner ID (Front)'}
-                                            <input
-                                                type="file"
-                                                hidden
-                                                accept="image/*,.pdf"
-                                                onChange={e => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        handleFileUpload(file, 'owner_front');
-                                                    }
-                                                }}
-                                            />
-                                        </Button>
-                                    </Grid>
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <Button
+                                                variant="outlined"
+                                                component="label"
+                                                fullWidth
+                                                startIcon={
+                                                    uploadedFiles.owner_back ? (
+                                                        <CheckCircleIcon color="success" />
+                                                    ) : (
+                                                        <CloudUploadIcon />
+                                                    )
+                                                }
+                                                disabled={uploadingFile === 'owner_back'}
+                                                sx={{ height: '56px' }}
+                                            >
+                                                {uploadingFile === 'owner_back'
+                                                    ? 'Uploading...'
+                                                    : uploadedFiles.owner_back
+                                                      ? `Uploaded: ${uploadedFiles.owner_back.name}`
+                                                      : 'Upload Owner ID (Back)'}
+                                                <input
+                                                    type="file"
+                                                    hidden
+                                                    accept="image/*,.pdf"
+                                                    onChange={e => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            handleFileUpload(file, 'owner_back');
+                                                        }
+                                                    }}
+                                                />
+                                            </Button>
+                                        </Grid>
 
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <Button
-                                            variant="outlined"
-                                            component="label"
-                                            fullWidth
-                                            startIcon={
-                                                uploadedFiles.owner_back ? (
-                                                    <CheckCircleIcon color="success" />
-                                                ) : (
-                                                    <CloudUploadIcon />
-                                                )
-                                            }
-                                            disabled={uploadingFile === 'owner_back'}
-                                            sx={{ height: '56px' }}
-                                        >
-                                            {uploadingFile === 'owner_back'
-                                                ? 'Uploading...'
-                                                : uploadedFiles.owner_back
-                                                  ? `Uploaded: ${uploadedFiles.owner_back.name}`
-                                                  : 'Upload Owner ID (Back)'}
-                                            <input
-                                                type="file"
-                                                hidden
-                                                accept="image/*,.pdf"
-                                                onChange={e => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        handleFileUpload(file, 'owner_back');
-                                                    }
-                                                }}
-                                            />
-                                        </Button>
-                                    </Grid>
+                                        <Grid size={{ xs: 12 }}>
+                                            <Typography
+                                                variant="subtitle1"
+                                                gutterBottom
+                                                sx={{ mt: 2 }}
+                                            >
+                                                Additional Document (Address Proof - Optional)
+                                            </Typography>
+                                            <Typography
+                                                variant="body2"
+                                                color="text.secondary"
+                                                gutterBottom
+                                            >
+                                                Upload utility bill, bank statement, or official
+                                                correspondence for the owner
+                                            </Typography>
+                                        </Grid>
 
-                                    <Grid size={{ xs: 12 }}>
-                                        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
-                                            Additional Document (Address Proof - Optional)
-                                        </Typography>
-                                        <Typography
-                                            variant="body2"
-                                            color="text.secondary"
-                                            gutterBottom
-                                        >
-                                            Upload utility bill, bank statement, or official
-                                            correspondence for the owner
-                                        </Typography>
-                                    </Grid>
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <Button
+                                                variant="outlined"
+                                                component="label"
+                                                fullWidth
+                                                startIcon={
+                                                    uploadedFiles.owner_additional_front ? (
+                                                        <CheckCircleIcon color="success" />
+                                                    ) : (
+                                                        <CloudUploadIcon />
+                                                    )
+                                                }
+                                                disabled={
+                                                    uploadingFile === 'owner_additional_front'
+                                                }
+                                                sx={{ height: '56px' }}
+                                            >
+                                                {uploadingFile === 'owner_additional_front'
+                                                    ? 'Uploading...'
+                                                    : uploadedFiles.owner_additional_front
+                                                      ? `Uploaded: ${uploadedFiles.owner_additional_front.name}`
+                                                      : 'Upload Address Proof (Front)'}
+                                                <input
+                                                    type="file"
+                                                    hidden
+                                                    accept="image/*,.pdf"
+                                                    onChange={e => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            handleFileUpload(
+                                                                file,
+                                                                'owner_additional_front'
+                                                            );
+                                                        }
+                                                    }}
+                                                />
+                                            </Button>
+                                        </Grid>
 
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <Button
-                                            variant="outlined"
-                                            component="label"
-                                            fullWidth
-                                            startIcon={
-                                                uploadedFiles.owner_additional_front ? (
-                                                    <CheckCircleIcon color="success" />
-                                                ) : (
-                                                    <CloudUploadIcon />
-                                                )
-                                            }
-                                            disabled={uploadingFile === 'owner_additional_front'}
-                                            sx={{ height: '56px' }}
-                                        >
-                                            {uploadingFile === 'owner_additional_front'
-                                                ? 'Uploading...'
-                                                : uploadedFiles.owner_additional_front
-                                                  ? `Uploaded: ${uploadedFiles.owner_additional_front.name}`
-                                                  : 'Upload Address Proof (Front)'}
-                                            <input
-                                                type="file"
-                                                hidden
-                                                accept="image/*,.pdf"
-                                                onChange={e => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        handleFileUpload(
-                                                            file,
-                                                            'owner_additional_front'
-                                                        );
-                                                    }
-                                                }}
-                                            />
-                                        </Button>
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <Button
-                                            variant="outlined"
-                                            component="label"
-                                            fullWidth
-                                            startIcon={
-                                                uploadedFiles.owner_additional_back ? (
-                                                    <CheckCircleIcon color="success" />
-                                                ) : (
-                                                    <CloudUploadIcon />
-                                                )
-                                            }
-                                            disabled={uploadingFile === 'owner_additional_back'}
-                                            sx={{ height: '56px' }}
-                                        >
-                                            {uploadingFile === 'owner_additional_back'
-                                                ? 'Uploading...'
-                                                : uploadedFiles.owner_additional_back
-                                                  ? `Uploaded: ${uploadedFiles.owner_additional_back.name}`
-                                                  : 'Upload Address Proof (Back)'}
-                                            <input
-                                                type="file"
-                                                hidden
-                                                accept="image/*,.pdf"
-                                                onChange={e => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        handleFileUpload(
-                                                            file,
-                                                            'owner_additional_back'
-                                                        );
-                                                    }
-                                                }}
-                                            />
-                                        </Button>
-                                    </Grid>
-                                </>
-                            )}
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <Button
+                                                variant="outlined"
+                                                component="label"
+                                                fullWidth
+                                                startIcon={
+                                                    uploadedFiles.owner_additional_back ? (
+                                                        <CheckCircleIcon color="success" />
+                                                    ) : (
+                                                        <CloudUploadIcon />
+                                                    )
+                                                }
+                                                disabled={uploadingFile === 'owner_additional_back'}
+                                                sx={{ height: '56px' }}
+                                            >
+                                                {uploadingFile === 'owner_additional_back'
+                                                    ? 'Uploading...'
+                                                    : uploadedFiles.owner_additional_back
+                                                      ? `Uploaded: ${uploadedFiles.owner_additional_back.name}`
+                                                      : 'Upload Address Proof (Back)'}
+                                                <input
+                                                    type="file"
+                                                    hidden
+                                                    accept="image/*,.pdf"
+                                                    onChange={e => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            handleFileUpload(
+                                                                file,
+                                                                'owner_additional_back'
+                                                            );
+                                                        }
+                                                    }}
+                                                />
+                                            </Button>
+                                        </Grid>
+                                    </>
+                                )}
 
                             {/* External Account */}
                             <Grid size={{ xs: 12 }}>
