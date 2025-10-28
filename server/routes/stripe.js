@@ -193,6 +193,7 @@ router.post("/direct-onboard", async (req, res) => {
       business_profile_mcc,
       business_profile_url,
       business_description,
+      product_description,
       // Company fields (for company business_type)
       company_name,
       company_tax_id,
@@ -276,6 +277,8 @@ router.post("/direct-onboard", async (req, res) => {
     }
 
     // Prepare the account update data based on business_type
+    const productDescValue = product_description || business_description || undefined;
+    
     const accountUpdateData = {
       tos_acceptance: {
         date: tos_acceptance_date || Math.floor(Date.now() / 1000),
@@ -285,7 +288,7 @@ router.post("/direct-onboard", async (req, res) => {
       business_profile: {
         mcc: business_profile_mcc,
         url: business_profile_url || undefined, // Only send if not empty
-        product_description: business_description || undefined, // Organization mission for non-profits
+        product_description: productDescValue, // Use product_description if provided, otherwise fallback to business_description
       },
     };
 

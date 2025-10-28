@@ -56,6 +56,7 @@ interface DirectOnboardFormData {
     business_profile_mcc: string;
     business_profile_url: string;
     business_description: string; // For non-profit mission/description
+    product_description: string; // Product/Business Description
     // Company fields (when business_type is 'company')
     company_name: string;
     company_tax_id: string;
@@ -183,6 +184,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         business_profile_mcc: '4816',
         business_profile_url: '',
         business_description: '',
+        product_description: '',
         // Company fields
         company_name: '',
         company_tax_id: '',
@@ -616,6 +618,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         business_profile_mcc: '',
                         business_profile_url: '',
                         business_description: '',
+                        product_description: '',
                         // Company fields
                         company_name: '',
                         company_tax_id: '',
@@ -726,6 +729,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
             business_profile_mcc: '',
             business_profile_url: '',
             business_description: '',
+            product_description: '',
             company_name: '',
             company_tax_id: '',
             company_structure: 'private_corporation',
@@ -826,7 +830,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         </Typography>
                                     </Grid>
 
-                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Grid size={{ xs: 12 }}>
                                         <FormControl fullWidth>
                                             <InputLabel>Business Type</InputLabel>
                                             <Select
@@ -861,6 +865,24 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="4816"
                                             helperText="4-digit merchant category code"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Product/Business Description"
+                                            value={formData.product_description}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'product_description',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Briefly describe your products or services"
+                                            multiline
+                                            rows={3}
+                                            helperText="Describe what products or services you offer"
                                         />
                                     </Grid>
 
@@ -1472,7 +1494,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         </Typography>
                                     </Grid>
 
-                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Grid size={{ xs: 12 }}>
                                         <FormControl fullWidth>
                                             <InputLabel>Business Type</InputLabel>
                                             <Select
@@ -1507,6 +1529,24 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="4816"
                                             helperText="4-digit merchant category code"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Product/Business Description"
+                                            value={formData.product_description}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'product_description',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Briefly describe your products or services"
+                                            multiline
+                                            rows={3}
+                                            helperText="Describe what products or services you offer"
                                         />
                                     </Grid>
 
