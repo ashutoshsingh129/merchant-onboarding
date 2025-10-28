@@ -10,18 +10,27 @@ import {
     CircularProgress,
     Container,
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { loginUser, clearError } from '../../store/slices/authSlice';
 import { StyledLoginContainer, StyledCard, StyledForm } from './Login.styles';
 
 const Login: React.FC = () => {
     const dispatch = useAppDispatch();
+    const navigate = useNavigate();
     const { isLoading, error, isAuthenticated } = useAppSelector(state => state.auth);
 
     const [formData, setFormData] = useState({
         email: '',
         password: '',
     });
+
+    // Redirect to dashboard if already authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate('/dashboard', { replace: true });
+        }
+    }, [isAuthenticated, navigate]);
 
     const [validationErrors, setValidationErrors] = useState({
         email: '',

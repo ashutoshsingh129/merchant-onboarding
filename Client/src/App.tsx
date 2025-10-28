@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { Provider } from 'react-redux';
@@ -51,50 +51,25 @@ const AppRoutes: React.FC = () => {
             <CssBaseline />
             <Router>
                 <Routes>
+                    {/* Login route - redirect to dashboard if already authenticated */}
                     <Route
                         path="/login"
                         element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
                     />
+                    {/* Protected routes */}
                     <Route
-                        path="/"
                         element={
                             <ProtectedRoute>
                                 <Layout>
-                                    <Routes>
-                                        <Route
-                                            path="/"
-                                            element={<Navigate to="/dashboard" replace />}
-                                        />
-                                        <Route path="/dashboard" element={<Dashboard />} />
-                                        <Route
-                                            path="/merchant-onboarding"
-                                            element={<MerchantOnboarding />}
-                                        />
-                                    </Routes>
+                                    <Outlet />
                                 </Layout>
                             </ProtectedRoute>
                         }
-                    />
-                    <Route
-                        path="/dashboard"
-                        element={
-                            <ProtectedRoute>
-                                <Layout>
-                                    <Dashboard />
-                                </Layout>
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/merchant-onboarding"
-                        element={
-                            <ProtectedRoute>
-                                <Layout>
-                                    <MerchantOnboarding />
-                                </Layout>
-                            </ProtectedRoute>
-                        }
-                    />
+                    >
+                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/merchant-onboarding" element={<MerchantOnboarding />} />
+                    </Route>
                     {/* Catch-all route for 404 errors */}
                     <Route path="*" element={<ErrorPage type="not-found" />} />
                 </Routes>
