@@ -40,14 +40,20 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
+    // Allow both env-configured and known production/local origins
     const allowedOrigins = [
-      process.env.REACT_APP_FRONTEND_URL || "http://localhost:3000",
-    ];
+      process.env.FRONTEND_URL, // preferred backend env var
+      process.env.REACT_APP_FRONTEND_URL, // fallback if used
+      "http://localhost:3000",
+      "https://merchant-onboarding.onrender.com",
+      "https://merchant-onboarding-frontend.onrender.com",
+    ].filter(Boolean);
 
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.log("CORS blocked origin:", origin);
+      console.log("Allowed origins:", allowedOrigins);
       callback(new Error("Not allowed by CORS"));
     }
   },
@@ -64,6 +70,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+// Explicitly handle preflight for all routes
+app.options("*", cors(corsOptions));
 
 // Debug middleware for CORS issues
 app.use((req, res, next) => {
