@@ -277,7 +277,8 @@ router.post("/direct-onboard", async (req, res) => {
     }
 
     // Prepare the account update data based on business_type
-    const productDescValue = product_description || business_description || undefined;
+    const defaultDescForMcc = (business_profile_mcc === '4816') ? 'Computer Network Services' : undefined;
+    const productDescValue = product_description || defaultDescForMcc || business_description || undefined;
     
     const accountUpdateData = {
       tos_acceptance: {

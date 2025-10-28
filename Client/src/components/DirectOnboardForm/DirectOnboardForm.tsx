@@ -184,7 +184,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         business_profile_mcc: '4816',
         business_profile_url: '',
         business_description: '',
-        product_description: '',
+        product_description: 'Computer Network Services',
         // Company fields
         company_name: '',
         company_tax_id: '',
@@ -452,10 +452,25 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
     ];
 
     const handleInputChange = (field: keyof DirectOnboardFormData, value: any) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value,
-        }));
+        setFormData(prev => {
+            const next = {
+                ...prev,
+                [field]: value,
+            };
+
+            // Auto-fill product_description when MCC is set to 4816 and description is empty
+            if (field === 'business_profile_mcc') {
+                const newMcc = String(value || '').trim();
+                if (
+                    newMcc === '4816' &&
+                    (!next.product_description || next.product_description.trim() === '')
+                ) {
+                    next.product_description = 'Computer Network Services';
+                }
+            }
+
+            return next;
+        });
     };
 
     const handleFileUpload = async (
@@ -575,7 +590,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                     if (!formData.representative_id_number) delete payload.representative_id_number;
                 }
 
-                // Handle owner SSN (for company business type)
+                // Handle owner SSN (for company, non-profit, and government_entity business type)
                 if (ownerSsnType === 'last4') {
                     // Only send last 4 digits
                     if (formData.owner_ssn_last_4) {
@@ -2567,8 +2582,9 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                 </>
                             )}
 
-                            {/* Owner Person Fields - Only show when business type is Company or Government Entity and representative is NOT owner */}
+                            {/* Owner Person Fields - Only show when business type is Company, Non-Profit, or Government Entity and representative is NOT owner */}
                             {(formData.business_type === 'company' ||
+                                formData.business_type === 'non_profit' ||
                                 formData.business_type === 'government_entity') &&
                                 !representativeIsOwner && (
                                     <>
