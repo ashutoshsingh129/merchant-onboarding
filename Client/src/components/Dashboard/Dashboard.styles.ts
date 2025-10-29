@@ -27,9 +27,10 @@ export const StyledTable = styled(Table)(({ theme }) => ({
         textOverflow: 'ellipsis',
     },
     '& .MuiTableHead-root .MuiTableCell-root': {
-        backgroundColor: theme.palette.grey[50],
+        backgroundColor: theme.palette.mode === 'dark' ? '#2d2d2d' : theme.palette.grey[50],
         fontWeight: 600,
         borderBottom: `2px solid ${theme.palette.divider}`,
+        color: theme.palette.text.primary,
     },
     '& .MuiTableRow-root:hover': {
         backgroundColor: theme.palette.action.hover,
@@ -53,7 +54,7 @@ export const StyledTableCell = styled(TableCell)(({ theme }) => ({
 
 export const StyledTableHead = styled(TableHead)(({ theme }) => ({
     '& .MuiTableCell-root': {
-        backgroundColor: theme.palette.grey[50],
+        backgroundColor: theme.palette.mode === 'dark' ? '#2d2d2d' : theme.palette.grey[50],
         fontWeight: 600,
         borderBottom: `2px solid ${theme.palette.divider}`,
         color: theme.palette.text.primary,

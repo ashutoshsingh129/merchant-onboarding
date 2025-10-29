@@ -31,6 +31,7 @@ import {
     StyledRoot,
     StyledAppBar,
     StyledTitle,
+    StyledTitleContainer,
     StyledThemeToggle,
     StyledContainer,
 } from './Layout.styles';
@@ -83,9 +84,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <StyledRoot>
             <StyledAppBar position="static">
                 <Toolbar>
-                    <StyledTitle variant="h6" component="div">
-                        Merchant Onboarding
-                    </StyledTitle>
+                    <StyledTitleContainer component={Link} to="/dashboard">
+                        <StyledTitle variant="h6" component="div">
+                            Merchant Onboarding
+                        </StyledTitle>
+                    </StyledTitleContainer>
 
                     <Box
                         sx={{
@@ -103,8 +106,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                                 mx: 1,
                                 backgroundColor:
                                     location.pathname === '/dashboard'
-                                        ? 'rgba(255,255,255,0.1)'
+                                        ? theme === 'dark'
+                                            ? 'rgba(255,255,255,0.15)'
+                                            : 'rgba(255,255,255,0.1)'
                                         : 'transparent',
+                                '&:hover': {
+                                    backgroundColor:
+                                        theme === 'dark'
+                                            ? 'rgba(255,255,255,0.2)'
+                                            : 'rgba(255,255,255,0.15)',
+                                },
+                                transition: 'background-color 0.2s ease-in-out',
                             }}
                         >
                             Dashboard
@@ -119,8 +131,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                                 mx: 1,
                                 backgroundColor:
                                     location.pathname === '/merchant-onboarding'
-                                        ? 'rgba(255,255,255,0.1)'
+                                        ? theme === 'dark'
+                                            ? 'rgba(255,255,255,0.15)'
+                                            : 'rgba(255,255,255,0.1)'
                                         : 'transparent',
+                                '&:hover': {
+                                    backgroundColor:
+                                        theme === 'dark'
+                                            ? 'rgba(255,255,255,0.2)'
+                                            : 'rgba(255,255,255,0.15)',
+                                },
+                                transition: 'background-color 0.2s ease-in-out',
                             }}
                         >
                             Merchant Onboarding
@@ -148,6 +169,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         aria-haspopup="true"
                         onClick={handleMenuOpen}
                         color="inherit"
+                        sx={{
+                            '&:hover': {
+                                backgroundColor:
+                                    theme === 'dark'
+                                        ? 'rgba(255,255,255,0.15)'
+                                        : 'rgba(255,255,255,0.1)',
+                            },
+                            transition: 'background-color 0.2s ease-in-out',
+                        }}
                     >
                         <AccountCircle />
                     </IconButton>
