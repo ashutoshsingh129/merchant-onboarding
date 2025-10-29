@@ -84,7 +84,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <StyledRoot>
             <StyledAppBar position="static">
                 <Toolbar>
-                    <StyledTitleContainer component={Link} to="/dashboard">
+                    <StyledTitleContainer to="/dashboard">
                         <StyledTitle variant="h6" component="div">
                             Merchant Onboarding
                         </StyledTitle>

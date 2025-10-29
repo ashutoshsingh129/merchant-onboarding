@@ -17,10 +17,10 @@ export const StyledAppBar = styled(AppBar)(({ theme }) => ({
             : '0px 2px 4px rgba(0, 0, 0, 0.1)',
 }));
 
-export const StyledTitleContainer = styled(Box)(() => ({
+export const StyledTitleContainer = styled(Link)(() => ({
     display: 'flex',
     alignItems: 'center',
-    flexGrow: 1,
+    flex: '0 0 auto',
     textDecoration: 'none',
     color: 'inherit',
     cursor: 'pointer',
