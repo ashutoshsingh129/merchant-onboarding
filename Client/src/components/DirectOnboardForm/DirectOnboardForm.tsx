@@ -77,6 +77,7 @@ interface DirectOnboardFormData {
     // Bank Account fields
     external_account_routing_number: string;
     external_account_account_number: string;
+    external_account_account_number_confirm?: string;
     external_account_account_holder_name: string;
     external_account_account_holder_type: string;
     // Debit Card fields
@@ -99,6 +100,7 @@ interface DirectOnboardFormData {
     representative_address_country: string;
     representative_relationship_representative: boolean;
     representative_relationship_executive: boolean;
+    representative_relationship_director?: boolean;
     representative_relationship_title: string;
     representative_ssn_last_4: string;
     representative_id_number: string;
@@ -116,6 +118,7 @@ interface DirectOnboardFormData {
     owner_address_postal_code: string;
     owner_address_country: string;
     owner_relationship_owner: boolean;
+    owner_relationship_director?: boolean;
     owner_relationship_title: string;
     owner_ssn_last_4: string;
     owner_id_number: string;
@@ -201,10 +204,11 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         // External Account fields
         external_account_object: 'bank_account',
         external_account_country: country || 'US',
-        external_account_currency: 'usd',
+        external_account_currency: country && country.toUpperCase() === 'SE' ? 'sek' : 'usd',
         // Bank Account fields
         external_account_routing_number: '',
         external_account_account_number: '',
+        external_account_account_number_confirm: '',
         external_account_account_holder_name: '',
         external_account_account_holder_type: 'individual',
         // Debit Card fields
@@ -227,6 +231,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         representative_address_country: country || 'US',
         representative_relationship_representative: true,
         representative_relationship_executive: false,
+        representative_relationship_director: false,
         representative_relationship_title: '',
         representative_ssn_last_4: '',
         representative_id_number: '',
@@ -244,6 +249,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         owner_address_postal_code: '',
         owner_address_country: country || 'US',
         owner_relationship_owner: true,
+        owner_relationship_director: false,
         owner_relationship_title: '',
         owner_ssn_last_4: '',
         owner_id_number: '',
@@ -402,6 +408,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         { code: 'FR', name: 'France' },
         { code: 'ES', name: 'Spain' },
         { code: 'IT', name: 'Italy' },
+        { code: 'SE', name: 'Sweden' },
     ];
 
     const businessTypes = [
@@ -434,6 +441,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         { code: 'usd', name: 'US Dollar (USD)' },
         { code: 'gbp', name: 'British Pound (GBP)' },
         { code: 'cad', name: 'Canadian Dollar (CAD)' },
+        { code: 'sek', name: 'Swedish Krona (SEK)' },
     ];
 
     const months = [
@@ -458,15 +466,37 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                 [field]: value,
             };
 
-            // Auto-fill product_description when MCC is set to 4816 and description is empty
-            if (field === 'business_profile_mcc') {
-                const newMcc = String(value || '').trim();
+            // For Swedish external bank accounts, default to SEK and clear routing number (IBAN only)
+            if (
+                (field === 'external_account_country' && value === 'SE') ||
+                (field === 'individual_address_country' && value === 'SE')
+            ) {
+                next.external_account_currency = 'sek';
+                next.external_account_country = 'SE';
+                next.external_account_routing_number = '';
+            }
+
+            // When business type is not individual, external account holder type should be company
+            if (field === 'business_type') {
                 if (
-                    newMcc === '4816' &&
-                    (!next.product_description || next.product_description.trim() === '')
+                    value === 'company' ||
+                    value === 'non_profit' ||
+                    value === 'government_entity'
                 ) {
-                    next.product_description = 'Computer Network Services';
+                    next.external_account_account_holder_type = 'company';
+                } else {
+                    next.external_account_account_holder_type = 'individual';
                 }
+            }
+
+            // Normalize IBAN for SE: strip spaces and uppercase
+            if (
+                field === 'external_account_account_number' &&
+                (prev.external_account_country === 'SE' || prev.company_address_country === 'SE')
+            ) {
+                next.external_account_account_number = String(value)
+                    .replace(/\s+/g, '')
+                    .toUpperCase();
             }
 
             return next;
@@ -543,8 +573,26 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         setError(null);
 
         try {
+            // For Sweden (SE), require IBAN confirmation match
+            if (
+                formData.external_account_country === 'SE' &&
+                (formData.external_account_account_number || '')
+                    .replace(/\s+/g, '')
+                    .toUpperCase() !==
+                    (formData.external_account_account_number_confirm || '')
+                        .replace(/\s+/g, '')
+                        .toUpperCase()
+            ) {
+                setLoading(false);
+                setError('IBAN and Confirm IBAN must match for Swedish accounts.');
+                return;
+            }
+
             // Prepare payload with appropriate SSN fields based on toggle state
             const payload: any = { ...formData };
+
+            // Do not send confirm field to API
+            delete payload.external_account_account_number_confirm;
 
             // Handle individual SSN
             if (individualSsnType === 'last4') {
@@ -666,10 +714,12 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         // External Account fields
                         external_account_object: 'bank_account',
                         external_account_country: country || 'US',
-                        external_account_currency: 'usd',
+                        external_account_currency:
+                            country && country.toUpperCase() === 'SE' ? 'sek' : 'usd',
                         // Bank Account fields
                         external_account_routing_number: '',
                         external_account_account_number: '',
+                        external_account_account_number_confirm: '',
                         external_account_account_holder_name: '',
                         external_account_account_holder_type: 'individual',
                         // Debit Card fields
@@ -692,6 +742,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         representative_address_country: country || 'US',
                         representative_relationship_representative: true,
                         representative_relationship_executive: false,
+                        representative_relationship_director: false,
                         representative_relationship_title: '',
                         representative_ssn_last_4: '',
                         representative_id_number: '',
@@ -709,6 +760,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         owner_address_postal_code: '',
                         owner_address_country: country || 'US',
                         owner_relationship_owner: true,
+                        owner_relationship_director: false,
                         owner_relationship_title: '',
                         owner_ssn_last_4: '',
                         owner_id_number: '',
@@ -774,9 +826,10 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
             tos_acceptance_ip: '',
             external_account_object: 'bank_account',
             external_account_country: country || 'US',
-            external_account_currency: 'usd',
+            external_account_currency: country && country.toUpperCase() === 'SE' ? 'sek' : 'usd',
             external_account_routing_number: '',
             external_account_account_number: '',
+            external_account_account_number_confirm: '',
             external_account_account_holder_name: '',
             external_account_account_holder_type: 'individual',
             external_account_card_number: '',
@@ -797,6 +850,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
             representative_address_country: country || 'US',
             representative_relationship_representative: true,
             representative_relationship_executive: false,
+            representative_relationship_director: false,
             representative_relationship_title: '',
             representative_ssn_last_4: '',
             representative_id_number: '',
@@ -813,6 +867,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
             owner_address_postal_code: '',
             owner_address_country: country || 'US',
             owner_relationship_owner: true,
+            owner_relationship_director: false,
             owner_relationship_title: '',
             owner_ssn_last_4: '',
             owner_id_number: '',
@@ -1238,101 +1293,129 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                     </Grid>
 
                                     <Grid size={{ xs: 12 }}>
-                                        <Box sx={{ mb: 2 }}>
-                                            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                                                Social Security Number (SSN)
-                                            </Typography>
-                                            <ToggleButtonGroup
-                                                value={individualSsnType}
-                                                exclusive
-                                                onChange={(e, newValue) => {
-                                                    if (newValue !== null) {
-                                                        setIndividualSsnType(newValue);
-                                                        // Clear both fields when switching
-                                                        setFormData(prev => ({
-                                                            ...prev,
-                                                            individual_ssn_last_4: '',
-                                                            individual_id_number: '',
-                                                        }));
-                                                    }
-                                                }}
-                                                size="small"
-                                                fullWidth
-                                            >
-                                                <ToggleButton value="last4">
-                                                    Last 4 Digits
-                                                </ToggleButton>
-                                                <ToggleButton value="full">Full SSN</ToggleButton>
-                                                <ToggleButton value="both">Both</ToggleButton>
-                                            </ToggleButtonGroup>
-                                        </Box>
-                                        {individualSsnType === 'last4' ? (
+                                        {formData.individual_address_country === 'US' ? (
+                                            <>
+                                                <Box sx={{ mb: 2 }}>
+                                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                                                        Social Security Number (SSN)
+                                                    </Typography>
+                                                    <ToggleButtonGroup
+                                                        value={individualSsnType}
+                                                        exclusive
+                                                        onChange={(e, newValue) => {
+                                                            if (newValue !== null) {
+                                                                setIndividualSsnType(newValue);
+                                                                // Clear both fields when switching
+                                                                setFormData(prev => ({
+                                                                    ...prev,
+                                                                    individual_ssn_last_4: '',
+                                                                    individual_id_number: '',
+                                                                }));
+                                                            }
+                                                        }}
+                                                        size="small"
+                                                        fullWidth
+                                                    >
+                                                        <ToggleButton value="last4">
+                                                            Last 4 Digits
+                                                        </ToggleButton>
+                                                        <ToggleButton value="full">
+                                                            Full SSN
+                                                        </ToggleButton>
+                                                        <ToggleButton value="both">
+                                                            Both
+                                                        </ToggleButton>
+                                                    </ToggleButtonGroup>
+                                                </Box>
+                                                {individualSsnType === 'last4' ? (
+                                                    <TextField
+                                                        fullWidth
+                                                        label="SSN Last 4 Digits"
+                                                        value={formData.individual_ssn_last_4}
+                                                        onChange={e =>
+                                                            handleInputChange(
+                                                                'individual_ssn_last_4',
+                                                                e.target.value.replace(/\D/g, '')
+                                                            )
+                                                        }
+                                                        placeholder="1234"
+                                                        inputProps={{ maxLength: 4 }}
+                                                        helperText="Last 4 digits of Social Security Number (US only)"
+                                                    />
+                                                ) : individualSsnType === 'full' ? (
+                                                    <TextField
+                                                        fullWidth
+                                                        label="Full SSN"
+                                                        value={formData.individual_id_number}
+                                                        onChange={e =>
+                                                            handleInputChange(
+                                                                'individual_id_number',
+                                                                e.target.value.replace(/\D/g, '')
+                                                            )
+                                                        }
+                                                        placeholder="123456789"
+                                                        inputProps={{ maxLength: 9 }}
+                                                        helperText="9-digit Social Security Number (US only)"
+                                                    />
+                                                ) : (
+                                                    <Box
+                                                        sx={{
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            gap: 2,
+                                                        }}
+                                                    >
+                                                        <TextField
+                                                            fullWidth
+                                                            label="SSN Last 4 Digits"
+                                                            value={formData.individual_ssn_last_4}
+                                                            onChange={e =>
+                                                                handleInputChange(
+                                                                    'individual_ssn_last_4',
+                                                                    e.target.value.replace(
+                                                                        /\D/g,
+                                                                        ''
+                                                                    )
+                                                                )
+                                                            }
+                                                            placeholder="1234"
+                                                            inputProps={{ maxLength: 4 }}
+                                                            helperText="Last 4 digits of Social Security Number"
+                                                        />
+                                                        <TextField
+                                                            fullWidth
+                                                            label="Full SSN"
+                                                            value={formData.individual_id_number}
+                                                            onChange={e =>
+                                                                handleInputChange(
+                                                                    'individual_id_number',
+                                                                    e.target.value.replace(
+                                                                        /\D/g,
+                                                                        ''
+                                                                    )
+                                                                )
+                                                            }
+                                                            placeholder="123456789"
+                                                            inputProps={{ maxLength: 9 }}
+                                                            helperText="9-digit Social Security Number"
+                                                        />
+                                                    </Box>
+                                                )}
+                                            </>
+                                        ) : (
                                             <TextField
                                                 fullWidth
-                                                label="SSN Last 4 Digits"
-                                                value={formData.individual_ssn_last_4}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'individual_ssn_last_4',
-                                                        e.target.value.replace(/\D/g, '')
-                                                    )
-                                                }
-                                                placeholder="1234"
-                                                inputProps={{ maxLength: 4 }}
-                                                helperText="Last 4 digits of Social Security Number (US only)"
-                                            />
-                                        ) : individualSsnType === 'full' ? (
-                                            <TextField
-                                                fullWidth
-                                                label="Full SSN"
+                                                label="National ID Number"
                                                 value={formData.individual_id_number}
                                                 onChange={e =>
                                                     handleInputChange(
                                                         'individual_id_number',
-                                                        e.target.value.replace(/\D/g, '')
+                                                        e.target.value
                                                     )
                                                 }
-                                                placeholder="123456789"
-                                                inputProps={{ maxLength: 9 }}
-                                                helperText="9-digit Social Security Number (US only)"
+                                                placeholder="e.g., Swedish personnummer"
+                                                helperText="Provide full national ID number"
                                             />
-                                        ) : (
-                                            <Box
-                                                sx={{
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    gap: 2,
-                                                }}
-                                            >
-                                                <TextField
-                                                    fullWidth
-                                                    label="SSN Last 4 Digits"
-                                                    value={formData.individual_ssn_last_4}
-                                                    onChange={e =>
-                                                        handleInputChange(
-                                                            'individual_ssn_last_4',
-                                                            e.target.value.replace(/\D/g, '')
-                                                        )
-                                                    }
-                                                    placeholder="1234"
-                                                    inputProps={{ maxLength: 4 }}
-                                                    helperText="Last 4 digits of Social Security Number"
-                                                />
-                                                <TextField
-                                                    fullWidth
-                                                    label="Full SSN"
-                                                    value={formData.individual_id_number}
-                                                    onChange={e =>
-                                                        handleInputChange(
-                                                            'individual_id_number',
-                                                            e.target.value.replace(/\D/g, '')
-                                                        )
-                                                    }
-                                                    placeholder="123456789"
-                                                    inputProps={{ maxLength: 9 }}
-                                                    helperText="9-digit Social Security Number"
-                                                />
-                                            </Box>
                                         )}
                                     </Grid>
                                 </>
@@ -2095,102 +2178,197 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         />
                                     </Grid>
 
-                                    <Grid size={{ xs: 12 }}>
-                                        <Box sx={{ mb: 2 }}>
-                                            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                                                Representative Social Security Number (SSN)
-                                            </Typography>
-                                            <ToggleButtonGroup
-                                                value={representativeSsnType}
-                                                exclusive
-                                                onChange={(e, newValue) => {
-                                                    if (newValue !== null) {
-                                                        setRepresentativeSsnType(newValue);
-                                                        // Clear both fields when switching
-                                                        setFormData(prev => ({
-                                                            ...prev,
-                                                            representative_ssn_last_4: '',
-                                                            representative_id_number: '',
-                                                        }));
+                                    {/* Sweden-specific representative relationship toggles */}
+                                    {formData.representative_address_country === 'SE' && (
+                                        <Grid size={{ xs: 12 }}>
+                                            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                                                <FormControlLabel
+                                                    control={
+                                                        <Checkbox
+                                                            checked={
+                                                                !!formData.representative_relationship_representative
+                                                            }
+                                                            onChange={e =>
+                                                                handleInputChange(
+                                                                    'representative_relationship_representative',
+                                                                    e.target.checked
+                                                                )
+                                                            }
+                                                        />
                                                     }
-                                                }}
-                                                size="small"
-                                                fullWidth
-                                            >
-                                                <ToggleButton value="last4">
-                                                    Last 4 Digits
-                                                </ToggleButton>
-                                                <ToggleButton value="full">Full SSN</ToggleButton>
-                                                <ToggleButton value="both">Both</ToggleButton>
-                                            </ToggleButtonGroup>
-                                        </Box>
-                                        {representativeSsnType === 'last4' ? (
+                                                    label="Business Representative"
+                                                />
+                                                <FormControlLabel
+                                                    control={
+                                                        <Checkbox
+                                                            checked={
+                                                                !!formData.representative_relationship_executive
+                                                            }
+                                                            onChange={e =>
+                                                                handleInputChange(
+                                                                    'representative_relationship_executive',
+                                                                    e.target.checked
+                                                                )
+                                                            }
+                                                        />
+                                                    }
+                                                    label="Executive"
+                                                />
+                                                <FormControlLabel
+                                                    control={
+                                                        <Checkbox
+                                                            checked={
+                                                                !!formData.representative_relationship_director
+                                                            }
+                                                            onChange={e =>
+                                                                handleInputChange(
+                                                                    'representative_relationship_director',
+                                                                    e.target.checked
+                                                                )
+                                                            }
+                                                        />
+                                                    }
+                                                    label="Director"
+                                                />
+                                            </Box>
+                                        </Grid>
+                                    )}
+
+                                    <Grid size={{ xs: 12 }}>
+                                        {formData.representative_address_country === 'US' ? (
+                                            <>
+                                                <Box sx={{ mb: 2 }}>
+                                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                                                        Social Security Number (SSN)
+                                                    </Typography>
+                                                    <ToggleButtonGroup
+                                                        value={representativeSsnType}
+                                                        exclusive
+                                                        onChange={(e, newValue) => {
+                                                            if (newValue !== null) {
+                                                                setRepresentativeSsnType(newValue);
+                                                                setFormData(prev => ({
+                                                                    ...prev,
+                                                                    representative_ssn_last_4: '',
+                                                                    representative_id_number: '',
+                                                                }));
+                                                            }
+                                                        }}
+                                                        size="small"
+                                                        fullWidth
+                                                    >
+                                                        <ToggleButton value="last4">
+                                                            Last 4 Digits
+                                                        </ToggleButton>
+                                                        <ToggleButton value="full">
+                                                            Full SSN
+                                                        </ToggleButton>
+                                                        <ToggleButton value="both">
+                                                            Both
+                                                        </ToggleButton>
+                                                    </ToggleButtonGroup>
+                                                    {representativeSsnType === 'last4' ? (
+                                                        <TextField
+                                                            fullWidth
+                                                            label="SSN Last 4 Digits"
+                                                            value={
+                                                                formData.representative_ssn_last_4
+                                                            }
+                                                            onChange={e =>
+                                                                handleInputChange(
+                                                                    'representative_ssn_last_4',
+                                                                    e.target.value.replace(
+                                                                        /\D/g,
+                                                                        ''
+                                                                    )
+                                                                )
+                                                            }
+                                                            placeholder="1234"
+                                                            inputProps={{ maxLength: 4 }}
+                                                            helperText="Last 4 digits of Social Security Number (US only)"
+                                                        />
+                                                    ) : representativeSsnType === 'full' ? (
+                                                        <TextField
+                                                            fullWidth
+                                                            label="Full SSN"
+                                                            value={
+                                                                formData.representative_id_number
+                                                            }
+                                                            onChange={e =>
+                                                                handleInputChange(
+                                                                    'representative_id_number',
+                                                                    e.target.value.replace(
+                                                                        /\D/g,
+                                                                        ''
+                                                                    )
+                                                                )
+                                                            }
+                                                            placeholder="123456789"
+                                                            inputProps={{ maxLength: 9 }}
+                                                            helperText="9-digit Social Security Number (US only)"
+                                                        />
+                                                    ) : (
+                                                        <Box
+                                                            sx={{
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                gap: 2,
+                                                            }}
+                                                        >
+                                                            <TextField
+                                                                fullWidth
+                                                                label="SSN Last 4 Digits"
+                                                                value={
+                                                                    formData.representative_ssn_last_4
+                                                                }
+                                                                onChange={e =>
+                                                                    handleInputChange(
+                                                                        'representative_ssn_last_4',
+                                                                        e.target.value.replace(
+                                                                            /\D/g,
+                                                                            ''
+                                                                        )
+                                                                    )
+                                                                }
+                                                                placeholder="1234"
+                                                                inputProps={{ maxLength: 4 }}
+                                                            />
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Full SSN"
+                                                                value={
+                                                                    formData.representative_id_number
+                                                                }
+                                                                onChange={e =>
+                                                                    handleInputChange(
+                                                                        'representative_id_number',
+                                                                        e.target.value.replace(
+                                                                            /\D/g,
+                                                                            ''
+                                                                        )
+                                                                    )
+                                                                }
+                                                                placeholder="123456789"
+                                                                inputProps={{ maxLength: 9 }}
+                                                            />
+                                                        </Box>
+                                                    )}
+                                                </Box>
+                                            </>
+                                        ) : (
                                             <TextField
                                                 fullWidth
-                                                label="SSN Last 4 Digits"
-                                                value={formData.representative_ssn_last_4}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'representative_ssn_last_4',
-                                                        e.target.value.replace(/\D/g, '')
-                                                    )
-                                                }
-                                                placeholder="1234"
-                                                inputProps={{ maxLength: 4 }}
-                                                helperText="Last 4 digits of Social Security Number (US only)"
-                                            />
-                                        ) : representativeSsnType === 'full' ? (
-                                            <TextField
-                                                fullWidth
-                                                label="Full SSN"
+                                                label="National ID Number"
                                                 value={formData.representative_id_number}
                                                 onChange={e =>
                                                     handleInputChange(
                                                         'representative_id_number',
-                                                        e.target.value.replace(/\D/g, '')
+                                                        e.target.value
                                                     )
                                                 }
-                                                placeholder="123456789"
-                                                inputProps={{ maxLength: 9 }}
-                                                helperText="9-digit Social Security Number (US only)"
+                                                placeholder="e.g., Swedish personnummer"
+                                                helperText="Provide full national ID number"
                                             />
-                                        ) : (
-                                            <Box
-                                                sx={{
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    gap: 2,
-                                                }}
-                                            >
-                                                <TextField
-                                                    fullWidth
-                                                    label="SSN Last 4 Digits"
-                                                    value={formData.representative_ssn_last_4}
-                                                    onChange={e =>
-                                                        handleInputChange(
-                                                            'representative_ssn_last_4',
-                                                            e.target.value.replace(/\D/g, '')
-                                                        )
-                                                    }
-                                                    placeholder="1234"
-                                                    inputProps={{ maxLength: 4 }}
-                                                    helperText="Last 4 digits of Social Security Number"
-                                                />
-                                                <TextField
-                                                    fullWidth
-                                                    label="Full SSN"
-                                                    value={formData.representative_id_number}
-                                                    onChange={e =>
-                                                        handleInputChange(
-                                                            'representative_id_number',
-                                                            e.target.value.replace(/\D/g, '')
-                                                        )
-                                                    }
-                                                    placeholder="123456789"
-                                                    inputProps={{ maxLength: 9 }}
-                                                    helperText="9-digit Social Security Number"
-                                                />
-                                            </Box>
                                         )}
                                     </Grid>
 
@@ -2568,6 +2746,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                                 owner_address_country:
                                                                     country || 'US',
                                                                 owner_relationship_owner: true,
+                                                                owner_relationship_director: false,
                                                                 owner_relationship_title: '',
                                                                 owner_ssn_last_4: '',
                                                                 owner_id_number: '',
@@ -2666,103 +2845,137 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         </Grid>
 
                                         <Grid size={{ xs: 12 }}>
-                                            <Box sx={{ mb: 2 }}>
-                                                <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                                                    Owner Social Security Number (SSN)
-                                                </Typography>
-                                                <ToggleButtonGroup
-                                                    value={ownerSsnType}
-                                                    exclusive
-                                                    onChange={(e, newValue) => {
-                                                        if (newValue !== null) {
-                                                            setOwnerSsnType(newValue);
-                                                            // Clear both fields when switching
-                                                            setFormData(prev => ({
-                                                                ...prev,
-                                                                owner_ssn_last_4: '',
-                                                                owner_id_number: '',
-                                                            }));
-                                                        }
-                                                    }}
-                                                    size="small"
-                                                    fullWidth
-                                                >
-                                                    <ToggleButton value="last4">
-                                                        Last 4 Digits
-                                                    </ToggleButton>
-                                                    <ToggleButton value="full">
-                                                        Full SSN
-                                                    </ToggleButton>
-                                                    <ToggleButton value="both">Both</ToggleButton>
-                                                </ToggleButtonGroup>
-                                            </Box>
-                                            {ownerSsnType === 'last4' ? (
+                                            {formData.owner_address_country === 'US' ? (
+                                                <>
+                                                    <Box sx={{ mb: 2 }}>
+                                                        <Typography
+                                                            variant="subtitle2"
+                                                            sx={{ mb: 1 }}
+                                                        >
+                                                            Social Security Number (SSN)
+                                                        </Typography>
+                                                        <ToggleButtonGroup
+                                                            value={ownerSsnType}
+                                                            exclusive
+                                                            onChange={(e, newValue) => {
+                                                                if (newValue !== null) {
+                                                                    setOwnerSsnType(newValue);
+                                                                    setFormData(prev => ({
+                                                                        ...prev,
+                                                                        owner_ssn_last_4: '',
+                                                                        owner_id_number: '',
+                                                                    }));
+                                                                }
+                                                            }}
+                                                            size="small"
+                                                            fullWidth
+                                                        >
+                                                            <ToggleButton value="last4">
+                                                                Last 4 Digits
+                                                            </ToggleButton>
+                                                            <ToggleButton value="full">
+                                                                Full SSN
+                                                            </ToggleButton>
+                                                            <ToggleButton value="both">
+                                                                Both
+                                                            </ToggleButton>
+                                                        </ToggleButtonGroup>
+                                                        {ownerSsnType === 'last4' ? (
+                                                            <TextField
+                                                                fullWidth
+                                                                label="SSN Last 4 Digits"
+                                                                value={formData.owner_ssn_last_4}
+                                                                onChange={e =>
+                                                                    handleInputChange(
+                                                                        'owner_ssn_last_4',
+                                                                        e.target.value.replace(
+                                                                            /\D/g,
+                                                                            ''
+                                                                        )
+                                                                    )
+                                                                }
+                                                                placeholder="1234"
+                                                                inputProps={{ maxLength: 4 }}
+                                                                helperText="Last 4 digits of Social Security Number (US only)"
+                                                            />
+                                                        ) : ownerSsnType === 'full' ? (
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Full SSN"
+                                                                value={formData.owner_id_number}
+                                                                onChange={e =>
+                                                                    handleInputChange(
+                                                                        'owner_id_number',
+                                                                        e.target.value.replace(
+                                                                            /\D/g,
+                                                                            ''
+                                                                        )
+                                                                    )
+                                                                }
+                                                                placeholder="123456789"
+                                                                inputProps={{ maxLength: 9 }}
+                                                                helperText="9-digit Social Security Number (US only)"
+                                                            />
+                                                        ) : (
+                                                            <Box
+                                                                sx={{
+                                                                    display: 'flex',
+                                                                    flexDirection: 'column',
+                                                                    gap: 2,
+                                                                }}
+                                                            >
+                                                                <TextField
+                                                                    fullWidth
+                                                                    label="SSN Last 4 Digits"
+                                                                    value={
+                                                                        formData.owner_ssn_last_4
+                                                                    }
+                                                                    onChange={e =>
+                                                                        handleInputChange(
+                                                                            'owner_ssn_last_4',
+                                                                            e.target.value.replace(
+                                                                                /\D/g,
+                                                                                ''
+                                                                            )
+                                                                        )
+                                                                    }
+                                                                    placeholder="1234"
+                                                                    inputProps={{ maxLength: 4 }}
+                                                                />
+                                                                <TextField
+                                                                    fullWidth
+                                                                    label="Full SSN"
+                                                                    value={formData.owner_id_number}
+                                                                    onChange={e =>
+                                                                        handleInputChange(
+                                                                            'owner_id_number',
+                                                                            e.target.value.replace(
+                                                                                /\D/g,
+                                                                                ''
+                                                                            )
+                                                                        )
+                                                                    }
+                                                                    placeholder="123456789"
+                                                                    inputProps={{ maxLength: 9 }}
+                                                                />
+                                                            </Box>
+                                                        )}
+                                                    </Box>
+                                                </>
+                                            ) : (
                                                 <TextField
                                                     fullWidth
-                                                    label="SSN Last 4 Digits"
-                                                    value={formData.owner_ssn_last_4}
-                                                    onChange={e =>
-                                                        handleInputChange(
-                                                            'owner_ssn_last_4',
-                                                            e.target.value.replace(/\D/g, '')
-                                                        )
-                                                    }
-                                                    placeholder="1234"
-                                                    inputProps={{ maxLength: 4 }}
-                                                    helperText="Last 4 digits of Social Security Number (US only)"
-                                                />
-                                            ) : ownerSsnType === 'full' ? (
-                                                <TextField
-                                                    fullWidth
-                                                    label="Full SSN"
+                                                    label="National ID Number"
                                                     value={formData.owner_id_number}
                                                     onChange={e =>
                                                         handleInputChange(
                                                             'owner_id_number',
-                                                            e.target.value.replace(/\D/g, '')
+                                                            e.target.value
                                                         )
                                                     }
-                                                    placeholder="123456789"
-                                                    inputProps={{ maxLength: 9 }}
-                                                    helperText="9-digit Social Security Number (US only)"
+                                                    placeholder="e.g., Swedish personnummer"
+                                                    helperText="Provide full national ID number"
                                                 />
-                                            ) : (
-                                                <Box
-                                                    sx={{
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        gap: 2,
-                                                    }}
-                                                >
-                                                    <TextField
-                                                        fullWidth
-                                                        label="SSN Last 4 Digits"
-                                                        value={formData.owner_ssn_last_4}
-                                                        onChange={e =>
-                                                            handleInputChange(
-                                                                'owner_ssn_last_4',
-                                                                e.target.value.replace(/\D/g, '')
-                                                            )
-                                                        }
-                                                        placeholder="1234"
-                                                        inputProps={{ maxLength: 4 }}
-                                                        helperText="Last 4 digits of Social Security Number"
-                                                    />
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Full SSN"
-                                                        value={formData.owner_id_number}
-                                                        onChange={e =>
-                                                            handleInputChange(
-                                                                'owner_id_number',
-                                                                e.target.value.replace(/\D/g, '')
-                                                            )
-                                                        }
-                                                        placeholder="123456789"
-                                                        inputProps={{ maxLength: 9 }}
-                                                        helperText="9-digit Social Security Number"
-                                                    />
-                                                </Box>
                                             )}
                                         </Grid>
 
@@ -3246,26 +3459,33 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             </FormControl>
                                         </Grid>
 
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="Routing Number"
-                                                value={formData.external_account_routing_number}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'external_account_routing_number',
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="110000000"
-                                                helperText="Bank routing number (US: 9 digits)"
-                                            />
-                                        </Grid>
+                                        {/* Routing number hidden for IBAN countries like SE */}
+                                        {formData.external_account_country !== 'SE' && (
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Routing Number"
+                                                    value={formData.external_account_routing_number}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'external_account_routing_number',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="110000000"
+                                                    helperText="Bank routing number (US: 9 digits)"
+                                                />
+                                            </Grid>
+                                        )}
 
                                         <Grid size={{ xs: 12, sm: 6 }}>
                                             <TextField
                                                 fullWidth
-                                                label="Account Number"
+                                                label={
+                                                    formData.external_account_country === 'SE'
+                                                        ? 'IBAN'
+                                                        : 'Account Number'
+                                                }
                                                 value={formData.external_account_account_number}
                                                 onChange={e =>
                                                     handleInputChange(
@@ -3273,10 +3493,39 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                         e.target.value
                                                     )
                                                 }
-                                                placeholder="000123456789"
-                                                helperText="Bank account number"
+                                                placeholder={
+                                                    formData.external_account_country === 'SE'
+                                                        ? 'SE.. (Swedish IBAN)'
+                                                        : '000123456789'
+                                                }
+                                                helperText={
+                                                    formData.external_account_country === 'SE'
+                                                        ? 'Swedish IBAN (no routing number required)'
+                                                        : 'Bank account number'
+                                                }
                                             />
                                         </Grid>
+
+                                        {formData.external_account_country === 'SE' && (
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Confirm IBAN"
+                                                    value={
+                                                        formData.external_account_account_number_confirm ||
+                                                        ''
+                                                    }
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'external_account_account_number_confirm',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="Re-enter IBAN"
+                                                    helperText="Re-enter IBAN to confirm"
+                                                />
+                                            </Grid>
+                                        )}
 
                                         <Grid size={{ xs: 12, sm: 6 }}>
                                             <TextField

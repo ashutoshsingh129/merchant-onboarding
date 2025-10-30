@@ -146,6 +146,7 @@ const MerchantOnboarding: React.FC = () => {
         { code: 'FR', name: 'France' },
         { code: 'ES', name: 'Spain' },
         { code: 'IT', name: 'Italy' },
+        { code: 'SE', name: 'Sweden' },
     ];
 
     const businessTypes = [

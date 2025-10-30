@@ -219,6 +219,7 @@ router.post("/direct-onboard", async (req, res) => {
       representative_address_country,
       representative_relationship_representative,
       representative_relationship_executive,
+      representative_relationship_director,
       representative_relationship_title,
       representative_ssn_last_4,
       representative_id_number,
@@ -236,6 +237,7 @@ router.post("/direct-onboard", async (req, res) => {
       owner_address_postal_code,
       owner_address_country,
       owner_relationship_owner,
+      owner_relationship_director,
       owner_relationship_title,
       owner_ssn_last_4,
       owner_id_number,
@@ -300,14 +302,10 @@ router.post("/direct-onboard", async (req, res) => {
         last_name: individual_last_name,
         email: individual_email,
         phone: individual_phone ? (() => {
-          let formatted = individual_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-          if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
-            formatted = '+' + formatted;
-          } else if (!formatted.startsWith('+1') && formatted.length === 10) {
-            formatted = '+1' + formatted;
-          }
-          // Only return if properly formatted
-          return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+          // Accept E.164-like format for any country: keep leading + and digits only
+          const cleaned = individual_phone.replace(/[^\d+]/g, '');
+          // Basic E.164 check: starts with + and at least 8 digits total
+          return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
         })() : undefined,
         dob: {
           day: individual_dob_day,
@@ -386,20 +384,10 @@ router.post("/direct-onboard", async (req, res) => {
 
       // Only add phone if representative_phone has a value
       if (representative_phone && representative_phone.trim() !== '') {
-        // Format US phone number for Stripe (E.164 format: +1XXXXXXXXXX)
-        let formattedPhone = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-        
-        // Ensure US phone number starts with +1
-        if (formattedPhone.startsWith('1') && !formattedPhone.startsWith('+1')) {
-          formattedPhone = '+' + formattedPhone;
-        } else if (!formattedPhone.startsWith('+1') && formattedPhone.length === 10) {
-          formattedPhone = '+1' + formattedPhone;
-        } else if (formattedPhone.startsWith('+1') && formattedPhone.length === 12) {
-          // Already properly formatted
-        }
-        
-        if (formattedPhone.startsWith('+1') && formattedPhone.length === 12) {
-          accountUpdateData.company.phone = formattedPhone;
+        // Accept E.164-like format for any country
+        const cleaned = representative_phone.replace(/[^\d+]/g, '');
+        if (cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8) {
+          accountUpdateData.company.phone = cleaned;
         }
       }
 
@@ -446,14 +434,8 @@ router.post("/direct-onboard", async (req, res) => {
           last_name: representative_last_name,
           email: representative_email,
           phone: representative_phone ? (() => {
-            let formatted = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-            if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
-              formatted = '+' + formatted;
-            } else if (!formatted.startsWith('+1') && formatted.length === 10) {
-              formatted = '+1' + formatted;
-            }
-            // Only return if properly formatted
-            return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+            const cleaned = representative_phone.replace(/[^\d+]/g, '');
+            return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
           })() : undefined,
           dob: {
             day: representative_dob_day,
@@ -470,6 +452,7 @@ router.post("/direct-onboard", async (req, res) => {
           relationship: {
             representative: representative_relationship_representative,
             executive: representative_relationship_executive,
+            director: !!representative_relationship_director,
             owner: isRepresentativeAlsoOwner,
             title: representative_relationship_title,
           },
@@ -518,14 +501,8 @@ router.post("/direct-onboard", async (req, res) => {
           last_name: representative_last_name,
           email: representative_email,
           phone: representative_phone ? (() => {
-            let formatted = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-            if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
-              formatted = '+' + formatted;
-            } else if (!formatted.startsWith('+1') && formatted.length === 10) {
-              formatted = '+1' + formatted;
-            }
-            // Only return if properly formatted
-            return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+            const cleaned = representative_phone.replace(/[^\d+]/g, '');
+            return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
           })() : undefined,
           dob: {
             day: representative_dob_day,
@@ -542,6 +519,7 @@ router.post("/direct-onboard", async (req, res) => {
           relationship: {
             representative: representative_relationship_representative,
             executive: representative_relationship_executive,
+            director: !!representative_relationship_director,
             owner: isRepresentativeAlsoOwner,
             title: representative_relationship_title,
           },
@@ -607,14 +585,8 @@ router.post("/direct-onboard", async (req, res) => {
             last_name: owner_last_name,
             email: owner_email,
             phone: owner_phone ? (() => {
-              let formatted = owner_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-              if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
-                formatted = '+' + formatted;
-              } else if (!formatted.startsWith('+1') && formatted.length === 10) {
-                formatted = '+1' + formatted;
-              }
-              // Only return if properly formatted
-              return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+              const cleaned = owner_phone.replace(/[^\d+]/g, '');
+              return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
             })() : undefined,
             dob: {
               day: owner_dob_day,
@@ -630,6 +602,7 @@ router.post("/direct-onboard", async (req, res) => {
             },
             relationship: {
               owner: owner_relationship_owner,
+              director: !!owner_relationship_director,
               title: owner_relationship_title,
             },
           };
@@ -677,14 +650,8 @@ router.post("/direct-onboard", async (req, res) => {
             last_name: owner_last_name,
             email: owner_email,
             phone: owner_phone ? (() => {
-              let formatted = owner_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-              if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
-                formatted = '+' + formatted;
-              } else if (!formatted.startsWith('+1') && formatted.length === 10) {
-                formatted = '+1' + formatted;
-              }
-              // Only return if properly formatted
-              return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+              const cleaned = owner_phone.replace(/[^\d+]/g, '');
+              return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
             })() : undefined,
             dob: {
               day: owner_dob_day,
@@ -700,6 +667,7 @@ router.post("/direct-onboard", async (req, res) => {
             },
             relationship: {
               owner: owner_relationship_owner,
+              director: !!owner_relationship_director,
               title: owner_relationship_title,
             },
           };
@@ -775,20 +743,10 @@ router.post("/direct-onboard", async (req, res) => {
 
       // Only add phone if representative_phone has a value
       if (representative_phone && representative_phone.trim() !== '') {
-        // Format US phone number for Stripe (E.164 format: +1XXXXXXXXXX)
-        let formattedPhone = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-        
-        // Ensure US phone number starts with +1
-        if (formattedPhone.startsWith('1') && !formattedPhone.startsWith('+1')) {
-          formattedPhone = '+' + formattedPhone;
-        } else if (!formattedPhone.startsWith('+1') && formattedPhone.length === 10) {
-          formattedPhone = '+1' + formattedPhone;
-        } else if (formattedPhone.startsWith('+1') && formattedPhone.length === 12) {
-          // Already properly formatted
-        }
-        
-        if (formattedPhone.startsWith('+1') && formattedPhone.length === 12) {
-          accountUpdateData.company.phone = formattedPhone;
+        // Accept E.164-like format for any country
+        const cleaned = representative_phone.replace(/[^\d+]/g, '');
+        if (cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8) {
+          accountUpdateData.company.phone = cleaned;
         }
       }
 
@@ -835,14 +793,8 @@ router.post("/direct-onboard", async (req, res) => {
           last_name: representative_last_name,
           email: representative_email,
           phone: representative_phone ? (() => {
-            let formatted = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-            if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
-              formatted = '+' + formatted;
-            } else if (!formatted.startsWith('+1') && formatted.length === 10) {
-              formatted = '+1' + formatted;
-            }
-            // Only return if properly formatted
-            return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+            const cleaned = representative_phone.replace(/[^\d+]/g, '');
+            return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
           })() : undefined,
           dob: {
             day: representative_dob_day,
@@ -859,6 +811,7 @@ router.post("/direct-onboard", async (req, res) => {
           relationship: {
             representative: representative_relationship_representative,
             executive: representative_relationship_executive,
+            director: !!representative_relationship_director,
             owner: isRepresentativeAlsoOwner,
             title: representative_relationship_title,
           },
@@ -907,14 +860,8 @@ router.post("/direct-onboard", async (req, res) => {
           last_name: representative_last_name,
           email: representative_email,
           phone: representative_phone ? (() => {
-            let formatted = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-            if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
-              formatted = '+' + formatted;
-            } else if (!formatted.startsWith('+1') && formatted.length === 10) {
-              formatted = '+1' + formatted;
-            }
-            // Only return if properly formatted
-            return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+            const cleaned = representative_phone.replace(/[^\d+]/g, '');
+            return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
           })() : undefined,
           dob: {
             day: representative_dob_day,
@@ -931,6 +878,7 @@ router.post("/direct-onboard", async (req, res) => {
           relationship: {
             representative: representative_relationship_representative,
             executive: representative_relationship_executive,
+            director: !!representative_relationship_director,
             owner: isRepresentativeAlsoOwner,
             title: representative_relationship_title,
           },
@@ -996,14 +944,8 @@ router.post("/direct-onboard", async (req, res) => {
             last_name: owner_last_name,
             email: owner_email,
             phone: owner_phone ? (() => {
-              let formatted = owner_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-              if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
-                formatted = '+' + formatted;
-              } else if (!formatted.startsWith('+1') && formatted.length === 10) {
-                formatted = '+1' + formatted;
-              }
-              // Only return if properly formatted
-              return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+              const cleaned = owner_phone.replace(/[^\d+]/g, '');
+              return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
             })() : undefined,
             dob: {
               day: owner_dob_day,
@@ -1019,6 +961,7 @@ router.post("/direct-onboard", async (req, res) => {
             },
             relationship: {
               owner: owner_relationship_owner,
+              director: !!owner_relationship_director,
               title: owner_relationship_title,
             },
           };
@@ -1066,14 +1009,8 @@ router.post("/direct-onboard", async (req, res) => {
             last_name: owner_last_name,
             email: owner_email,
             phone: owner_phone ? (() => {
-              let formatted = owner_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-              if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
-                formatted = '+' + formatted;
-              } else if (!formatted.startsWith('+1') && formatted.length === 10) {
-                formatted = '+1' + formatted;
-              }
-              // Only return if properly formatted
-              return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+              const cleaned = owner_phone.replace(/[^\d+]/g, '');
+              return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
             })() : undefined,
             dob: {
               day: owner_dob_day,
@@ -1089,6 +1026,7 @@ router.post("/direct-onboard", async (req, res) => {
             },
             relationship: {
               owner: owner_relationship_owner,
+              director: !!owner_relationship_director,
               title: owner_relationship_title,
             },
           };
@@ -1164,20 +1102,10 @@ router.post("/direct-onboard", async (req, res) => {
 
       // Only add phone if representative_phone has a value
       if (representative_phone && representative_phone.trim() !== '') {
-        // Format US phone number for Stripe (E.164 format: +1XXXXXXXXXX)
-        let formattedPhone = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-        
-        // Ensure US phone number starts with +1
-        if (formattedPhone.startsWith('1') && !formattedPhone.startsWith('+1')) {
-          formattedPhone = '+' + formattedPhone;
-        } else if (!formattedPhone.startsWith('+1') && formattedPhone.length === 10) {
-          formattedPhone = '+1' + formattedPhone;
-        } else if (formattedPhone.startsWith('+1') && formattedPhone.length === 12) {
-          // Already properly formatted
-        }
-        
-        if (formattedPhone.startsWith('+1') && formattedPhone.length === 12) {
-          accountUpdateData.company.phone = formattedPhone;
+        // Accept E.164-like format for any country
+        const cleaned = representative_phone.replace(/[^\d+]/g, '');
+        if (cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8) {
+          accountUpdateData.company.phone = cleaned;
         }
       }
 
@@ -1224,14 +1152,8 @@ router.post("/direct-onboard", async (req, res) => {
           last_name: representative_last_name,
           email: representative_email,
           phone: representative_phone ? (() => {
-            let formatted = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-            if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
-              formatted = '+' + formatted;
-            } else if (!formatted.startsWith('+1') && formatted.length === 10) {
-              formatted = '+1' + formatted;
-            }
-            // Only return if properly formatted
-            return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+            const cleaned = representative_phone.replace(/[^\d+]/g, '');
+            return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
           })() : undefined,
           dob: {
             day: representative_dob_day,
@@ -1248,6 +1170,7 @@ router.post("/direct-onboard", async (req, res) => {
           relationship: {
             representative: true,
             executive: representative_relationship_executive || false,
+            director: !!representative_relationship_director,
             title: representative_relationship_title,
             owner: isRepresentativeAlsoOwner,
           },
@@ -1296,14 +1219,8 @@ router.post("/direct-onboard", async (req, res) => {
           last_name: representative_last_name,
           email: representative_email,
           phone: representative_phone ? (() => {
-            let formatted = representative_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-            if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
-              formatted = '+' + formatted;
-            } else if (!formatted.startsWith('+1') && formatted.length === 10) {
-              formatted = '+1' + formatted;
-            }
-            // Only return if properly formatted
-            return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+            const cleaned = representative_phone.replace(/[^\d+]/g, '');
+            return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
           })() : undefined,
           dob: {
             day: representative_dob_day,
@@ -1320,6 +1237,7 @@ router.post("/direct-onboard", async (req, res) => {
           relationship: {
             representative: true,
             executive: representative_relationship_executive || false,
+            director: !!representative_relationship_director,
             title: representative_relationship_title,
             owner: isRepresentativeAlsoOwner,
           },
@@ -1384,14 +1302,8 @@ router.post("/direct-onboard", async (req, res) => {
             last_name: owner_last_name,
             email: owner_email,
             phone: owner_phone ? (() => {
-              let formatted = owner_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-              if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
-                formatted = '+' + formatted;
-              } else if (!formatted.startsWith('+1') && formatted.length === 10) {
-                formatted = '+1' + formatted;
-              }
-              // Only return if properly formatted
-              return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+              const cleaned = owner_phone.replace(/[^\d+]/g, '');
+              return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
             })() : undefined,
             dob: {
               day: owner_dob_day,
@@ -1407,6 +1319,7 @@ router.post("/direct-onboard", async (req, res) => {
             },
             relationship: {
               owner: true,
+              director: !!owner_relationship_director,
               title: owner_relationship_title,
             },
           };
@@ -1454,14 +1367,8 @@ router.post("/direct-onboard", async (req, res) => {
             last_name: owner_last_name,
             email: owner_email,
             phone: owner_phone ? (() => {
-              let formatted = owner_phone.replace(/[^\d+]/g, ''); // Remove all non-digit characters except +
-              if (formatted.startsWith('1') && !formatted.startsWith('+1')) {
-                formatted = '+' + formatted;
-              } else if (!formatted.startsWith('+1') && formatted.length === 10) {
-                formatted = '+1' + formatted;
-              }
-              // Only return if properly formatted
-              return (formatted.startsWith('+1') && formatted.length === 12) ? formatted : undefined;
+              const cleaned = owner_phone.replace(/[^\d+]/g, '');
+              return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
             })() : undefined,
             dob: {
               day: owner_dob_day,
@@ -1477,6 +1384,7 @@ router.post("/direct-onboard", async (req, res) => {
             },
             relationship: {
               owner: true,
+              director: !!owner_relationship_director,
               title: owner_relationship_title,
             },
           };
@@ -1542,7 +1450,7 @@ router.post("/direct-onboard", async (req, res) => {
             const bankAccountData = {
               object: 'bank_account',
               country: external_account_country,
-              currency: external_account_currency,
+              currency: (external_account_country === 'SE') ? 'sek' : external_account_currency,
               account_number: external_account_account_number,
             };
             
