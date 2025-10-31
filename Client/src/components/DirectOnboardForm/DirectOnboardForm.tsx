@@ -67,6 +67,9 @@ interface DirectOnboardFormData {
     company_address_state: string;
     company_address_postal_code: string;
     company_address_country: string;
+    // Company confirmations
+    company_directors_provided?: boolean;
+    company_executives_provided?: boolean;
     // ToS Acceptance
     tos_acceptance_date: number;
     tos_acceptance_ip: string;
@@ -137,6 +140,42 @@ interface DirectOnboardFormData {
     owner_verification_document_back?: string;
     owner_verification_additional_document_front?: string;
     owner_verification_additional_document_back?: string;
+    // Additional directors (optional)
+    directors?: Array<{
+        first_name: string;
+        last_name: string;
+        email?: string;
+        phone?: string;
+        dob_day?: number;
+        dob_month?: number;
+        dob_year?: number;
+        address_line1?: string;
+        address_city?: string;
+        address_state?: string;
+        address_postal_code?: string;
+        address_country?: string;
+        relationship_title?: string;
+        id_number?: string;
+        ssn_last_4?: string;
+    }>;
+    // Additional executives (optional)
+    executives?: Array<{
+        first_name: string;
+        last_name: string;
+        email?: string;
+        phone?: string;
+        dob_day?: number;
+        dob_month?: number;
+        dob_year?: number;
+        address_line1?: string;
+        address_city?: string;
+        address_state?: string;
+        address_postal_code?: string;
+        address_country?: string;
+        relationship_title?: string;
+        id_number?: string;
+        ssn_last_4?: string;
+    }>;
 }
 
 interface DirectOnboardFormProps {
@@ -198,6 +237,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         company_address_state: '',
         company_address_postal_code: '',
         company_address_country: country || 'US',
+        company_directors_provided: false,
+        company_executives_provided: false,
         // ToS Acceptance
         tos_acceptance_date: Math.floor(Date.now() / 1000),
         tos_acceptance_ip: detectedIP || '',
@@ -253,6 +294,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         owner_relationship_title: '',
         owner_ssn_last_4: '',
         owner_id_number: '',
+        directors: [],
+        executives: [],
     });
 
     const [loading, setLoading] = useState(false);
@@ -503,6 +546,20 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         });
     };
 
+    // Derived role presence for validations
+    const hasAtLeastOneDirectorPerson =
+        !!formData.representative_relationship_director ||
+        !!formData.owner_relationship_director ||
+        (Array.isArray(formData.directors)
+            ? formData.directors.some(d => !!(d.first_name?.trim() || d.last_name?.trim()))
+            : false);
+
+    const hasAtLeastOneExecutivePerson =
+        !!formData.representative_relationship_executive ||
+        (Array.isArray(formData.executives)
+            ? formData.executives.some(e => !!(e.first_name?.trim() || e.last_name?.trim()))
+            : false);
+
     const handleFileUpload = async (
         file: File,
         type:
@@ -567,6 +624,96 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         }
     };
 
+    // Directors helpers
+    const addDirector = () => {
+        setFormData(prev => ({
+            ...prev,
+            directors: [
+                ...(prev.directors || []),
+                {
+                    first_name: '',
+                    last_name: '',
+                    email: '',
+                    phone: '',
+                    dob_day: 1,
+                    dob_month: 1,
+                    dob_year: 1990,
+                    address_line1: '',
+                    address_city: '',
+                    address_state: '',
+                    address_postal_code: '',
+                    address_country: prev.company_address_country || 'US',
+                    relationship_title: '',
+                    id_number: '',
+                    ssn_last_4: '',
+                },
+            ],
+        }));
+    };
+
+    const updateDirectorField = (index: number, field: string, value: any) => {
+        setFormData(prev => {
+            const next = { ...(prev as any) } as DirectOnboardFormData;
+            const arr = [...(next.directors || [])];
+            arr[index] = { ...(arr[index] as any), [field]: value } as any;
+            next.directors = arr as any;
+            return next;
+        });
+    };
+
+    const removeDirector = (index: number) => {
+        setFormData(prev => {
+            const next = { ...(prev as any) } as DirectOnboardFormData;
+            next.directors = (next.directors || []).filter((_, i) => i !== index);
+            return next;
+        });
+    };
+
+    // Executives helpers
+    const addExecutive = () => {
+        setFormData(prev => ({
+            ...prev,
+            executives: [
+                ...(prev.executives || []),
+                {
+                    first_name: '',
+                    last_name: '',
+                    email: '',
+                    phone: '',
+                    dob_day: 1,
+                    dob_month: 1,
+                    dob_year: 1990,
+                    address_line1: '',
+                    address_city: '',
+                    address_state: '',
+                    address_postal_code: '',
+                    address_country: prev.company_address_country || 'US',
+                    relationship_title: '',
+                    id_number: '',
+                    ssn_last_4: '',
+                },
+            ],
+        }));
+    };
+
+    const updateExecutiveField = (index: number, field: string, value: any) => {
+        setFormData(prev => {
+            const next = { ...(prev as any) } as DirectOnboardFormData;
+            const arr = [...(next.executives || [])];
+            arr[index] = { ...(arr[index] as any), [field]: value } as any;
+            next.executives = arr as any;
+            return next;
+        });
+    };
+
+    const removeExecutive = (index: number) => {
+        setFormData(prev => {
+            const next = { ...(prev as any) } as DirectOnboardFormData;
+            next.executives = (next.executives || []).filter((_, i) => i !== index);
+            return next;
+        });
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -590,9 +737,37 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
 
             // Prepare payload with appropriate SSN fields based on toggle state
             const payload: any = { ...formData };
+            // If not Sweden for company/non-profit, drop director/executive fields & flags
+            const isSeCompanyLike =
+                (formData.business_type === 'company' || formData.business_type === 'non_profit') &&
+                formData.company_address_country === 'SE';
+            if (!isSeCompanyLike) {
+                delete payload.company_directors_provided;
+                delete payload.company_executives_provided;
+                delete payload.directors;
+                delete payload.executives;
+                // Also ensure representative/owner role toggles don't accidentally set director/executive
+                // outside SE flows unless explicitly chosen elsewhere
+            }
 
             // Do not send confirm field to API
             delete payload.external_account_account_number_confirm;
+
+            // Company-level role completion consistency checks (stricter flow)
+            if (formData.company_directors_provided && !hasAtLeastOneDirectorPerson) {
+                setLoading(false);
+                setError(
+                    'At least one person must be marked as Director before confirming all directors are provided.'
+                );
+                return;
+            }
+            if (formData.company_executives_provided && !hasAtLeastOneExecutivePerson) {
+                setLoading(false);
+                setError(
+                    'At least one person must be marked as Executive before confirming all executives are provided.'
+                );
+                return;
+            }
 
             // Handle individual SSN
             if (individualSsnType === 'last4') {
@@ -619,6 +794,26 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                 formData.business_type === 'non_profit' ||
                 formData.business_type === 'government_entity'
             ) {
+                // Ensure directors array is cleaned up (only send non-empty entries)
+                if (Array.isArray(formData.directors)) {
+                    payload.directors = formData.directors.filter(director => {
+                        return (
+                            !!director &&
+                            (!!director.first_name?.trim() || !!director.last_name?.trim())
+                        );
+                    });
+                }
+
+                // Clean executives array
+                if (Array.isArray(formData.executives)) {
+                    payload.executives = formData.executives.filter(executive => {
+                        return (
+                            !!executive &&
+                            (!!executive.first_name?.trim() || !!executive.last_name?.trim())
+                        );
+                    });
+                }
+
                 if (representativeSsnType === 'last4') {
                     // Only send last 4 digits
                     if (formData.representative_ssn_last_4) {
@@ -1782,6 +1977,22 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                         } else if (
                                                             formData.business_type === 'company'
                                                         ) {
+                                                            // For Sweden company, restrict to supported structures
+                                                            if (
+                                                                formData.company_address_country ===
+                                                                'SE'
+                                                            ) {
+                                                                const allowedSe = [
+                                                                    'private_corporation',
+                                                                    'public_corporation',
+                                                                    'private_partnership',
+                                                                    'public_partnership',
+                                                                ];
+                                                                return allowedSe.includes(
+                                                                    structure.value
+                                                                );
+                                                            }
+                                                            // For other countries, exclude non-company-only structures
                                                             return ![
                                                                 'governmental_unit',
                                                                 'government_instrumentality',
@@ -3322,6 +3533,523 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                                         }
                                                     }}
                                                 />
+                                            </Button>
+                                        </Grid>
+                                    </>
+                                )}
+
+                            {/* Directors/Executives (Sweden only, Company/Non-profit) */}
+                            {(formData.business_type === 'company' ||
+                                formData.business_type === 'non_profit') &&
+                                formData.company_address_country === 'SE' && (
+                                    <>
+                                        <Grid size={{ xs: 12 }}>
+                                            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                                Directors
+                                            </Typography>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12 }}>
+                                            <FormControlLabel
+                                                control={
+                                                    <Checkbox
+                                                        checked={
+                                                            !!formData.company_directors_provided
+                                                        }
+                                                        onChange={e =>
+                                                            handleInputChange(
+                                                                'company_directors_provided',
+                                                                e.target.checked
+                                                            )
+                                                        }
+                                                        disabled={!hasAtLeastOneDirectorPerson}
+                                                    />
+                                                }
+                                                label="All directors have been provided"
+                                            />
+                                            {!hasAtLeastOneDirectorPerson && (
+                                                <Typography
+                                                    variant="caption"
+                                                    color="text.secondary"
+                                                >
+                                                    Add at least one Director (or mark the
+                                                    representative/owner as a Director) first.
+                                                </Typography>
+                                            )}
+                                        </Grid>
+
+                                        {(formData.directors || []).map((d, idx) => (
+                                            <Grid key={idx} size={{ xs: 12 }}>
+                                                <Box
+                                                    sx={{
+                                                        p: 2,
+                                                        border: '1px solid #e0e0e0',
+                                                        borderRadius: 1,
+                                                        mb: 2,
+                                                    }}
+                                                >
+                                                    <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                                                        Director #{idx + 1}
+                                                    </Typography>
+                                                    <Grid container spacing={2}>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="First Name"
+                                                                value={d.first_name}
+                                                                onChange={e =>
+                                                                    updateDirectorField(
+                                                                        idx,
+                                                                        'first_name',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Last Name"
+                                                                value={d.last_name}
+                                                                onChange={e =>
+                                                                    updateDirectorField(
+                                                                        idx,
+                                                                        'last_name',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Email"
+                                                                type="email"
+                                                                value={d.email || ''}
+                                                                onChange={e =>
+                                                                    updateDirectorField(
+                                                                        idx,
+                                                                        'email',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Job Title"
+                                                                value={d.relationship_title || ''}
+                                                                onChange={e =>
+                                                                    updateDirectorField(
+                                                                        idx,
+                                                                        'relationship_title',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 4 }}>
+                                                            <FormControl fullWidth>
+                                                                <InputLabel>Birth Month</InputLabel>
+                                                                <Select
+                                                                    label="Birth Month"
+                                                                    value={d.dob_month || 1}
+                                                                    onChange={e =>
+                                                                        updateDirectorField(
+                                                                            idx,
+                                                                            'dob_month',
+                                                                            Number(e.target.value)
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    {months.map(m => (
+                                                                        <MenuItem
+                                                                            key={m.value}
+                                                                            value={m.value}
+                                                                        >
+                                                                            {m.name}
+                                                                        </MenuItem>
+                                                                    ))}
+                                                                </Select>
+                                                            </FormControl>
+                                                        </Grid>
+                                                        <Grid size={{ xs: 6, sm: 4 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Birth Day"
+                                                                type="number"
+                                                                value={d.dob_day || 1}
+                                                                onChange={e =>
+                                                                    updateDirectorField(
+                                                                        idx,
+                                                                        'dob_day',
+                                                                        Number(e.target.value)
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 6, sm: 4 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Birth Year"
+                                                                type="number"
+                                                                value={d.dob_year || 1990}
+                                                                onChange={e =>
+                                                                    updateDirectorField(
+                                                                        idx,
+                                                                        'dob_year',
+                                                                        Number(e.target.value)
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Address Line 1"
+                                                                value={d.address_line1 || ''}
+                                                                onChange={e =>
+                                                                    updateDirectorField(
+                                                                        idx,
+                                                                        'address_line1',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="City"
+                                                                value={d.address_city || ''}
+                                                                onChange={e =>
+                                                                    updateDirectorField(
+                                                                        idx,
+                                                                        'address_city',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Postal Code"
+                                                                value={d.address_postal_code || ''}
+                                                                onChange={e =>
+                                                                    updateDirectorField(
+                                                                        idx,
+                                                                        'address_postal_code',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <FormControl fullWidth>
+                                                                <InputLabel>Country</InputLabel>
+                                                                <Select
+                                                                    label="Country"
+                                                                    value={
+                                                                        d.address_country ||
+                                                                        country ||
+                                                                        'US'
+                                                                    }
+                                                                    onChange={e =>
+                                                                        updateDirectorField(
+                                                                            idx,
+                                                                            'address_country',
+                                                                            String(e.target.value)
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    {countries.map(c => (
+                                                                        <MenuItem
+                                                                            key={c.code}
+                                                                            value={c.code}
+                                                                        >
+                                                                            {c.name}
+                                                                        </MenuItem>
+                                                                    ))}
+                                                                </Select>
+                                                            </FormControl>
+                                                        </Grid>
+
+                                                        <Grid size={{ xs: 12 }}>
+                                                            <Button
+                                                                variant="outlined"
+                                                                color="error"
+                                                                onClick={() => removeDirector(idx)}
+                                                                startIcon={<CloseIcon />}
+                                                            >
+                                                                Remove Director
+                                                            </Button>
+                                                        </Grid>
+                                                    </Grid>
+                                                </Box>
+                                            </Grid>
+                                        ))}
+
+                                        <Grid size={{ xs: 12 }}>
+                                            <Button variant="outlined" onClick={addDirector}>
+                                                Add Director
+                                            </Button>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12 }}>
+                                            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                                Executives
+                                            </Typography>
+                                        </Grid>
+
+                                        {(formData.executives || []).map((ex, idx) => (
+                                            <Grid key={idx} size={{ xs: 12 }}>
+                                                <Box
+                                                    sx={{
+                                                        p: 2,
+                                                        border: '1px solid #e0e0e0',
+                                                        borderRadius: 1,
+                                                        mb: 2,
+                                                    }}
+                                                >
+                                                    <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                                                        Executive #{idx + 1}
+                                                    </Typography>
+                                                    <Grid container spacing={2}>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="First Name"
+                                                                value={ex.first_name}
+                                                                onChange={e =>
+                                                                    updateExecutiveField(
+                                                                        idx,
+                                                                        'first_name',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Last Name"
+                                                                value={ex.last_name}
+                                                                onChange={e =>
+                                                                    updateExecutiveField(
+                                                                        idx,
+                                                                        'last_name',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Email"
+                                                                type="email"
+                                                                value={ex.email || ''}
+                                                                onChange={e =>
+                                                                    updateExecutiveField(
+                                                                        idx,
+                                                                        'email',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Job Title"
+                                                                value={ex.relationship_title || ''}
+                                                                onChange={e =>
+                                                                    updateExecutiveField(
+                                                                        idx,
+                                                                        'relationship_title',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 4 }}>
+                                                            <FormControl fullWidth>
+                                                                <InputLabel>Birth Month</InputLabel>
+                                                                <Select
+                                                                    label="Birth Month"
+                                                                    value={ex.dob_month || 1}
+                                                                    onChange={e =>
+                                                                        updateExecutiveField(
+                                                                            idx,
+                                                                            'dob_month',
+                                                                            Number(e.target.value)
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    {months.map(m => (
+                                                                        <MenuItem
+                                                                            key={m.value}
+                                                                            value={m.value}
+                                                                        >
+                                                                            {m.name}
+                                                                        </MenuItem>
+                                                                    ))}
+                                                                </Select>
+                                                            </FormControl>
+                                                        </Grid>
+                                                        <Grid size={{ xs: 6, sm: 4 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Birth Day"
+                                                                type="number"
+                                                                value={ex.dob_day || 1}
+                                                                onChange={e =>
+                                                                    updateExecutiveField(
+                                                                        idx,
+                                                                        'dob_day',
+                                                                        Number(e.target.value)
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 6, sm: 4 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Birth Year"
+                                                                type="number"
+                                                                value={ex.dob_year || 1990}
+                                                                onChange={e =>
+                                                                    updateExecutiveField(
+                                                                        idx,
+                                                                        'dob_year',
+                                                                        Number(e.target.value)
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Address Line 1"
+                                                                value={ex.address_line1 || ''}
+                                                                onChange={e =>
+                                                                    updateExecutiveField(
+                                                                        idx,
+                                                                        'address_line1',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="City"
+                                                                value={ex.address_city || ''}
+                                                                onChange={e =>
+                                                                    updateExecutiveField(
+                                                                        idx,
+                                                                        'address_city',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <TextField
+                                                                fullWidth
+                                                                label="Postal Code"
+                                                                value={ex.address_postal_code || ''}
+                                                                onChange={e =>
+                                                                    updateExecutiveField(
+                                                                        idx,
+                                                                        'address_postal_code',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                        </Grid>
+                                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                                            <FormControl fullWidth>
+                                                                <InputLabel>Country</InputLabel>
+                                                                <Select
+                                                                    label="Country"
+                                                                    value={
+                                                                        ex.address_country ||
+                                                                        country ||
+                                                                        'US'
+                                                                    }
+                                                                    onChange={e =>
+                                                                        updateExecutiveField(
+                                                                            idx,
+                                                                            'address_country',
+                                                                            String(e.target.value)
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    {countries.map(c => (
+                                                                        <MenuItem
+                                                                            key={c.code}
+                                                                            value={c.code}
+                                                                        >
+                                                                            {c.name}
+                                                                        </MenuItem>
+                                                                    ))}
+                                                                </Select>
+                                                            </FormControl>
+                                                        </Grid>
+
+                                                        <Grid size={{ xs: 12 }}>
+                                                            <Button
+                                                                variant="outlined"
+                                                                color="error"
+                                                                onClick={() => removeExecutive(idx)}
+                                                                startIcon={<CloseIcon />}
+                                                            >
+                                                                Remove Executive
+                                                            </Button>
+                                                        </Grid>
+                                                    </Grid>
+                                                </Box>
+                                            </Grid>
+                                        ))}
+
+                                        <Grid size={{ xs: 12 }}>
+                                            <FormControlLabel
+                                                control={
+                                                    <Checkbox
+                                                        checked={
+                                                            !!formData.company_executives_provided
+                                                        }
+                                                        onChange={e =>
+                                                            handleInputChange(
+                                                                'company_executives_provided',
+                                                                e.target.checked
+                                                            )
+                                                        }
+                                                        disabled={!hasAtLeastOneExecutivePerson}
+                                                    />
+                                                }
+                                                label="All executives have been provided"
+                                            />
+                                            {!hasAtLeastOneExecutivePerson && (
+                                                <Typography
+                                                    variant="caption"
+                                                    color="text.secondary"
+                                                >
+                                                    Add at least one Executive (or mark the
+                                                    representative as an Executive) first.
+                                                </Typography>
+                                            )}
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12 }}>
+                                            <Button variant="outlined" onClick={addExecutive}>
+                                                Add Executive
                                             </Button>
                                         </Grid>
                                     </>

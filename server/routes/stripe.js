@@ -2,6 +2,8 @@ const express = require("express");
 const multer = require("multer");
 const fs = require("fs");
 const stripeKeysCache = require("../utils/stripeKeysCache");
+const { pool } = require("../config/database");
+const { decrypt } = require("../utils/encryption");
 const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
@@ -12,16 +14,56 @@ router.use(authenticateToken);
 // Configure multer for file uploads
 const upload = multer({ dest: "uploads/" });
 
-// Helper function to get Stripe instance with cached keys for specific user
+// Helper: ensure keys are present in cache, else load from DB
+const ensureKeysInCache = async (userId) => {
+    const keys = stripeKeysCache.getKeys(userId);
+    if (keys.secretKey) return keys;
+    // Attempt lazy load from DB
+    try {
+        const client = await pool.connect();
+        try {
+            const result = await client.query(
+                'SELECT secret_key, publishable_key FROM stripe_keys WHERE user_id = $1 AND is_active = true ORDER BY created_at DESC LIMIT 1',
+                [userId]
+            );
+            if (result.rows.length === 0) {
+                return { secretKey: null };
+            }
+            const decryptedSecretKey = decrypt(result.rows[0].secret_key);
+            stripeKeysCache.updateKeys(userId, decryptedSecretKey, result.rows[0].publishable_key);
+            return { secretKey: decryptedSecretKey };
+        } finally {
+            client.release();
+        }
+    } catch (e) {
+        return { secretKey: null };
+    }
+};
+
+// Helper function to get Stripe instance with cached keys for specific user (lazy-load from DB if needed)
 const getStripeInstance = (userId) => {
     const keys = stripeKeysCache.getKeys(userId);
-    
     if (!keys.secretKey) {
         throw new Error('No Stripe secret key available for this user. Please configure your Stripe keys first.');
     }
-    
     return require("stripe")(keys.secretKey);
 };
+
+// Middleware to auto-load keys into cache if missing
+router.use(async (req, res, next) => {
+    try {
+        const userId = req.user && req.user.id;
+        if (userId) {
+            const keys = stripeKeysCache.getKeys(userId);
+            if (!keys.secretKey) {
+                await ensureKeysInCache(userId);
+            }
+        }
+    } catch (e) {
+        // Non-fatal: proceed; downstream handlers will surface precise errors
+    }
+    next();
+});
 
 // Upload identity document to Stripe
 router.post("/upload-document", upload.single("file"), async (req, res) => {
@@ -204,6 +246,9 @@ router.post("/direct-onboard", async (req, res) => {
       company_address_state,
       company_address_postal_code,
       company_address_country,
+      // Company-level confirmations
+      company_directors_provided,
+      company_executives_provided,
       // Representative fields (for company business_type)
       representative_first_name,
       representative_last_name,
@@ -223,6 +268,8 @@ router.post("/direct-onboard", async (req, res) => {
       representative_relationship_title,
       representative_ssn_last_4,
       representative_id_number,
+      // Additional executives list (optional)
+      executives,
       // Owner fields (for company business_type)
       owner_first_name,
       owner_last_name,
@@ -269,6 +316,8 @@ router.post("/direct-onboard", async (req, res) => {
       external_account_exp_month,
       external_account_exp_year,
       external_account_cvc,
+      // Additional directors list (optional)
+      directors,
     } = req.body;
 
     // Validate required fields
@@ -373,6 +422,14 @@ router.post("/direct-onboard", async (req, res) => {
         structure: company_structure,
         owners_provided: true, // Indicates that all owner information has been provided
       };
+
+      // Mark directors provided if indicated or if we will create director persons
+      if (company_directors_provided === true) {
+        accountUpdateData.company.directors_provided = true;
+      }
+      if (company_executives_provided === true) {
+        accountUpdateData.company.executives_provided = true;
+      }
 
       // Only add tax_id if it's a valid 9-digit number
       if (company_tax_id && company_tax_id.trim() !== '') {
@@ -563,6 +620,89 @@ router.post("/direct-onboard", async (req, res) => {
         representativePerson = await stripe.accounts.createPerson(account_id, representativeData);
       }
 
+
+      // Create/update any additional directors provided in payload
+      if (Array.isArray(directors) && directors.length > 0) {
+        for (const d of directors) {
+          try {
+            const directorData = {
+              first_name: d.first_name,
+              last_name: d.last_name,
+              email: d.email,
+              phone: d.phone ? (() => {
+                const cleaned = String(d.phone).replace(/[^\d+]/g, '');
+                return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
+              })() : undefined,
+              dob: d.dob_day && d.dob_month && d.dob_year ? {
+                day: d.dob_day,
+                month: d.dob_month,
+                year: d.dob_year,
+              } : undefined,
+              address: d.address_line1 ? {
+                line1: d.address_line1,
+                city: d.address_city,
+                state: d.address_state,
+                postal_code: d.address_postal_code,
+                country: d.address_country,
+              } : undefined,
+              relationship: {
+                director: true,
+                title: d.relationship_title,
+              },
+            };
+
+            if (d.id_number) directorData.id_number = d.id_number;
+            if (d.ssn_last_4) directorData.ssn_last_4 = d.ssn_last_4;
+
+            await stripe.accounts.createPerson(account_id, directorData);
+          } catch (e) {
+            // Continue with other directors even if one fails
+          }
+        }
+        // If any directors were provided, mark directors_provided on company update
+        accountUpdateData.company.directors_provided = true;
+      }
+
+      // Create/update any additional executives provided in payload
+      if (Array.isArray(executives) && executives.length > 0) {
+        for (const ex of executives) {
+          try {
+            const executiveData = {
+              first_name: ex.first_name,
+              last_name: ex.last_name,
+              email: ex.email,
+              phone: ex.phone ? (() => {
+                const cleaned = String(ex.phone).replace(/[^\d+]/g, '');
+                return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
+              })() : undefined,
+              dob: ex.dob_day && ex.dob_month && ex.dob_year ? {
+                day: ex.dob_day,
+                month: ex.dob_month,
+                year: ex.dob_year,
+              } : undefined,
+              address: ex.address_line1 ? {
+                line1: ex.address_line1,
+                city: ex.address_city,
+                state: ex.address_state,
+                postal_code: ex.address_postal_code,
+                country: ex.address_country,
+              } : undefined,
+              relationship: {
+                executive: true,
+                title: ex.relationship_title,
+              },
+            };
+
+            if (ex.id_number) executiveData.id_number = ex.id_number;
+            if (ex.ssn_last_4) executiveData.ssn_last_4 = ex.ssn_last_4;
+
+            await stripe.accounts.createPerson(account_id, executiveData);
+          } catch (e) {
+            // continue
+          }
+        }
+      }
+
       // Handle owner person separately if owner details are provided
       // Check if owner_first_name is provided to determine if we should create/update owner
       if (owner_first_name && owner_first_name.trim() !== '') {
@@ -732,6 +872,13 @@ router.post("/direct-onboard", async (req, res) => {
         structure: company_structure,
         owners_provided: true, // Indicates that all owner information has been provided
       };
+
+      if (company_directors_provided === true) {
+        accountUpdateData.company.directors_provided = true;
+      }
+      if (company_executives_provided === true) {
+        accountUpdateData.company.executives_provided = true;
+      }
 
       // Only add tax_id if it's a valid 9-digit number
       if (company_tax_id && company_tax_id.trim() !== '') {
@@ -920,6 +1067,88 @@ router.post("/direct-onboard", async (req, res) => {
         }
 
         representativePerson = await stripe.accounts.createPerson(account_id, representativeData);
+      }
+
+
+      // Create/update any additional directors provided in payload
+      if (Array.isArray(directors) && directors.length > 0) {
+        for (const d of directors) {
+          try {
+            const directorData = {
+              first_name: d.first_name,
+              last_name: d.last_name,
+              email: d.email,
+              phone: d.phone ? (() => {
+                const cleaned = String(d.phone).replace(/[^\d+]/g, '');
+                return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
+              })() : undefined,
+              dob: d.dob_day && d.dob_month && d.dob_year ? {
+                day: d.dob_day,
+                month: d.dob_month,
+                year: d.dob_year,
+              } : undefined,
+              address: d.address_line1 ? {
+                line1: d.address_line1,
+                city: d.address_city,
+                state: d.address_state,
+                postal_code: d.address_postal_code,
+                country: d.address_country,
+              } : undefined,
+              relationship: {
+                director: true,
+                title: d.relationship_title,
+              },
+            };
+
+            if (d.id_number) directorData.id_number = d.id_number;
+            if (d.ssn_last_4) directorData.ssn_last_4 = d.ssn_last_4;
+
+            await stripe.accounts.createPerson(account_id, directorData);
+          } catch (e) {
+            // Continue with other directors even if one fails
+          }
+        }
+        accountUpdateData.company.directors_provided = true;
+      }
+
+      // Create/update any additional executives provided in payload
+      if (Array.isArray(executives) && executives.length > 0) {
+        for (const ex of executives) {
+          try {
+            const executiveData = {
+              first_name: ex.first_name,
+              last_name: ex.last_name,
+              email: ex.email,
+              phone: ex.phone ? (() => {
+                const cleaned = String(ex.phone).replace(/[^\d+]/g, '');
+                return cleaned.startsWith('+') && cleaned.replace(/\D/g, '').length >= 8 ? cleaned : undefined;
+              })() : undefined,
+              dob: ex.dob_day && ex.dob_month && ex.dob_year ? {
+                day: ex.dob_day,
+                month: ex.dob_month,
+                year: ex.dob_year,
+              } : undefined,
+              address: ex.address_line1 ? {
+                line1: ex.address_line1,
+                city: ex.address_city,
+                state: ex.address_state,
+                postal_code: ex.address_postal_code,
+                country: ex.address_country,
+              } : undefined,
+              relationship: {
+                executive: true,
+                title: ex.relationship_title,
+              },
+            };
+
+            if (ex.id_number) executiveData.id_number = ex.id_number;
+            if (ex.ssn_last_4) executiveData.ssn_last_4 = ex.ssn_last_4;
+
+            await stripe.accounts.createPerson(account_id, executiveData);
+          } catch (e) {
+            // continue
+          }
+        }
       }
 
       // Handle owner person separately if owner details are provided

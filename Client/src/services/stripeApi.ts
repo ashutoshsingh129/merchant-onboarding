@@ -193,6 +193,9 @@ interface DirectOnboardRequest {
     company_address_state: string;
     company_address_postal_code: string;
     company_address_country: string;
+    // Company confirmations
+    company_directors_provided?: boolean;
+    company_executives_provided?: boolean;
     // Representative fields (for company business_type)
     representative_first_name: string;
     representative_last_name: string;
@@ -211,6 +214,7 @@ interface DirectOnboardRequest {
     representative_relationship_title: string;
     representative_ssn_last_4?: string;
     representative_id_number?: string;
+    representative_relationship_director?: boolean;
     // Owner fields (for company business_type)
     owner_first_name: string;
     owner_last_name: string;
@@ -228,6 +232,7 @@ interface DirectOnboardRequest {
     owner_relationship_title: string;
     owner_ssn_last_4?: string;
     owner_id_number?: string;
+    owner_relationship_director?: boolean;
     // External Account fields
     external_account_object: string;
     external_account_country: string;
@@ -257,6 +262,42 @@ interface DirectOnboardRequest {
     owner_verification_document_back?: string;
     owner_verification_additional_document_front?: string;
     owner_verification_additional_document_back?: string;
+    // Additional executives (optional)
+    executives?: Array<{
+        first_name: string;
+        last_name: string;
+        email?: string;
+        phone?: string;
+        dob_day?: number;
+        dob_month?: number;
+        dob_year?: number;
+        address_line1?: string;
+        address_city?: string;
+        address_state?: string;
+        address_postal_code?: string;
+        address_country?: string;
+        relationship_title?: string;
+        id_number?: string;
+        ssn_last_4?: string;
+    }>;
+    // Additional directors (optional)
+    directors?: Array<{
+        first_name: string;
+        last_name: string;
+        email?: string;
+        phone?: string;
+        dob_day?: number;
+        dob_month?: number;
+        dob_year?: number;
+        address_line1?: string;
+        address_city?: string;
+        address_state?: string;
+        address_postal_code?: string;
+        address_country?: string;
+        relationship_title?: string;
+        id_number?: string;
+        ssn_last_4?: string;
+    }>;
 }
 
 interface DirectOnboardResponse {

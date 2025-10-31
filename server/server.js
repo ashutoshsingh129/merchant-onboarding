@@ -27,12 +27,26 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 // Rate limiting
-const limiter = rateLimit({
+// 1) Global limiter with health/OPTIONS exemptions
+const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per window
   message: "Too many requests from this IP, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method === "OPTIONS" || req.path === "/api/health",
 });
-app.use(limiter);
+app.use(globalLimiter);
+
+// 2) Write-intensive API limiter (applied only to write routes under /api/stripe)
+const apiWriteLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window for bursts
+  max: 60, // allow up to 60 writes per minute per IP
+  message: "Write rate limit exceeded. Please slow down and try again shortly.",
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method === "GET" || req.method === "OPTIONS",
+});
 
 // CORS configuration
 const corsOptions = {
@@ -87,6 +101,14 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // Routes
 app.use("/api/auth", authRoutes);
+// Apply write limiter only to write calls under /api/stripe
+app.use("/api/stripe", (req, res, next) => {
+  if (req.method !== "GET" && req.method !== "OPTIONS") {
+    return apiWriteLimiter(req, res, next);
+  }
+  return next();
+});
+
 app.use("/api/stripe", authenticateToken, stripeRoutes);
 app.use("/api/stripe", authenticateToken, stripeKeysRoutes);
 
