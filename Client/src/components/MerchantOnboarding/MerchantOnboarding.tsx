@@ -149,12 +149,26 @@ const MerchantOnboarding: React.FC = () => {
         { code: 'SE', name: 'Sweden' },
     ];
 
-    const businessTypes = [
+    const baseBusinessTypes = [
         { value: 'individual', label: 'Individual' },
         { value: 'company', label: 'Company' },
         { value: 'non_profit', label: 'Non-profit' },
         { value: 'government_entity', label: 'Government Entity' },
     ];
+
+    const availableBusinessTypes =
+        formData.country === 'SE'
+            ? baseBusinessTypes.filter(type => type.value !== 'government_entity')
+            : baseBusinessTypes;
+
+    useEffect(() => {
+        if (formData.country === 'SE' && formData.business_type === 'government_entity') {
+            setFormData(prev => ({
+                ...prev,
+                business_type: 'company',
+            }));
+        }
+    }, [formData.country, formData.business_type, setFormData]);
 
     const handleInputChange = (field: string, value: any) => {
         if (field.startsWith('capabilities.')) {
@@ -282,7 +296,7 @@ const MerchantOnboarding: React.FC = () => {
                                             handleInputChange('business_type', e.target.value)
                                         }
                                     >
-                                        {businessTypes.map(type => (
+                                        {availableBusinessTypes.map(type => (
                                             <MenuItem key={type.value} value={type.value}>
                                                 {type.label}
                                             </MenuItem>
