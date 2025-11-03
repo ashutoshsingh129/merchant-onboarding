@@ -239,6 +239,7 @@ router.post("/direct-onboard", async (req, res) => {
       // Company fields (for company business_type)
       company_name,
       company_tax_id,
+      company_vat_id,
       company_organisation_number,
       company_structure,
       company_address_line1,
@@ -432,25 +433,50 @@ router.post("/direct-onboard", async (req, res) => {
         accountUpdateData.company.executives_provided = true;
       }
 
-      // Add tax_id - prefer company_tax_id, but use organisation_number if tax_id is not provided
-      // This ensures organisation number is always used when provided, preventing overdue requirements
-      let taxIdToUse = company_tax_id;
-      if (!taxIdToUse || taxIdToUse.trim() === '') {
-        taxIdToUse = company_organisation_number;
-      }
-
-      if (taxIdToUse && taxIdToUse.trim() !== '') {
-        if (company_address_country === 'SE') {
-          // Swedish format: SE followed by 12 digits
-          const upperTaxId = taxIdToUse.trim().toUpperCase();
-          if (upperTaxId.startsWith('SE') && upperTaxId.length === 14) {
-            const digits = upperTaxId.substring(2).replace(/\D/g, '');
+      // Handle tax_id and VAT_id based on country
+      // For Sweden: Use VAT ID and Organisation Number (organisation number goes to tax_id for verification)
+      // For other countries: Use tax_id
+      if (company_address_country === 'SE') {
+        // For Sweden: Send VAT ID to vat_id field
+        if (company_vat_id && company_vat_id.trim() !== '') {
+          const upperVatId = company_vat_id.trim().toUpperCase();
+          // Swedish VAT ID format: SE followed by 12 digits
+          if (upperVatId.startsWith('SE') && upperVatId.length === 14) {
+            const digits = upperVatId.substring(2).replace(/\D/g, '');
             if (digits.length === 12) {
-              accountUpdateData.company.tax_id = upperTaxId;
+              accountUpdateData.company.vat_id = upperVatId;
+            }
+          } else {
+            // If not in SE format, try to parse and add SE prefix
+            const digits = upperVatId.replace(/\D/g, '');
+            if (digits.length === 12) {
+              accountUpdateData.company.vat_id = 'SE' + digits;
             }
           }
-        } else {
-          // For other countries: Accept tax_id with 8-12 digits (EIN is 9, but organisation numbers vary by country)
+        }
+        // For Sweden: Organisation Number should be sent in both registration_number and tax_id (required fields for verification)
+        if (company_organisation_number && company_organisation_number.trim() !== '') {
+          // Swedish organisation number format: Can be 10 or 12 digits (can be formatted with dash: 123456-7890 or 556123-4567)
+          // Remove all non-digit characters and dashes to get clean number
+          let orgNumber = company_organisation_number.replace(/[^\d]/g, ''); // Remove all non-digit characters
+          
+          // Swedish org numbers are typically 10 digits (YYYYMMDD-XXXX format) or 12 digits
+          // If it's 10 digits, that's valid. If it's 12, that's also valid.
+          if (orgNumber.length === 10 || orgNumber.length === 12) {
+            // Send organisation number to both registration_number and tax_id for Sweden (Stripe requirement)
+            // Both should be just the digits (no SE prefix)
+            accountUpdateData.company.registration_number = orgNumber;
+            accountUpdateData.company.tax_id = orgNumber;
+          }
+        }
+      } else {
+        // For other countries: Use tax_id
+        let taxIdToUse = company_tax_id;
+        if (!taxIdToUse || taxIdToUse.trim() === '') {
+          taxIdToUse = company_organisation_number;
+        }
+        // Accept tax_id with 8-12 digits (EIN is 9, but organisation numbers vary by country)
+        if (taxIdToUse && taxIdToUse.trim() !== '') {
           const cleanTaxId = taxIdToUse.replace(/[^\d]/g, ''); // Remove all non-digit characters
           if (cleanTaxId.length >= 8 && cleanTaxId.length <= 12) {
             accountUpdateData.company.tax_id = cleanTaxId;
@@ -899,34 +925,51 @@ router.post("/direct-onboard", async (req, res) => {
         accountUpdateData.company.executives_provided = true;
       }
 
-      // Add tax_id - prefer company_tax_id, but use organisation_number if tax_id is not provided
-      // This ensures organisation number is always used when provided, preventing overdue requirements
-      let taxIdToUse = company_tax_id;
-      if (!taxIdToUse || taxIdToUse.trim() === '') {
-        taxIdToUse = company_organisation_number;
-      }
-
-      // Only add tax_id if it's valid
-      // For Sweden: SE + 12 digits (e.g., SE123456789012)
-      // For other countries: 8-12 digit number (varies by country)
-      if (taxIdToUse && taxIdToUse.trim() !== '') {
-        if (company_address_country === 'SE') {
-          // Swedish format: SE followed by 12 digits
-          const upperTaxId = taxIdToUse.trim().toUpperCase();
-          if (upperTaxId.startsWith('SE') && upperTaxId.length === 14) {
-            const digits = upperTaxId.substring(2).replace(/\D/g, '');
+      // Handle tax_id and VAT_id based on country
+      // For Sweden: Use VAT ID and Organisation Number (organisation number goes to tax_id for verification)
+      // For other countries: Use tax_id
+      if (company_address_country === 'SE') {
+        // For Sweden: Send VAT ID to vat_id field
+        if (company_vat_id && company_vat_id.trim() !== '') {
+          const upperVatId = company_vat_id.trim().toUpperCase();
+          // Swedish VAT ID format: SE followed by 12 digits
+          if (upperVatId.startsWith('SE') && upperVatId.length === 14) {
+            const digits = upperVatId.substring(2).replace(/\D/g, '');
             if (digits.length === 12) {
-              accountUpdateData.company.tax_id = upperTaxId;
+              accountUpdateData.company.vat_id = upperVatId;
             }
           } else {
-            // If not in SE format, try to parse as organisation number and add SE prefix
-            const digits = upperTaxId.replace(/\D/g, '');
+            // If not in SE format, try to parse and add SE prefix
+            const digits = upperVatId.replace(/\D/g, '');
             if (digits.length === 12) {
-              accountUpdateData.company.tax_id = 'SE' + digits;
+              accountUpdateData.company.vat_id = 'SE' + digits;
             }
           }
-        } else {
-          // For other countries: 8-12 digit number (varies by country)
+        }
+        // For Sweden: Organisation Number should be sent in both registration_number and tax_id (required fields for verification)
+        if (company_organisation_number && company_organisation_number.trim() !== '') {
+          // Swedish organisation number format: Can be 10 or 12 digits (can be formatted with dash: 123456-7890 or 556123-4567)
+          // Remove all non-digit characters and dashes to get clean number
+          let orgNumber = company_organisation_number.replace(/[^\d]/g, ''); // Remove all non-digit characters
+          
+          // Swedish org numbers are typically 10 digits (YYYYMMDD-XXXX format) or 12 digits
+          // If it's 10 digits, that's valid. If it's 12, that's also valid.
+          if (orgNumber.length === 10 || orgNumber.length === 12) {
+            // Send organisation number to both registration_number and tax_id for Sweden (Stripe requirement)
+            // Both should be just the digits (no SE prefix)
+            accountUpdateData.company.registration_number = orgNumber;
+            accountUpdateData.company.tax_id = orgNumber;
+          }
+        }
+      } else {
+        // For other countries: Use tax_id
+        let taxIdToUse = company_tax_id;
+        if (!taxIdToUse || taxIdToUse.trim() === '') {
+          taxIdToUse = company_organisation_number;
+        }
+        // Only add tax_id if it's valid
+        // For other countries: 8-12 digit number (varies by country)
+        if (taxIdToUse && taxIdToUse.trim() !== '') {
           const cleanTaxId = taxIdToUse.replace(/[^\d]/g, ''); // Remove all non-digit characters
           if (cleanTaxId.length >= 8 && cleanTaxId.length <= 12) {
             accountUpdateData.company.tax_id = cleanTaxId;
@@ -1367,34 +1410,51 @@ router.post("/direct-onboard", async (req, res) => {
         owners_provided: true, // Indicates that all owner information has been provided
       };
 
-      // Add tax_id - prefer company_tax_id, but use organisation_number if tax_id is not provided
-      // This ensures organisation number is always used when provided, preventing overdue requirements
-      let taxIdToUse = company_tax_id;
-      if (!taxIdToUse || taxIdToUse.trim() === '') {
-        taxIdToUse = company_organisation_number;
-      }
-
-      // Only add tax_id if it's valid
-      // For Sweden: SE + 12 digits (e.g., SE123456789012)
-      // For other countries: 8-12 digit number (varies by country)
-      if (taxIdToUse && taxIdToUse.trim() !== '') {
-        if (company_address_country === 'SE') {
-          // Swedish format: SE followed by 12 digits
-          const upperTaxId = taxIdToUse.trim().toUpperCase();
-          if (upperTaxId.startsWith('SE') && upperTaxId.length === 14) {
-            const digits = upperTaxId.substring(2).replace(/\D/g, '');
+      // Handle tax_id and VAT_id based on country
+      // For Sweden: Use VAT ID and Organisation Number (organisation number goes to tax_id for verification)
+      // For other countries: Use tax_id
+      if (company_address_country === 'SE') {
+        // For Sweden: Send VAT ID to vat_id field
+        if (company_vat_id && company_vat_id.trim() !== '') {
+          const upperVatId = company_vat_id.trim().toUpperCase();
+          // Swedish VAT ID format: SE followed by 12 digits
+          if (upperVatId.startsWith('SE') && upperVatId.length === 14) {
+            const digits = upperVatId.substring(2).replace(/\D/g, '');
             if (digits.length === 12) {
-              accountUpdateData.company.tax_id = upperTaxId;
+              accountUpdateData.company.vat_id = upperVatId;
             }
           } else {
-            // If not in SE format, try to parse as organisation number and add SE prefix
-            const digits = upperTaxId.replace(/\D/g, '');
+            // If not in SE format, try to parse and add SE prefix
+            const digits = upperVatId.replace(/\D/g, '');
             if (digits.length === 12) {
-              accountUpdateData.company.tax_id = 'SE' + digits;
+              accountUpdateData.company.vat_id = 'SE' + digits;
             }
           }
-        } else {
-          // For other countries: 8-12 digit number (varies by country)
+        }
+        // For Sweden: Organisation Number should be sent in both registration_number and tax_id (required fields for verification)
+        if (company_organisation_number && company_organisation_number.trim() !== '') {
+          // Swedish organisation number format: Can be 10 or 12 digits (can be formatted with dash: 123456-7890 or 556123-4567)
+          // Remove all non-digit characters and dashes to get clean number
+          let orgNumber = company_organisation_number.replace(/[^\d]/g, ''); // Remove all non-digit characters
+          
+          // Swedish org numbers are typically 10 digits (YYYYMMDD-XXXX format) or 12 digits
+          // If it's 10 digits, that's valid. If it's 12, that's also valid.
+          if (orgNumber.length === 10 || orgNumber.length === 12) {
+            // Send organisation number to both registration_number and tax_id for Sweden (Stripe requirement)
+            // Both should be just the digits (no SE prefix)
+            accountUpdateData.company.registration_number = orgNumber;
+            accountUpdateData.company.tax_id = orgNumber;
+          }
+        }
+      } else {
+        // For other countries: Use tax_id
+        let taxIdToUse = company_tax_id;
+        if (!taxIdToUse || taxIdToUse.trim() === '') {
+          taxIdToUse = company_organisation_number;
+        }
+        // Only add tax_id if it's valid
+        // For other countries: 8-12 digit number (varies by country)
+        if (taxIdToUse && taxIdToUse.trim() !== '') {
           const cleanTaxId = taxIdToUse.replace(/[^\d]/g, ''); // Remove all non-digit characters
           if (cleanTaxId.length >= 8 && cleanTaxId.length <= 12) {
             accountUpdateData.company.tax_id = cleanTaxId;

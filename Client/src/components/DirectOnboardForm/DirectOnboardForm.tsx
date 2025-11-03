@@ -70,6 +70,8 @@ interface DirectOnboardFormData {
     // Company fields (when business_type is 'company')
     company_name: string;
     company_tax_id: string;
+    company_vat_id?: string;
+    company_organisation_number?: string;
     company_structure: string;
     company_address_line1: string;
     company_address_line2: string;
@@ -240,6 +242,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         // Company fields
         company_name: '',
         company_tax_id: '',
+        company_vat_id: '',
+        company_organisation_number: '',
         company_structure: 'private_corporation',
         company_address_line1: '',
         company_address_line2: '',
@@ -1207,6 +1211,8 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         // Company fields
                         company_name: '',
                         company_tax_id: '',
+                        company_vat_id: '',
+                        company_organisation_number: '',
                         company_structure: 'private_corporation',
                         company_address_line1: '',
                         company_address_line2: '',
@@ -2234,18 +2240,80 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                         />
                                     </Grid>
 
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label={requiresSiren ? 'SIREN (9 digits)' : 'Tax ID'}
-                                            value={formData.company_tax_id}
-                                            onChange={e =>
-                                                handleInputChange('company_tax_id', e.target.value)
-                                            }
-                                            placeholder="12-3456789"
-                                            helperText="EIN or Tax Identification Number"
-                                        />
-                                    </Grid>
+                                    {/* Tax ID field - Not shown for Sweden (company/non-profit), use VAT ID instead */}
+                                    {!(
+                                        formData.company_address_country === 'SE' &&
+                                        (formData.business_type === 'company' ||
+                                            formData.business_type === 'non_profit')
+                                    ) && (
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <TextField
+                                                fullWidth
+                                                label={
+                                                    requiresSiren ? 'SIREN (9 digits)' : 'Tax ID'
+                                                }
+                                                value={formData.company_tax_id}
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'company_tax_id',
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="12-3456789"
+                                                helperText="EIN or Tax Identification Number"
+                                            />
+                                        </Grid>
+                                    )}
+
+                                    {/* VAT ID field for Sweden (Company and Non-profit only, not partnerships) */}
+                                    {formData.company_address_country === 'SE' &&
+                                        (formData.business_type === 'company' ||
+                                            formData.business_type === 'non_profit') &&
+                                        formData.company_structure !== 'private_partnership' &&
+                                        formData.company_structure !== 'public_partnership' && (
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="VAT ID"
+                                                    value={formData.company_vat_id || ''}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'company_vat_id',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="SE123456789012"
+                                                    helperText="Swedish VAT ID (must start with SE followed by 12 digits)"
+                                                    required
+                                                />
+                                            </Grid>
+                                        )}
+
+                                    {/* Organisation Number field for Sweden (Company and Non-profit only, not partnerships) */}
+                                    {formData.company_address_country === 'SE' &&
+                                        (formData.business_type === 'company' ||
+                                            formData.business_type === 'non_profit') &&
+                                        formData.company_structure !== 'private_partnership' &&
+                                        formData.company_structure !== 'public_partnership' && (
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Organisation Number"
+                                                    value={
+                                                        formData.company_organisation_number || ''
+                                                    }
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'company_organisation_number',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="123456-7890"
+                                                    helperText="Swedish Organisation Number (Organisationsnummer) - 12 digits"
+                                                    required
+                                                />
+                                            </Grid>
+                                        )}
 
                                     <Grid size={{ xs: 12, sm: 6 }}>
                                         <FormControl fullWidth>
