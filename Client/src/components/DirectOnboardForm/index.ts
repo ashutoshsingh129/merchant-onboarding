@@ -1,1 +1,2 @@
-export { default } from './DirectOnboardForm';
+import DirectOnboardForm from './DirectOnboardForm';
+export default DirectOnboardForm;
