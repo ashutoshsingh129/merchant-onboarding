@@ -239,6 +239,7 @@ router.post("/direct-onboard", async (req, res) => {
       // Company fields (for company business_type)
       company_name,
       company_tax_id,
+      company_organisation_number,
       company_structure,
       company_address_line1,
       company_address_line2,
@@ -431,11 +432,29 @@ router.post("/direct-onboard", async (req, res) => {
         accountUpdateData.company.executives_provided = true;
       }
 
-      // Only add tax_id if it's a valid 9-digit number
-      if (company_tax_id && company_tax_id.trim() !== '') {
-        const cleanTaxId = company_tax_id.replace(/[^\d]/g, ''); // Remove all non-digit characters
-        if (cleanTaxId.length === 9) {
-          accountUpdateData.company.tax_id = cleanTaxId;
+      // Add tax_id - prefer company_tax_id, but use organisation_number if tax_id is not provided
+      // This ensures organisation number is always used when provided, preventing overdue requirements
+      let taxIdToUse = company_tax_id;
+      if (!taxIdToUse || taxIdToUse.trim() === '') {
+        taxIdToUse = company_organisation_number;
+      }
+
+      if (taxIdToUse && taxIdToUse.trim() !== '') {
+        if (company_address_country === 'SE') {
+          // Swedish format: SE followed by 12 digits
+          const upperTaxId = taxIdToUse.trim().toUpperCase();
+          if (upperTaxId.startsWith('SE') && upperTaxId.length === 14) {
+            const digits = upperTaxId.substring(2).replace(/\D/g, '');
+            if (digits.length === 12) {
+              accountUpdateData.company.tax_id = upperTaxId;
+            }
+          }
+        } else {
+          // For other countries: Accept tax_id with 8-12 digits (EIN is 9, but organisation numbers vary by country)
+          const cleanTaxId = taxIdToUse.replace(/[^\d]/g, ''); // Remove all non-digit characters
+          if (cleanTaxId.length >= 8 && cleanTaxId.length <= 12) {
+            accountUpdateData.company.tax_id = cleanTaxId;
+          }
         }
       }
 
@@ -880,11 +899,38 @@ router.post("/direct-onboard", async (req, res) => {
         accountUpdateData.company.executives_provided = true;
       }
 
-      // Only add tax_id if it's a valid 9-digit number
-      if (company_tax_id && company_tax_id.trim() !== '') {
-        const cleanTaxId = company_tax_id.replace(/[^\d]/g, ''); // Remove all non-digit characters
-        if (cleanTaxId.length === 9) {
-          accountUpdateData.company.tax_id = cleanTaxId;
+      // Add tax_id - prefer company_tax_id, but use organisation_number if tax_id is not provided
+      // This ensures organisation number is always used when provided, preventing overdue requirements
+      let taxIdToUse = company_tax_id;
+      if (!taxIdToUse || taxIdToUse.trim() === '') {
+        taxIdToUse = company_organisation_number;
+      }
+
+      // Only add tax_id if it's valid
+      // For Sweden: SE + 12 digits (e.g., SE123456789012)
+      // For other countries: 8-12 digit number (varies by country)
+      if (taxIdToUse && taxIdToUse.trim() !== '') {
+        if (company_address_country === 'SE') {
+          // Swedish format: SE followed by 12 digits
+          const upperTaxId = taxIdToUse.trim().toUpperCase();
+          if (upperTaxId.startsWith('SE') && upperTaxId.length === 14) {
+            const digits = upperTaxId.substring(2).replace(/\D/g, '');
+            if (digits.length === 12) {
+              accountUpdateData.company.tax_id = upperTaxId;
+            }
+          } else {
+            // If not in SE format, try to parse as organisation number and add SE prefix
+            const digits = upperTaxId.replace(/\D/g, '');
+            if (digits.length === 12) {
+              accountUpdateData.company.tax_id = 'SE' + digits;
+            }
+          }
+        } else {
+          // For other countries: 8-12 digit number (varies by country)
+          const cleanTaxId = taxIdToUse.replace(/[^\d]/g, ''); // Remove all non-digit characters
+          if (cleanTaxId.length >= 8 && cleanTaxId.length <= 12) {
+            accountUpdateData.company.tax_id = cleanTaxId;
+          }
         }
       }
 
@@ -1321,11 +1367,38 @@ router.post("/direct-onboard", async (req, res) => {
         owners_provided: true, // Indicates that all owner information has been provided
       };
 
-      // Only add tax_id if it's a valid 9-digit number
-      if (company_tax_id && company_tax_id.trim() !== '') {
-        const cleanTaxId = company_tax_id.replace(/[^\d]/g, ''); // Remove all non-digit characters
-        if (cleanTaxId.length === 9) {
-          accountUpdateData.company.tax_id = cleanTaxId;
+      // Add tax_id - prefer company_tax_id, but use organisation_number if tax_id is not provided
+      // This ensures organisation number is always used when provided, preventing overdue requirements
+      let taxIdToUse = company_tax_id;
+      if (!taxIdToUse || taxIdToUse.trim() === '') {
+        taxIdToUse = company_organisation_number;
+      }
+
+      // Only add tax_id if it's valid
+      // For Sweden: SE + 12 digits (e.g., SE123456789012)
+      // For other countries: 8-12 digit number (varies by country)
+      if (taxIdToUse && taxIdToUse.trim() !== '') {
+        if (company_address_country === 'SE') {
+          // Swedish format: SE followed by 12 digits
+          const upperTaxId = taxIdToUse.trim().toUpperCase();
+          if (upperTaxId.startsWith('SE') && upperTaxId.length === 14) {
+            const digits = upperTaxId.substring(2).replace(/\D/g, '');
+            if (digits.length === 12) {
+              accountUpdateData.company.tax_id = upperTaxId;
+            }
+          } else {
+            // If not in SE format, try to parse as organisation number and add SE prefix
+            const digits = upperTaxId.replace(/\D/g, '');
+            if (digits.length === 12) {
+              accountUpdateData.company.tax_id = 'SE' + digits;
+            }
+          }
+        } else {
+          // For other countries: 8-12 digit number (varies by country)
+          const cleanTaxId = taxIdToUse.replace(/[^\d]/g, ''); // Remove all non-digit characters
+          if (cleanTaxId.length >= 8 && cleanTaxId.length <= 12) {
+            accountUpdateData.company.tax_id = cleanTaxId;
+          }
         }
       }
 

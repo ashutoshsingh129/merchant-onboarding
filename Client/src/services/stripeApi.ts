@@ -186,6 +186,7 @@ interface DirectOnboardRequest {
     // Company fields (for company business_type)
     company_name: string;
     company_tax_id: string;
+    company_organisation_number?: string;
     company_structure: string;
     company_address_line1: string;
     company_address_line2: string;

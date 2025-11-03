@@ -60,6 +60,7 @@ interface DirectOnboardFormData {
     // Company fields (when business_type is 'company')
     company_name: string;
     company_tax_id: string;
+    company_organisation_number: string;
     company_structure: string;
     company_address_line1: string;
     company_address_line2: string;
@@ -230,6 +231,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         // Company fields
         company_name: '',
         company_tax_id: '',
+        company_organisation_number: '',
         company_structure: 'private_corporation',
         company_address_line1: '',
         company_address_line2: '',
@@ -896,6 +898,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         // Company fields
                         company_name: '',
                         company_tax_id: '',
+                        company_organisation_number: '',
                         company_structure: 'private_corporation',
                         company_address_line1: '',
                         company_address_line2: '',
@@ -1010,6 +1013,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
             product_description: '',
             company_name: '',
             company_tax_id: '',
+            company_organisation_number: '',
             company_structure: 'private_corporation',
             company_address_line1: '',
             company_address_line2: '',
@@ -1924,8 +1928,48 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                                             onChange={e =>
                                                 handleInputChange('company_tax_id', e.target.value)
                                             }
-                                            placeholder="12-3456789"
-                                            helperText="EIN or Tax Identification Number"
+                                            placeholder={
+                                                formData.company_address_country === 'SE'
+                                                    ? 'SE123456789012'
+                                                    : '12-3456789'
+                                            }
+                                            helperText={
+                                                formData.company_address_country === 'SE'
+                                                    ? 'Swedish VAT Number (SE + 12 digits)'
+                                                    : 'EIN or Tax Identification Number'
+                                            }
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Organisation Number"
+                                            value={formData.company_organisation_number}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'company_organisation_number',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder={
+                                                formData.company_address_country === 'SE'
+                                                    ? '556789-1234'
+                                                    : formData.company_address_country === 'GB'
+                                                      ? '01234567'
+                                                      : formData.company_address_country === 'NL'
+                                                        ? '123456789'
+                                                        : '123456-7890'
+                                            }
+                                            helperText={
+                                                formData.company_address_country === 'SE'
+                                                    ? 'Swedish Organisationsnummer (e.g., 556789-1234). Stripe test: 5567891234'
+                                                    : formData.company_address_country === 'GB'
+                                                      ? 'UK Companies House Number (8 digits). Stripe test: 00000000'
+                                                      : formData.company_address_country === 'NL'
+                                                        ? 'Dutch KVK Number (8-9 digits). Stripe test: 000000000'
+                                                        : 'Company registration number. Stripe test: 000000000'
+                                            }
                                         />
                                     </Grid>
 
