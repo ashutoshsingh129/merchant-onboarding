@@ -1,2 +1,2 @@
-import DirectOnboardForm from './DirectOnboardForm';
-export default DirectOnboardForm;
+import DirectOnboardFormRouter from './DirectOnboardFormRouter';
+export default DirectOnboardFormRouter;

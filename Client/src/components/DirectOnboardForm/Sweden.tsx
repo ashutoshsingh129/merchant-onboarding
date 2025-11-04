@@ -34,170 +34,17 @@ import {
 } from '@mui/icons-material';
 import { directOnboardMerchant, uploadDocument } from '../../services/stripeApi';
 import { useIPDetection } from '../../services/ipService';
+import { DirectOnboardFormData, DirectOnboardFormProps } from './types';
+import { getDefaultCurrencyForCountry } from './utils';
 
-const DIRECTOR_EXECUTIVE_COUNTRIES = ['SE', 'FR'];
-const IBAN_COUNTRIES = ['SE', 'FR'];
+// Sweden-specific configuration
+const DIRECTOR_EXECUTIVE_COUNTRIES: string[] = ['SE']; // Sweden requires directors/executives
+const IBAN_COUNTRIES: string[] = ['SE']; // Sweden uses IBAN
+const DEFAULT_COUNTRY = 'SE';
 
-const getDefaultCurrencyForCountry = (countryCode?: string) => {
-    const code = (countryCode || '').toUpperCase();
-    if (code === 'SE') return 'sek';
-    if (code === 'FR') return 'eur';
-    return 'usd';
-};
+// DirectOnboardFormData and DirectOnboardFormProps are imported from types.ts
 
-interface DirectOnboardFormData {
-    account_id: string;
-    individual_first_name: string;
-    individual_last_name: string;
-    individual_email: string;
-    individual_phone: string;
-    individual_dob_day: number;
-    individual_dob_month: number;
-    individual_dob_year: number;
-    individual_address_line1: string;
-    individual_address_line2: string;
-    individual_address_city: string;
-    individual_address_state: string;
-    individual_address_postal_code: string;
-    individual_address_country: string;
-    individual_ssn_last_4: string;
-    individual_id_number: string;
-    business_type: string;
-    business_profile_mcc: string;
-    business_profile_url: string;
-    business_description: string; // For non-profit mission/description
-    product_description: string; // Product/Business Description
-    // Company fields (when business_type is 'company')
-    company_name: string;
-    company_tax_id: string;
-    company_structure: string;
-    company_address_line1: string;
-    company_address_line2: string;
-    company_address_city: string;
-    company_address_state: string;
-    company_address_postal_code: string;
-    company_address_country: string;
-    // Company confirmations
-    company_directors_provided?: boolean;
-    company_executives_provided?: boolean;
-    // ToS Acceptance
-    tos_acceptance_date: number;
-    tos_acceptance_ip: string;
-    // External Account fields
-    external_account_object: string;
-    external_account_country: string;
-    external_account_currency: string;
-    // Bank Account fields
-    external_account_routing_number: string;
-    external_account_account_number: string;
-    external_account_account_number_confirm?: string;
-    external_account_account_holder_name: string;
-    external_account_account_holder_type: string;
-    // Debit Card fields
-    external_account_card_number: string;
-    external_account_exp_month: string;
-    external_account_exp_year: string;
-    external_account_cvc: string;
-    // Representative Person fields (when business_type is 'company')
-    representative_first_name: string;
-    representative_last_name: string;
-    representative_email: string;
-    representative_phone: string;
-    representative_dob_day: number;
-    representative_dob_month: number;
-    representative_dob_year: number;
-    representative_address_line1: string;
-    representative_address_city: string;
-    representative_address_state: string;
-    representative_address_postal_code: string;
-    representative_address_country: string;
-    representative_relationship_representative: boolean;
-    representative_relationship_executive: boolean;
-    representative_relationship_director?: boolean;
-    representative_relationship_title: string;
-    representative_ssn_last_4: string;
-    representative_id_number: string;
-    // Owner Person fields (when business_type is 'company')
-    owner_first_name: string;
-    owner_last_name: string;
-    owner_email: string;
-    owner_phone: string;
-    owner_dob_day: number;
-    owner_dob_month: number;
-    owner_dob_year: number;
-    owner_address_line1: string;
-    owner_address_city: string;
-    owner_address_state: string;
-    owner_address_postal_code: string;
-    owner_address_country: string;
-    owner_relationship_owner: boolean;
-    owner_relationship_director?: boolean;
-    owner_relationship_title: string;
-    owner_ssn_last_4: string;
-    owner_id_number: string;
-    // File IDs for identity verification
-    individual_verification_document_front?: string;
-    individual_verification_document_back?: string;
-    individual_verification_additional_document_front?: string;
-    individual_verification_additional_document_back?: string;
-    company_verification_document_front?: string;
-    company_verification_document_back?: string;
-    representative_verification_document_front?: string;
-    representative_verification_document_back?: string;
-    representative_verification_additional_document_front?: string;
-    representative_verification_additional_document_back?: string;
-    owner_verification_document_front?: string;
-    owner_verification_document_back?: string;
-    owner_verification_additional_document_front?: string;
-    owner_verification_additional_document_back?: string;
-    // Additional directors (optional)
-    directors?: Array<{
-        first_name: string;
-        last_name: string;
-        email?: string;
-        phone?: string;
-        dob_day?: number;
-        dob_month?: number;
-        dob_year?: number;
-        address_line1?: string;
-        address_city?: string;
-        address_state?: string;
-        address_postal_code?: string;
-        address_country?: string;
-        relationship_title?: string;
-        id_number?: string;
-        ssn_last_4?: string;
-    }>;
-    // Additional executives (optional)
-    executives?: Array<{
-        first_name: string;
-        last_name: string;
-        email?: string;
-        phone?: string;
-        dob_day?: number;
-        dob_month?: number;
-        dob_year?: number;
-        address_line1?: string;
-        address_city?: string;
-        address_state?: string;
-        address_postal_code?: string;
-        address_country?: string;
-        relationship_title?: string;
-        id_number?: string;
-        ssn_last_4?: string;
-    }>;
-}
-
-interface DirectOnboardFormProps {
-    accountId: string;
-    email: string;
-    businessType?: string;
-    country?: string;
-    onClose?: () => void;
-    onSuccess?: () => void;
-}
-
-const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
+const SwedenForm: React.FC<DirectOnboardFormProps> = ({
     accountId,
     email,
     businessType,
@@ -229,7 +76,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         individual_address_city: '',
         individual_address_state: '',
         individual_address_postal_code: '',
-        individual_address_country: country || 'US',
+        individual_address_country: country || DEFAULT_COUNTRY,
         individual_ssn_last_4: '',
         individual_id_number: '',
         business_type: businessType || 'individual',
@@ -246,7 +93,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         company_address_city: '',
         company_address_state: '',
         company_address_postal_code: '',
-        company_address_country: country || 'US',
+        company_address_country: country || DEFAULT_COUNTRY,
         company_directors_provided: false,
         company_executives_provided: false,
         // ToS Acceptance
@@ -254,7 +101,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         tos_acceptance_ip: detectedIP || '',
         // External Account fields
         external_account_object: 'bank_account',
-        external_account_country: country || 'US',
+        external_account_country: country || DEFAULT_COUNTRY,
         external_account_currency: getDefaultCurrencyForCountry(country),
         // Bank Account fields
         external_account_routing_number: '',
@@ -279,7 +126,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         representative_address_city: '',
         representative_address_state: '',
         representative_address_postal_code: '',
-        representative_address_country: country || 'US',
+        representative_address_country: country || DEFAULT_COUNTRY,
         representative_relationship_representative: true,
         representative_relationship_executive: false,
         representative_relationship_director: false,
@@ -298,7 +145,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
         owner_address_city: '',
         owner_address_state: '',
         owner_address_postal_code: '',
-        owner_address_country: country || 'US',
+        owner_address_country: country || DEFAULT_COUNTRY,
         owner_relationship_owner: true,
         owner_relationship_director: false,
         owner_relationship_title: '',
@@ -1196,7 +1043,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         individual_address_city: '',
                         individual_address_state: '',
                         individual_address_postal_code: '',
-                        individual_address_country: country || 'US',
+                        individual_address_country: country || DEFAULT_COUNTRY,
                         individual_ssn_last_4: '',
                         individual_id_number: '',
                         business_type: businessType || 'individual',
@@ -1213,7 +1060,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         company_address_city: '',
                         company_address_state: '',
                         company_address_postal_code: '',
-                        company_address_country: country || 'US',
+                        company_address_country: country || DEFAULT_COUNTRY,
                         company_directors_provided: false,
                         company_executives_provided: false,
                         // ToS Acceptance
@@ -1221,7 +1068,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         tos_acceptance_ip: '',
                         // External Account fields
                         external_account_object: 'bank_account',
-                        external_account_country: country || 'US',
+                        external_account_country: country || DEFAULT_COUNTRY,
                         external_account_currency: getDefaultCurrencyForCountry(country),
                         // Bank Account fields
                         external_account_routing_number: '',
@@ -1246,7 +1093,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         representative_address_city: '',
                         representative_address_state: '',
                         representative_address_postal_code: '',
-                        representative_address_country: country || 'US',
+                        representative_address_country: country || DEFAULT_COUNTRY,
                         representative_relationship_representative: true,
                         representative_relationship_executive: false,
                         representative_relationship_director: false,
@@ -1265,7 +1112,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
                         owner_address_city: '',
                         owner_address_state: '',
                         owner_address_postal_code: '',
-                        owner_address_country: country || 'US',
+                        owner_address_country: country || DEFAULT_COUNTRY,
                         owner_relationship_owner: true,
                         owner_relationship_director: false,
                         owner_relationship_title: '',
@@ -1314,7 +1161,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
             individual_address_city: '',
             individual_address_state: '',
             individual_address_postal_code: '',
-            individual_address_country: country || 'US',
+            individual_address_country: country || DEFAULT_COUNTRY,
             individual_ssn_last_4: '',
             individual_id_number: '',
             business_type: businessType || 'individual',
@@ -1330,13 +1177,13 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
             company_address_city: '',
             company_address_state: '',
             company_address_postal_code: '',
-            company_address_country: country || 'US',
+            company_address_country: country || DEFAULT_COUNTRY,
             company_directors_provided: false,
             company_executives_provided: false,
             tos_acceptance_date: Math.floor(Date.now() / 1000),
             tos_acceptance_ip: '',
             external_account_object: 'bank_account',
-            external_account_country: country || 'US',
+            external_account_country: country || DEFAULT_COUNTRY,
             external_account_currency: getDefaultCurrencyForCountry(country),
             external_account_routing_number: '',
             external_account_account_number: '',
@@ -1358,7 +1205,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
             representative_address_city: '',
             representative_address_state: '',
             representative_address_postal_code: '',
-            representative_address_country: country || 'US',
+            representative_address_country: country || DEFAULT_COUNTRY,
             representative_relationship_representative: true,
             representative_relationship_executive: false,
             representative_relationship_director: false,
@@ -1376,7 +1223,7 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
             owner_address_city: '',
             owner_address_state: '',
             owner_address_postal_code: '',
-            owner_address_country: country || 'US',
+            owner_address_country: country || DEFAULT_COUNTRY,
             owner_relationship_owner: true,
             owner_relationship_director: false,
             owner_relationship_title: '',
@@ -4258,4 +4105,4 @@ const DirectOnboardForm: React.FC<DirectOnboardFormProps> = ({
     );
 };
 
-export default DirectOnboardForm;
+export default SwedenForm;
