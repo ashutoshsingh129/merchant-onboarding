@@ -25,6 +25,7 @@ class FranceHandler extends BaseHandler {
     const {
       company_name,
       company_tax_id,
+      company_vat_number,
       company_organisation_number,
       company_structure,
       company_address_line1,
@@ -107,8 +108,19 @@ class FranceHandler extends BaseHandler {
     }
 
     // Format tax ID - France uses standard format (8-12 digits)
-    const taxIdToUse = company_tax_id || company_organisation_number;
-    if (taxIdToUse && taxIdToUse.trim() !== '') {
+    // Priority: tax_id > organisation_number > vat_number (for backward compatibility)
+    let taxIdToUse = null;
+
+    if (company_tax_id && company_tax_id.trim() !== '') {
+      taxIdToUse = company_tax_id;
+    } else if (company_organisation_number && company_organisation_number.trim() !== '') {
+      taxIdToUse = company_organisation_number;
+    } else if (company_vat_number && company_vat_number.trim() !== '') {
+      // Fallback to VAT number if neither tax_id nor organisation_number is provided
+      taxIdToUse = company_vat_number;
+    }
+
+    if (taxIdToUse) {
       const formattedTaxId = formatTaxId(taxIdToUse, 'FR');
       if (formattedTaxId) {
         accountUpdateData.company.tax_id = formattedTaxId;

@@ -87,6 +87,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
         // Company fields
         company_name: '',
         company_tax_id: '',
+        company_vat_number: '',
         company_structure: 'private_corporation',
         company_address_line1: '',
         company_address_line2: '',
@@ -197,9 +198,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
 
     const requiresSiren =
         formData.company_address_country === 'FR' &&
-        (formData.business_type === 'company' ||
-            formData.business_type === 'non_profit' ||
-            formData.business_type === 'government_entity');
+        (formData.business_type === 'company' || formData.business_type === 'non_profit');
 
     const externalAccountCountryCode = (formData.external_account_country || '').toUpperCase();
     const isIbanCountry = IBAN_COUNTRIES.includes(externalAccountCountryCode);
@@ -527,7 +526,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
         }
     }, [detectedIP, formData.tos_acceptance_ip]);
 
-    // Update default company_structure when business_type changes to non_profit or government_entity
+    // Update default company_structure when business_type changes to non_profit
     useEffect(() => {
         if (
             formData.business_type === 'non_profit' &&
@@ -536,18 +535,6 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
             setFormData(prev => ({
                 ...prev,
                 company_structure: 'unincorporated_non_profit',
-            }));
-        } else if (
-            formData.business_type === 'government_entity' &&
-            ![
-                'governmental_unit',
-                'government_instrumentality',
-                'tax_exempt_government_instrumentality',
-            ].includes(formData.company_structure)
-        ) {
-            setFormData(prev => ({
-                ...prev,
-                company_structure: 'governmental_unit',
             }));
         } else if (
             formData.business_type === 'company' &&
@@ -597,7 +584,6 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
         { value: 'individual', label: 'Individual' },
         { value: 'company', label: 'Company' },
         { value: 'non_profit', label: 'Non-profit' },
-        { value: 'government_entity', label: 'Government Entity' },
     ];
 
     const companyStructures = [
@@ -668,11 +654,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
 
             // When business type is not individual, external account holder type should be company
             if (field === 'business_type') {
-                if (
-                    value === 'company' ||
-                    value === 'non_profit' ||
-                    value === 'government_entity'
-                ) {
+                if (value === 'company' || value === 'non_profit') {
                     next.external_account_account_holder_type = 'company';
                 } else {
                     next.external_account_account_holder_type = 'individual';
@@ -946,12 +928,8 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                 if (!formData.individual_id_number) delete payload.individual_id_number;
             }
 
-            // Handle representative SSN (for company, non-profit, and government_entity business type)
-            if (
-                formData.business_type === 'company' ||
-                formData.business_type === 'non_profit' ||
-                formData.business_type === 'government_entity'
-            ) {
+            // Handle representative SSN (for company and non-profit business type)
+            if (formData.business_type === 'company' || formData.business_type === 'non_profit') {
                 // Ensure directors array is cleaned up (only send non-empty entries)
                 if (Array.isArray(formData.directors)) {
                     payload.directors = formData.directors.filter(director => {
@@ -991,7 +969,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                     if (!formData.representative_id_number) delete payload.representative_id_number;
                 }
 
-                // Handle owner SSN (for company, non-profit, and government_entity business type)
+                // Handle owner SSN (for company and non-profit business type)
                 if (ownerSsnType === 'last4') {
                     // Only send last 4 digits
                     if (formData.owner_ssn_last_4) {
@@ -1054,6 +1032,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                         // Company fields
                         company_name: '',
                         company_tax_id: '',
+                        company_vat_number: '',
                         company_structure: 'private_corporation',
                         company_address_line1: '',
                         company_address_line2: '',
@@ -1171,6 +1150,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
             product_description: '',
             company_name: '',
             company_tax_id: '',
+            company_vat_number: '',
             company_structure: 'private_corporation',
             company_address_line1: '',
             company_address_line2: '',
@@ -1266,10 +1246,9 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                                 />
                             </Grid>
 
-                            {/* Business Information - Show immediately after Account ID for company, non-profit, and government_entity profiles */}
+                            {/* Business Information - Show immediately after Account ID for company and non-profit profiles */}
                             {(formData.business_type === 'company' ||
-                                formData.business_type === 'non_profit' ||
-                                formData.business_type === 'government_entity') && (
+                                formData.business_type === 'non_profit') && (
                                 <>
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
@@ -2042,18 +2021,15 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                                 </>
                             )}
 
-                            {/* Company/Non-profit/Government Information - Show when business type is Company, Non-profit, or Government Entity */}
+                            {/* Company/Non-profit Information - Show when business type is Company or Non-profit */}
                             {(formData.business_type === 'company' ||
-                                formData.business_type === 'non_profit' ||
-                                formData.business_type === 'government_entity') && (
+                                formData.business_type === 'non_profit') && (
                                 <>
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
                                             {formData.business_type === 'non_profit'
                                                 ? 'Non-profit Information'
-                                                : formData.business_type === 'government_entity'
-                                                  ? 'Government Entity Information'
-                                                  : 'Company Information'}
+                                                : 'Company Information'}
                                         </Typography>
                                     </Grid>
 
@@ -2063,9 +2039,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                                             label={
                                                 formData.business_type === 'non_profit'
                                                     ? 'Non-profit Name'
-                                                    : formData.business_type === 'government_entity'
-                                                      ? 'Government Entity Name'
-                                                      : 'Company Name'
+                                                    : 'Company Name'
                                             }
                                             value={formData.company_name}
                                             onChange={e =>
@@ -2074,9 +2048,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                                             placeholder={
                                                 formData.business_type === 'non_profit'
                                                     ? 'ABC Non-profit Organization'
-                                                    : formData.business_type === 'government_entity'
-                                                      ? 'City of Springfield'
-                                                      : 'ABC Technologies LLC'
+                                                    : 'ABC Technologies LLC'
                                             }
                                         />
                                     </Grid>
@@ -2095,23 +2067,34 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                                     </Grid>
 
                                     <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="VAT Number"
+                                            value={formData.company_vat_number}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'company_vat_number',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="FR12345678901"
+                                            helperText="VAT Registration Number"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
                                         <FormControl fullWidth>
                                             <InputLabel>
                                                 {formData.business_type === 'non_profit'
                                                     ? 'Non-profit Structure'
-                                                    : formData.business_type === 'government_entity'
-                                                      ? 'Government Entity Structure'
-                                                      : 'Company Structure'}
+                                                    : 'Company Structure'}
                                             </InputLabel>
                                             <Select
                                                 value={formData.company_structure}
                                                 label={
                                                     formData.business_type === 'non_profit'
                                                         ? 'Non-profit Structure'
-                                                        : formData.business_type ===
-                                                            'government_entity'
-                                                          ? 'Government Entity Structure'
-                                                          : 'Company Structure'
+                                                        : 'Company Structure'
                                                 }
                                                 onChange={e =>
                                                     handleInputChange(
@@ -2129,15 +2112,6 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                                                             return [
                                                                 'unincorporated_non_profit',
                                                                 'incorporated_non_profit',
-                                                            ].includes(structure.value);
-                                                        } else if (
-                                                            formData.business_type ===
-                                                            'government_entity'
-                                                        ) {
-                                                            return [
-                                                                'governmental_unit',
-                                                                'government_instrumentality',
-                                                                'tax_exempt_government_instrumentality',
                                                             ].includes(structure.value);
                                                         } else if (
                                                             formData.business_type === 'company'
@@ -2185,9 +2159,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                                         <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
                                             {formData.business_type === 'non_profit'
                                                 ? 'Non-profit Address'
-                                                : formData.business_type === 'government_entity'
-                                                  ? 'Government Entity Address'
-                                                  : 'Company Address'}
+                                                : 'Company Address'}
                                         </Typography>
                                     </Grid>
 
@@ -2297,15 +2269,12 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
                                             {formData.business_type === 'non_profit'
                                                 ? 'Non-profit Verification Documents'
-                                                : formData.business_type === 'government_entity'
-                                                  ? 'Government Entity Verification Documents (Recommended)'
-                                                  : 'Company Verification Documents (Optional)'}
+                                                : 'Company Verification Documents (Optional)'}
                                         </Typography>
                                         <Typography
                                             variant="body2"
                                             color={
-                                                formData.business_type === 'non_profit' ||
-                                                formData.business_type === 'government_entity'
+                                                formData.business_type === 'non_profit'
                                                     ? 'warning.main'
                                                     : 'text.secondary'
                                             }
@@ -2313,9 +2282,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                                         >
                                             {formData.business_type === 'non_profit'
                                                 ? 'Upload tax-exempt status documents (IRS 501(c)(3) determination letter, tax-exempt certificate, etc.) - Recommended for verification'
-                                                : formData.business_type === 'government_entity'
-                                                  ? 'Upload government entity documentation (charter, incorporation documents, tax-exempt status, etc.) - Recommended for verification'
-                                                  : 'Upload company legal documents (IRS Letter 147C, EIN Assistance Letter, etc.)'}
+                                                : 'Upload company legal documents (IRS Letter 147C, EIN Assistance Letter, etc.)'}
                                         </Typography>
                                     </Grid>
 
@@ -2340,9 +2307,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                                                   ? `Uploaded: ${uploadedFiles.company_front.name}`
                                                   : formData.business_type === 'non_profit'
                                                     ? 'Upload Non-profit Document (Front)'
-                                                    : formData.business_type === 'government_entity'
-                                                      ? 'Upload Government Document (Front)'
-                                                      : 'Upload Company Document (Front)'}
+                                                    : 'Upload Company Document (Front)'}
                                             <input
                                                 type="file"
                                                 hidden
@@ -2378,9 +2343,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                                                   ? `Uploaded: ${uploadedFiles.company_back.name}`
                                                   : formData.business_type === 'non_profit'
                                                     ? 'Upload Non-profit Document (Back)'
-                                                    : formData.business_type === 'government_entity'
-                                                      ? 'Upload Government Document (Back)'
-                                                      : 'Upload Company Document (Back)'}
+                                                    : 'Upload Company Document (Back)'}
                                             <input
                                                 type="file"
                                                 hidden
@@ -2466,10 +2429,9 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
                                 />
                             </Grid>
 
-                            {/* Representative Person Fields - Show when business type is Company, Non-profit, or Government Entity */}
+                            {/* Representative Person Fields - Show when business type is Company or Non-profit */}
                             {(formData.business_type === 'company' ||
-                                formData.business_type === 'non_profit' ||
-                                formData.business_type === 'government_entity') && (
+                                formData.business_type === 'non_profit') && (
                                 <>
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
@@ -3141,8 +3103,7 @@ const FranceForm: React.FC<DirectOnboardFormProps> = ({
 
                             {/* Owner Person Fields - Only show when business type is Company, Non-Profit, or Government Entity and representative is NOT owner */}
                             {(formData.business_type === 'company' ||
-                                formData.business_type === 'non_profit' ||
-                                formData.business_type === 'government_entity') &&
+                                formData.business_type === 'non_profit') &&
                                 !representativeIsOwner && (
                                     <>
                                         <Grid size={{ xs: 12 }}>

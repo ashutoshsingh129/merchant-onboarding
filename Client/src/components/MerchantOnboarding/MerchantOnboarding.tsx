@@ -157,12 +157,15 @@ const MerchantOnboarding: React.FC = () => {
     ];
 
     const availableBusinessTypes =
-        formData.country === 'SE'
+        formData.country === 'SE' || formData.country === 'FR'
             ? baseBusinessTypes.filter(type => type.value !== 'government_entity')
             : baseBusinessTypes;
 
     useEffect(() => {
-        if (formData.country === 'SE' && formData.business_type === 'government_entity') {
+        if (
+            (formData.country === 'SE' || formData.country === 'FR') &&
+            formData.business_type === 'government_entity'
+        ) {
             setFormData(prev => ({
                 ...prev,
                 business_type: 'company',
