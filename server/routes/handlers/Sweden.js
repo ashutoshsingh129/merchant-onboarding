@@ -1,18 +1,18 @@
 /**
  * Sweden-specific handler for direct onboarding
  */
-const BaseHandler = require('./BaseHandler');
+const BaseHandler = require("./BaseHandler");
 const {
   cleanPhoneNumber,
   formatTaxId,
   createVerification,
   buildPersonData,
   createOrUpdatePerson,
-} = require('./utils');
+} = require("./utils");
 
 class SwedenHandler extends BaseHandler {
   constructor() {
-    super('SE');
+    super("SE");
     this.requiresDirectors = true;
     this.requiresExecutives = true;
     this.usesIBAN = true;
@@ -25,6 +25,7 @@ class SwedenHandler extends BaseHandler {
     const {
       company_name,
       company_tax_id,
+      company_vat_number,
       company_organisation_number,
       company_structure,
       company_address_line1,
@@ -90,8 +91,10 @@ class SwedenHandler extends BaseHandler {
     if (company_address_line2) companyAddress.line2 = company_address_line2;
     if (company_address_city) companyAddress.city = company_address_city;
     if (company_address_state) companyAddress.state = company_address_state;
-    if (company_address_postal_code) companyAddress.postal_code = company_address_postal_code;
-    if (company_address_country) companyAddress.country = company_address_country;
+    if (company_address_postal_code)
+      companyAddress.postal_code = company_address_postal_code;
+    if (company_address_country)
+      companyAddress.country = company_address_country;
 
     accountUpdateData.company = {
       name: company_name,
@@ -107,16 +110,44 @@ class SwedenHandler extends BaseHandler {
     }
 
     // Format tax ID - Sweden uses SE + 12 digits format
-    const taxIdToUse = company_tax_id || company_organisation_number;
-    if (taxIdToUse && taxIdToUse.trim() !== '') {
-      const formattedTaxId = formatTaxId(taxIdToUse, 'SE');
-      if (formattedTaxId) {
-        accountUpdateData.company.tax_id = formattedTaxId;
+    // Priority: organisation_number > tax_id (for backward compatibility)
+    // Organisation Number should be stored as company.tax_id per user requirement
+    // IMPORTANT: Organisation number should NOT have "SE" prefix - just the digits
+    let taxIdToUse = null;
+    let isOrganisationNumber = false;
+
+    if (
+      company_organisation_number &&
+      company_organisation_number.trim() !== ""
+    ) {
+      taxIdToUse = company_organisation_number;
+      isOrganisationNumber = true;
+    } else if (company_tax_id && company_tax_id.trim() !== "") {
+      taxIdToUse = company_tax_id;
+    } else if (company_vat_number && company_vat_number.trim() !== "") {
+      // Fallback to VAT number if neither organisation number nor tax_id is provided
+      taxIdToUse = company_vat_number;
+    }
+
+    if (taxIdToUse) {
+      if (isOrganisationNumber) {
+        // For organisation number, extract only digits (no SE prefix)
+        // Send as-is without any validation - just remove non-digit characters
+        const digits = taxIdToUse.replace(/\D/g, "");
+        if (digits.length > 0) {
+          accountUpdateData.company.tax_id = digits;
+        }
+      } else {
+        // For tax_id and VAT, use the standard formatter
+        const formattedTaxId = formatTaxId(taxIdToUse, "SE");
+        if (formattedTaxId) {
+          accountUpdateData.company.tax_id = formattedTaxId;
+        }
       }
     }
 
     // Add company phone
-    if (representative_phone && representative_phone.trim() !== '') {
+    if (representative_phone && representative_phone.trim() !== "") {
       const cleaned = cleanPhoneNumber(representative_phone);
       if (cleaned) {
         accountUpdateData.company.phone = cleaned;
@@ -133,15 +164,20 @@ class SwedenHandler extends BaseHandler {
       company_verification_document_front,
       company_verification_document_back,
       null,
-      null
+      null,
     );
     if (companyVerification) {
       accountUpdateData.company.verification = companyVerification;
     }
 
     // Handle representative person
-    const isRepresentativeAlsoOwner = !owner_first_name || owner_first_name.trim() === '';
-    const existingRepresentative = await this.getExistingPerson(stripe, accountId, 'representative');
+    const isRepresentativeAlsoOwner =
+      !owner_first_name || owner_first_name.trim() === "";
+    const existingRepresentative = await this.getExistingPerson(
+      stripe,
+      accountId,
+      "representative",
+    );
 
     const representativeData = buildPersonData({
       first_name: representative_first_name,
@@ -160,8 +196,10 @@ class SwedenHandler extends BaseHandler {
       ssn_last_4: representative_ssn_last_4,
       verification_document_front: representative_verification_document_front,
       verification_document_back: representative_verification_document_back,
-      verification_additional_document_front: representative_verification_additional_document_front,
-      verification_additional_document_back: representative_verification_additional_document_back,
+      verification_additional_document_front:
+        representative_verification_additional_document_front,
+      verification_additional_document_back:
+        representative_verification_additional_document_back,
       relationship: {
         representative: representative_relationship_representative,
         executive: representative_relationship_executive,
@@ -175,7 +213,7 @@ class SwedenHandler extends BaseHandler {
       stripe,
       accountId,
       existingRepresentative,
-      representativeData
+      representativeData,
     );
 
     // Handle additional directors (Sweden requires directors)
@@ -191,11 +229,16 @@ class SwedenHandler extends BaseHandler {
     }
 
     // Handle owner person separately if provided
-    if (owner_first_name && owner_first_name.trim() !== '') {
-      const existingOwner = await this.getExistingPerson(stripe, accountId, 'owner');
-      const ownerToCheck = existingOwner && existingOwner.id !== representativePerson.id 
-        ? existingOwner 
-        : null;
+    if (owner_first_name && owner_first_name.trim() !== "") {
+      const existingOwner = await this.getExistingPerson(
+        stripe,
+        accountId,
+        "owner",
+      );
+      const ownerToCheck =
+        existingOwner && existingOwner.id !== representativePerson.id
+          ? existingOwner
+          : null;
 
       const ownerData = buildPersonData({
         first_name: owner_first_name,
@@ -214,8 +257,10 @@ class SwedenHandler extends BaseHandler {
         ssn_last_4: owner_ssn_last_4,
         verification_document_front: owner_verification_document_front,
         verification_document_back: owner_verification_document_back,
-        verification_additional_document_front: owner_verification_additional_document_front,
-        verification_additional_document_back: owner_verification_additional_document_back,
+        verification_additional_document_front:
+          owner_verification_additional_document_front,
+        verification_additional_document_back:
+          owner_verification_additional_document_back,
         relationship: {
           owner: owner_relationship_owner,
           director: !!owner_relationship_director,
@@ -230,11 +275,24 @@ class SwedenHandler extends BaseHandler {
   /**
    * Override external account handling to use SEK currency for Sweden
    */
-  async handleExternalAccount(stripe, accountId, object, country, currency, reqBody) {
+  async handleExternalAccount(
+    stripe,
+    accountId,
+    object,
+    country,
+    currency,
+    reqBody,
+  ) {
     // Force SEK currency for Sweden
-    return await super.handleExternalAccount(stripe, accountId, object, country, 'sek', reqBody);
+    return await super.handleExternalAccount(
+      stripe,
+      accountId,
+      object,
+      country,
+      "sek",
+      reqBody,
+    );
   }
 }
 
 module.exports = SwedenHandler;
-
