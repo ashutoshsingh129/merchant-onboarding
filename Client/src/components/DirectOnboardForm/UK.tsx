@@ -664,7 +664,7 @@ const UKForm: React.FC<DirectOnboardFormProps> = ({
 
             // For UK (GB), default to GBP currency and ensure country is set
             if (field === 'external_account_country' && value === 'GB') {
-                next.external_account_currency = 'GBP';
+                next.external_account_currency = 'gbp';
             }
 
             if (field === 'individual_address_country' && IBAN_COUNTRIES.includes(value)) {
@@ -675,7 +675,7 @@ const UKForm: React.FC<DirectOnboardFormProps> = ({
 
             // For UK (GB), when individual address country changes, update external account
             if (field === 'individual_address_country' && value === 'GB') {
-                next.external_account_currency = 'GBP';
+                next.external_account_currency = 'gbp';
                 next.external_account_country = value;
             }
 
@@ -687,7 +687,7 @@ const UKForm: React.FC<DirectOnboardFormProps> = ({
 
             // For UK (GB), when company address country changes, update external account
             if (field === 'company_address_country' && value === 'GB') {
-                next.external_account_currency = 'GBP';
+                next.external_account_currency = 'gbp';
                 next.external_account_country = value;
             }
 
