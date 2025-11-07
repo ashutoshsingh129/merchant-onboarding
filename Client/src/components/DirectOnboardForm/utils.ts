@@ -6,6 +6,7 @@ export const getDefaultCurrencyForCountry = (countryCode?: string) => {
     if (code === 'SE') return 'sek';
     if (code === 'FR') return 'eur';
     if (code === 'GB' || code === 'UK') return 'gbp';
+    if (code === 'JP') return 'jpy';
     return 'usd';
 };
 

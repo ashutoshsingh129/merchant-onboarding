@@ -165,6 +165,10 @@ interface DirectOnboardRequest {
     account_id: string;
     individual_first_name: string;
     individual_last_name: string;
+    individual_first_name_kana?: string;
+    individual_last_name_kana?: string;
+    individual_first_name_kanji?: string;
+    individual_last_name_kanji?: string;
     individual_email: string;
     individual_phone: string;
     individual_dob_day: number;
@@ -183,11 +187,15 @@ interface DirectOnboardRequest {
     business_type: string;
     business_profile_mcc: string;
     business_profile_url: string;
+    business_description?: string;
+    product_description?: string;
     // Company fields (for company business_type)
     company_name: string;
+    company_name_kana?: string;
     company_tax_id: string;
     company_vat_number?: string;
     company_organisation_number?: string;
+    company_registration_number?: string;
     company_structure: string;
     company_address_line1: string;
     company_address_line2: string;
@@ -201,6 +209,8 @@ interface DirectOnboardRequest {
     // Representative fields (for company business_type)
     representative_first_name: string;
     representative_last_name: string;
+    representative_first_name_kana?: string;
+    representative_last_name_kana?: string;
     representative_email: string;
     representative_phone: string;
     representative_dob_day: number;
@@ -220,6 +230,8 @@ interface DirectOnboardRequest {
     // Owner fields (for company business_type)
     owner_first_name: string;
     owner_last_name: string;
+    owner_first_name_kana?: string;
+    owner_last_name_kana?: string;
     owner_email: string;
     owner_phone: string;
     owner_dob_day: number;
@@ -241,9 +253,13 @@ interface DirectOnboardRequest {
     external_account_currency: string;
     // Bank Account fields
     external_account_routing_number?: string;
+    external_account_bank_code?: string;
+    external_account_branch_code?: string;
+    external_account_account_type?: string;
     external_account_account_number: string;
     external_account_account_holder_name?: string;
     external_account_account_holder_type?: string;
+    external_account_account_holder_name_kana?: string;
     // Debit Card fields
     external_account_card_number?: string;
     external_account_exp_month?: string;

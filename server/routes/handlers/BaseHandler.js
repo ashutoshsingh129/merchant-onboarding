@@ -145,6 +145,19 @@ class BaseHandler {
       },
     };
 
+    if (reqBody.individual_first_name_kana) {
+      accountUpdateData.individual.first_name_kana = reqBody.individual_first_name_kana;
+    }
+    if (reqBody.individual_last_name_kana) {
+      accountUpdateData.individual.last_name_kana = reqBody.individual_last_name_kana;
+    }
+    if (reqBody.individual_first_name_kanji) {
+      accountUpdateData.individual.first_name_kanji = reqBody.individual_first_name_kanji;
+    }
+    if (reqBody.individual_last_name_kanji) {
+      accountUpdateData.individual.last_name_kanji = reqBody.individual_last_name_kanji;
+    }
+
     if (individual_id_number) {
       accountUpdateData.individual.id_number = individual_id_number;
     } else if (individual_ssn_last_4) {

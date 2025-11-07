@@ -4,6 +4,7 @@ import USAForm from './USA';
 import SwedenForm from './Sweden';
 import FranceForm from './France';
 import UKForm from './UK';
+import JapanForm from './Japan';
 
 const DirectOnboardFormRouter: React.FC<DirectOnboardFormProps> = props => {
     const country = (props.country || 'US').toUpperCase();
@@ -16,6 +17,8 @@ const DirectOnboardFormRouter: React.FC<DirectOnboardFormProps> = props => {
         case 'GB':
         case 'UK':
             return <UKForm {...props} />;
+        case 'JP':
+            return <JapanForm {...props} />;
         case 'US':
         default:
             return <USAForm {...props} />;

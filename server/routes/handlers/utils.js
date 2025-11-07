@@ -33,6 +33,11 @@ const formatTaxId = (taxId, country) => {
         return 'SE' + digits;
       }
     }
+  } else if (country === 'JP') {
+    const digits = taxId.replace(/\D/g, '');
+    if (digits.length === 13) {
+      return digits;
+    }
   } else {
     // For other countries: 8-12 digit number
     const cleanTaxId = taxId.replace(/[^\d]/g, '');
@@ -96,6 +101,19 @@ const buildPersonData = (data) => {
     relationship: data.relationship || {},
   };
 
+  if (data.first_name_kana) {
+    personData.first_name_kana = data.first_name_kana;
+  }
+  if (data.last_name_kana) {
+    personData.last_name_kana = data.last_name_kana;
+  }
+  if (data.first_name_kanji) {
+    personData.first_name_kanji = data.first_name_kanji;
+  }
+  if (data.last_name_kanji) {
+    personData.last_name_kanji = data.last_name_kanji;
+  }
+
   // Add ID number or SSN
   if (data.id_number) {
     personData.id_number = data.id_number;
@@ -135,6 +153,8 @@ const getDefaultCurrency = (country) => {
   const code = (country || '').toUpperCase();
   if (code === 'SE') return 'sek';
   if (code === 'FR') return 'eur';
+  if (code === 'GB' || code === 'UK') return 'gbp';
+  if (code === 'JP') return 'jpy';
   return 'usd';
 };
 

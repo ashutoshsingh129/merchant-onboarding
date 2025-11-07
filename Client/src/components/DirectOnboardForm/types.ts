@@ -15,6 +15,9 @@ export interface DirectOnboardFormData {
     individual_address_country: string;
     individual_ssn_last_4: string;
     individual_id_number: string;
+    // Japan-specific fields
+    individual_first_name_kana?: string;
+    individual_last_name_kana?: string;
     business_type: string;
     business_profile_mcc: string;
     business_profile_url: string;
@@ -22,9 +25,11 @@ export interface DirectOnboardFormData {
     product_description: string; // Product/Business Description
     // Company fields (when business_type is 'company')
     company_name: string;
+    company_name_kana?: string; // Japan-specific
     company_tax_id: string;
     company_vat_number?: string;
     company_organisation_number?: string;
+    company_registration_number?: string; // Japan-specific (Corporate Number)
     company_structure: string;
     company_address_line1: string;
     company_address_line2: string;
@@ -48,6 +53,11 @@ export interface DirectOnboardFormData {
     external_account_account_number_confirm?: string;
     external_account_account_holder_name: string;
     external_account_account_holder_type: string;
+    // Japan-specific bank account fields
+    external_account_bank_code?: string; // 4 digits
+    external_account_branch_code?: string; // 3 digits
+    external_account_account_type?: string; // 'savings' or 'checking'
+    external_account_account_holder_name_kana?: string;
     // Debit Card fields
     external_account_card_number: string;
     external_account_exp_month: string;
@@ -56,6 +66,8 @@ export interface DirectOnboardFormData {
     // Representative Person fields (when business_type is 'company')
     representative_first_name: string;
     representative_last_name: string;
+    representative_first_name_kana?: string; // Japan-specific
+    representative_last_name_kana?: string; // Japan-specific
     representative_email: string;
     representative_phone: string;
     representative_dob_day: number;
@@ -75,6 +87,8 @@ export interface DirectOnboardFormData {
     // Owner Person fields (when business_type is 'company')
     owner_first_name: string;
     owner_last_name: string;
+    owner_first_name_kana?: string; // Japan-specific
+    owner_last_name_kana?: string; // Japan-specific
     owner_email: string;
     owner_phone: string;
     owner_dob_day: number;

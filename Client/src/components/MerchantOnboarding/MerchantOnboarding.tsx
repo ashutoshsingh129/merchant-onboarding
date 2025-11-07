@@ -137,6 +137,7 @@ const MerchantOnboarding: React.FC = () => {
     };
 
     const countries = [
+        { code: 'JP', name: 'Japan' },
         { code: 'NL', name: 'Netherlands' },
         { code: 'US', name: 'United States' },
         { code: 'GB', name: 'United Kingdom' },
