@@ -203,6 +203,16 @@ interface DirectOnboardRequest {
     company_address_state: string;
     company_address_postal_code: string;
     company_address_country: string;
+    company_address_kana_postal_code?: string;
+    company_address_kana_state?: string;
+    company_address_kana_city?: string;
+    company_address_kana_line1?: string;
+    company_address_kana_line2?: string;
+    company_address_kanji_postal_code?: string;
+    company_address_kanji_state?: string;
+    company_address_kanji_city?: string;
+    company_address_kanji_line1?: string;
+    company_address_kanji_line2?: string;
     // Company confirmations
     company_directors_provided?: boolean;
     company_executives_provided?: boolean;

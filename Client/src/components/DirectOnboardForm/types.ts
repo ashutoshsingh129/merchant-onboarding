@@ -25,6 +25,7 @@ export interface DirectOnboardFormData {
     product_description: string; // Product/Business Description
     // Company fields (when business_type is 'company')
     company_name: string;
+    company_name_kanji?: string; // Japan-specific
     company_name_kana?: string; // Japan-specific
     company_tax_id: string;
     company_vat_number?: string;
@@ -37,6 +38,16 @@ export interface DirectOnboardFormData {
     company_address_state: string;
     company_address_postal_code: string;
     company_address_country: string;
+    company_address_kana_postal_code?: string;
+    company_address_kana_state?: string;
+    company_address_kana_city?: string;
+    company_address_kana_line1?: string;
+    company_address_kana_line2?: string;
+    company_address_kanji_postal_code?: string;
+    company_address_kanji_state?: string;
+    company_address_kanji_city?: string;
+    company_address_kanji_line1?: string;
+    company_address_kanji_line2?: string;
     // Company confirmations
     company_directors_provided?: boolean;
     company_executives_provided?: boolean;
@@ -68,12 +79,16 @@ export interface DirectOnboardFormData {
     representative_last_name: string;
     representative_first_name_kana?: string; // Japan-specific
     representative_last_name_kana?: string; // Japan-specific
+    representative_first_name_kanji?: string; // Japan-specific
+    representative_last_name_kanji?: string; // Japan-specific
     representative_email: string;
     representative_phone: string;
     representative_dob_day: number;
     representative_dob_month: number;
     representative_dob_year: number;
     representative_address_line1: string;
+    representative_address_line2?: string;
+    representative_address_line2_kana?: string;
     representative_address_city: string;
     representative_address_state: string;
     representative_address_postal_code: string;

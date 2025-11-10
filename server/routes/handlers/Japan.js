@@ -13,7 +13,7 @@ const {
 class JapanHandler extends BaseHandler {
   constructor() {
     super('JP');
-    this.requiresDirectors = false;
+    this.requiresDirectors = true;
     this.requiresExecutives = false;
     this.usesIBAN = false;
   }
@@ -24,6 +24,7 @@ class JapanHandler extends BaseHandler {
   async handleCompany(accountUpdateData, reqBody, stripe, accountId) {
     const {
       company_name,
+      company_name_kanji,
       company_name_kana,
       company_tax_id,
       company_registration_number,
@@ -34,6 +35,16 @@ class JapanHandler extends BaseHandler {
       company_address_state,
       company_address_postal_code,
       company_address_country,
+      company_address_kana_postal_code,
+      company_address_kana_state,
+      company_address_kana_city,
+      company_address_kana_line1,
+      company_address_kana_line2,
+      company_address_kanji_postal_code,
+      company_address_kanji_state,
+      company_address_kanji_city,
+      company_address_kanji_line1,
+      company_address_kanji_line2,
       company_directors_provided,
       company_executives_provided,
       company_verification_document_front,
@@ -42,12 +53,15 @@ class JapanHandler extends BaseHandler {
       representative_last_name,
       representative_first_name_kana,
       representative_last_name_kana,
+      representative_first_name_kanji,
+      representative_last_name_kanji,
       representative_email,
       representative_phone,
       representative_dob_day,
       representative_dob_month,
       representative_dob_year,
       representative_address_line1,
+      representative_address_line2,
       representative_address_city,
       representative_address_state,
       representative_address_postal_code,
@@ -95,19 +109,57 @@ class JapanHandler extends BaseHandler {
     if (company_address_postal_code) companyAddress.postal_code = company_address_postal_code;
     if (company_address_country) companyAddress.country = company_address_country;
 
+    const companyAddressKana = {};
+    if (company_address_kana_line1) companyAddressKana.line1 = company_address_kana_line1;
+    if (company_address_kana_line2) companyAddressKana.line2 = company_address_kana_line2;
+    if (company_address_kana_city) companyAddressKana.city = company_address_kana_city;
+    if (company_address_kana_state) companyAddressKana.state = company_address_kana_state;
+    if (company_address_kana_postal_code)
+      companyAddressKana.postal_code = company_address_kana_postal_code;
+
+    const companyAddressKanji = {};
+    if (company_address_kanji_line1) companyAddressKanji.line1 = company_address_kanji_line1;
+    if (company_address_kanji_line2) companyAddressKanji.line2 = company_address_kanji_line2;
+    if (company_address_kanji_city) companyAddressKanji.city = company_address_kanji_city;
+    if (company_address_kanji_state) companyAddressKanji.state = company_address_kanji_state;
+    if (company_address_kanji_postal_code)
+      companyAddressKanji.postal_code = company_address_kanji_postal_code;
+
     accountUpdateData.company = {
       name: company_name,
-      structure: company_structure || 'private_corporation',
       owners_provided: true,
     };
+
+    if (company_structure) {
+      accountUpdateData.company.structure = company_structure;
+    }
 
     if (company_name_kana) {
       accountUpdateData.company.name_kana = company_name_kana;
     }
 
-    if (company_directors_provided === true) {
+    if (company_name_kanji) {
+      accountUpdateData.company.name_kanji = company_name_kanji;
+    }
+
+    const hasRepresentativeDirector = representative_relationship_director === true;
+    const hasOwnerDirector = owner_relationship_director === true;
+    const hasAdditionalDirectors =
+      Array.isArray(directors) &&
+      directors.some((director) => {
+        if (!director) return false;
+        return !!(director.first_name?.trim() || director.last_name?.trim());
+      });
+
+    if (
+      company_directors_provided === true ||
+      hasRepresentativeDirector ||
+      hasOwnerDirector ||
+      hasAdditionalDirectors
+    ) {
       accountUpdateData.company.directors_provided = true;
     }
+
     if (company_executives_provided === true) {
       accountUpdateData.company.executives_provided = true;
     }
@@ -130,8 +182,16 @@ class JapanHandler extends BaseHandler {
       }
     }
 
-    if (company_address_line1) {
+    if (Object.keys(companyAddress).length > 0) {
       accountUpdateData.company.address = companyAddress;
+    }
+
+    if (Object.keys(companyAddressKana).length > 0) {
+      accountUpdateData.company.address_kana = companyAddressKana;
+    }
+
+    if (Object.keys(companyAddressKanji).length > 0) {
+      accountUpdateData.company.address_kanji = companyAddressKanji;
     }
 
     const companyVerification = createVerification(
@@ -152,12 +212,15 @@ class JapanHandler extends BaseHandler {
       last_name: representative_last_name,
       first_name_kana: representative_first_name_kana,
       last_name_kana: representative_last_name_kana,
+      first_name_kanji: representative_first_name_kanji,
+      last_name_kanji: representative_last_name_kanji,
       email: representative_email,
       phone: representative_phone,
       dob_day: representative_dob_day,
       dob_month: representative_dob_month,
       dob_year: representative_dob_year,
       address_line1: representative_address_line1,
+      address_line2: representative_address_line2,
       address_city: representative_address_city,
       address_state: representative_address_state,
       address_postal_code: representative_address_postal_code,
@@ -228,6 +291,21 @@ class JapanHandler extends BaseHandler {
       });
 
       await createOrUpdatePerson(stripe, accountId, ownerToCheck, ownerData);
+    }
+
+    const hasDirectorRelationship =
+      !!representative_relationship_director ||
+      !!owner_relationship_director ||
+      (Array.isArray(directors) &&
+        directors.some(
+          (director) =>
+            !!director &&
+            ((director.first_name && director.first_name.trim() !== '') ||
+              (director.last_name && director.last_name.trim() !== ''))
+        ));
+
+    if (hasDirectorRelationship) {
+      accountUpdateData.company.directors_provided = true;
     }
   }
 
@@ -305,5 +383,6 @@ class JapanHandler extends BaseHandler {
 }
 
 module.exports = JapanHandler;
+
 
 

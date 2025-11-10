@@ -38,7 +38,7 @@ import { DirectOnboardFormData, DirectOnboardFormProps } from './types';
 import { getDefaultCurrencyForCountry } from './utils';
 
 // Japan-specific configuration
-const DIRECTOR_EXECUTIVE_COUNTRIES: string[] = []; // Japan doesn't require directors/executives
+const DIRECTOR_EXECUTIVE_COUNTRIES: string[] = ['JP']; // Japan requires representative to be a director
 const IBAN_COUNTRIES: string[] = []; // Japan uses bank_code and branch_code, not IBAN
 const DEFAULT_COUNTRY = 'JP';
 
@@ -89,16 +89,27 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
         product_description: 'Computer Network Services',
         // Company fields
         company_name: '',
+        company_name_kanji: '', // Japan-specific
         company_name_kana: '', // Japan-specific
         company_tax_id: '',
         company_registration_number: '', // Japan-specific (Corporate Number/Houjin Bangou)
-        company_structure: 'private_corporation',
+        company_structure: '',
         company_address_line1: '',
         company_address_line2: '',
         company_address_city: '',
         company_address_state: '',
         company_address_postal_code: '',
         company_address_country: country || DEFAULT_COUNTRY,
+        company_address_kana_postal_code: '',
+        company_address_kana_state: '',
+        company_address_kana_city: '',
+        company_address_kana_line1: '',
+        company_address_kana_line2: '',
+        company_address_kanji_postal_code: '',
+        company_address_kanji_state: '',
+        company_address_kanji_city: '',
+        company_address_kanji_line1: '',
+        company_address_kanji_line2: '',
         company_directors_provided: false,
         company_executives_provided: false,
         // ToS Acceptance
@@ -129,12 +140,16 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
         representative_last_name: '',
         representative_first_name_kana: '', // Japan-specific
         representative_last_name_kana: '', // Japan-specific
+        representative_first_name_kanji: '', // Japan-specific
+        representative_last_name_kanji: '', // Japan-specific
         representative_email: '',
         representative_phone: '',
         representative_dob_day: 1,
         representative_dob_month: 1,
         representative_dob_year: 1990,
         representative_address_line1: '',
+        representative_address_line2: '',
+        representative_address_line2_kana: '',
         representative_address_city: '',
         representative_address_state: '',
         representative_address_postal_code: '',
@@ -202,12 +217,79 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
         owner_additional_back?: { id: string; name: string };
     }>({});
 
+    const normalizedCompanyCountry = useMemo(
+        () => (formData.company_address_country || '').toUpperCase(),
+        [formData.company_address_country]
+    );
+
+    const normalizedRepresentativeCountry = useMemo(
+        () => (formData.representative_address_country || '').toUpperCase(),
+        [formData.representative_address_country]
+    );
+
     const shouldShowDirectorsExecutives = useMemo(() => {
         return (
             (formData.business_type === 'company' || formData.business_type === 'non_profit') &&
-            DIRECTOR_EXECUTIVE_COUNTRIES.includes(formData.company_address_country)
+            DIRECTOR_EXECUTIVE_COUNTRIES.includes(normalizedCompanyCountry)
         );
-    }, [formData.business_type, formData.company_address_country]);
+    }, [formData.business_type, normalizedCompanyCountry]);
+
+    const shouldAutoAssignRepresentativeDirector = useMemo(() => {
+        return (
+            formData.business_type !== 'individual' &&
+            DIRECTOR_EXECUTIVE_COUNTRIES.includes(normalizedCompanyCountry)
+        );
+    }, [formData.business_type, normalizedCompanyCountry]);
+
+    useEffect(() => {
+        if (!shouldAutoAssignRepresentativeDirector) {
+            return;
+        }
+
+        setFormData(prev => {
+            let updated = false;
+            const next = { ...prev };
+
+            if (!prev.representative_relationship_representative) {
+                next.representative_relationship_representative = true;
+                updated = true;
+            }
+
+            if (!prev.representative_relationship_director) {
+                next.representative_relationship_director = true;
+                updated = true;
+            }
+
+            if (!prev.company_directors_provided) {
+                next.company_directors_provided = true;
+                updated = true;
+            }
+
+            return updated ? next : prev;
+        });
+    }, [shouldAutoAssignRepresentativeDirector]);
+
+    useEffect(() => {
+        if (!shouldShowDirectorsExecutives) {
+            setFormData(prev => {
+                if (
+                    !prev.company_directors_provided &&
+                    !prev.company_executives_provided &&
+                    (!prev.directors || prev.directors.length === 0) &&
+                    (!prev.executives || prev.executives.length === 0)
+                ) {
+                    return prev;
+                }
+                return {
+                    ...prev,
+                    company_directors_provided: false,
+                    company_executives_provided: false,
+                    directors: [],
+                    executives: [],
+                };
+            });
+        }
+    }, [shouldShowDirectorsExecutives]);
 
     const requiresSiren =
         formData.company_address_country === 'FR' &&
@@ -251,28 +333,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             }));
         }
     }, [isJapanBankAccount, formData.external_account_account_type]);
-
-    useEffect(() => {
-        if (!shouldShowDirectorsExecutives) {
-            setFormData(prev => {
-                if (
-                    !prev.company_directors_provided &&
-                    !prev.company_executives_provided &&
-                    (!prev.directors || prev.directors.length === 0) &&
-                    (!prev.executives || prev.executives.length === 0)
-                ) {
-                    return prev;
-                }
-                return {
-                    ...prev,
-                    company_directors_provided: false,
-                    company_executives_provided: false,
-                    directors: [],
-                    executives: [],
-                };
-            });
-        }
-    }, [shouldShowDirectorsExecutives]);
 
     const renderPersonCard = (
         person: any,
@@ -575,40 +635,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
         }
     }, [detectedIP, formData.tos_acceptance_ip]);
 
-    // Update default company_structure when business_type changes to non_profit or government_entity
-    useEffect(() => {
-        if (
-            formData.business_type === 'non_profit' &&
-            (formData.company_structure === 'private_corporation' || !formData.company_structure)
-        ) {
-            setFormData(prev => ({
-                ...prev,
-                company_structure: 'unincorporated_non_profit',
-            }));
-        } else if (
-            formData.business_type === 'government_entity' &&
-            ![
-                'governmental_unit',
-                'government_instrumentality',
-                'tax_exempt_government_instrumentality',
-            ].includes(formData.company_structure)
-        ) {
-            setFormData(prev => ({
-                ...prev,
-                company_structure: 'governmental_unit',
-            }));
-        } else if (
-            formData.business_type === 'company' &&
-            (formData.company_structure === 'unincorporated_non_profit' ||
-                formData.company_structure === 'incorporated_non_profit')
-        ) {
-            setFormData(prev => ({
-                ...prev,
-                company_structure: 'private_corporation',
-            }));
-        }
-    }, [formData.business_type]);
-
     // Update account_id and email when props change
     useEffect(() => {
         if (accountId) {
@@ -649,11 +675,10 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
         { value: 'government_entity', label: 'Government Entity' },
     ];
 
-    const companyStructures = [
+    const baseCompanyStructures = [
         { value: 'government_instrumentality', label: 'Government Instrumentality' },
         { value: 'governmental_unit', label: 'Governmental Unit' },
         { value: 'incorporated_non_profit', label: 'Incorporated Non-profit' },
-        { value: 'single_member_llc', label: 'Single-member LLC' },
         { value: 'multi_member_llc', label: 'Multi-member LLC' },
         { value: 'private_corporation', label: 'Private Corporation' },
         { value: 'private_partnership', label: 'Private Partnership' },
@@ -666,6 +691,128 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
         { value: 'unincorporated_association', label: 'Unincorporated Association' },
         { value: 'unincorporated_non_profit', label: 'Unincorporated Non-profit' },
     ];
+
+    const japanCompanyStructureOptions: Record<
+        'company' | 'non_profit' | 'government_entity',
+        { value: string; label: string }[]
+    > = {
+        company: [
+            { value: 'private_company', label: 'Kabushiki Kaisha (KK) - Private Company' },
+            { value: 'public_company', label: 'Public Kabushiki Kaisha (Public KK)' },
+            { value: 'llc', label: 'Godo Kaisha (GK) - Limited Liability Company' },
+        ],
+        non_profit: [
+            {
+                value: 'incorporated_non_profit',
+                label: 'Incorporated Association or Foundation (Shadan/Zaidan Hojin)',
+            },
+            {
+                value: 'unincorporated_non_profit',
+                label: 'Unincorporated Non-profit / NPO',
+            },
+        ],
+        government_entity: [
+            { value: 'governmental_unit', label: 'Governmental Unit' },
+            { value: 'government_instrumentality', label: 'Government Instrumentality' },
+            {
+                value: 'tax_exempt_government_instrumentality',
+                label: 'Tax-exempt Government Instrumentality',
+            },
+        ],
+    };
+
+    const shouldCollectCompanyStructure = useMemo(() => {
+        const companyCountry = formData.company_address_country || DEFAULT_COUNTRY;
+        return !(companyCountry === 'JP' && formData.business_type === 'company');
+    }, [formData.business_type, formData.company_address_country]);
+
+    const availableCompanyStructures = useMemo(() => {
+        const businessType = formData.business_type;
+        const companyCountry = formData.company_address_country || DEFAULT_COUNTRY;
+        const isJapan = companyCountry === 'JP';
+
+        if (!shouldCollectCompanyStructure) {
+            return [];
+        }
+
+        if (isJapan && (businessType === 'non_profit' || businessType === 'government_entity')) {
+            return japanCompanyStructureOptions[businessType];
+        }
+
+        return baseCompanyStructures.filter(structure => {
+            if (businessType === 'non_profit') {
+                return ['unincorporated_non_profit', 'incorporated_non_profit'].includes(
+                    structure.value
+                );
+            }
+
+            if (businessType === 'government_entity') {
+                return [
+                    'governmental_unit',
+                    'government_instrumentality',
+                    'tax_exempt_government_instrumentality',
+                ].includes(structure.value);
+            }
+
+            if (businessType === 'company') {
+                if (companyCountry === 'SE') {
+                    const allowedSe = [
+                        'private_corporation',
+                        'public_corporation',
+                        'private_partnership',
+                        'public_partnership',
+                    ];
+                    return allowedSe.includes(structure.value);
+                }
+
+                return ![
+                    'governmental_unit',
+                    'government_instrumentality',
+                    'tax_exempt_government_instrumentality',
+                    'unincorporated_non_profit',
+                    'incorporated_non_profit',
+                ].includes(structure.value);
+            }
+
+            return true;
+        });
+    }, [formData.business_type, formData.company_address_country, shouldCollectCompanyStructure]);
+
+    useEffect(() => {
+        if (
+            !shouldCollectCompanyStructure ||
+            !['company', 'non_profit', 'government_entity'].includes(formData.business_type) ||
+            availableCompanyStructures.length === 0
+        ) {
+            return;
+        }
+
+        const hasValidStructure = availableCompanyStructures.some(
+            option => option.value === formData.company_structure
+        );
+
+        if (!hasValidStructure) {
+            setFormData(prev => ({
+                ...prev,
+                company_structure: availableCompanyStructures[0].value,
+            }));
+        }
+    }, [
+        availableCompanyStructures,
+        formData.business_type,
+        formData.company_structure,
+        setFormData,
+        shouldCollectCompanyStructure,
+    ]);
+
+    useEffect(() => {
+        if (!shouldCollectCompanyStructure && formData.company_structure) {
+            setFormData(prev => ({
+                ...prev,
+                company_structure: '',
+            }));
+        }
+    }, [shouldCollectCompanyStructure, formData.company_structure, setFormData]);
 
     const currencies = [
         { code: 'jpy', name: 'Japanese Yen (JPY)' },
@@ -693,13 +840,21 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
 
     const handleInputChange = (field: keyof DirectOnboardFormData, value: any) => {
         setFormData(prev => {
+            const shouldUppercaseValue =
+                field === 'external_account_country' ||
+                field === 'company_address_country' ||
+                field === 'representative_address_country' ||
+                field === 'individual_address_country';
+
+            const normalizedValue = shouldUppercaseValue ? String(value).toUpperCase() : value;
+
             const next = {
                 ...prev,
-                [field]: value,
+                [field]: normalizedValue,
             };
 
             if (field === 'external_account_country') {
-                next.external_account_country = String(value).toUpperCase();
+                next.external_account_country = normalizedValue as string;
             }
 
             const targetExternalAccountCountry =
@@ -1019,8 +1174,264 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                 }
             }
 
+            if (
+                (formData.business_type === 'company' ||
+                    formData.business_type === 'non_profit' ||
+                    formData.business_type === 'government_entity') &&
+                normalizedRepresentativeCountry === 'JP'
+            ) {
+                const missingEnglishName =
+                    !formData.representative_first_name?.trim() ||
+                    !formData.representative_last_name?.trim();
+                const missingKanaName =
+                    !formData.representative_first_name_kana?.trim() ||
+                    !formData.representative_last_name_kana?.trim();
+                const missingKanjiName =
+                    !formData.representative_first_name_kanji?.trim() ||
+                    !formData.representative_last_name_kanji?.trim();
+
+                if (missingEnglishName || missingKanaName || missingKanjiName) {
+                    setLoading(false);
+                    setError(
+                        'Representative name must include English, Katakana, and Kanji values for Japan.'
+                    );
+                    return;
+                }
+            }
+
+            if (
+                formData.business_type !== 'individual' &&
+                (!formData.representative_address_line1?.trim() ||
+                    !formData.representative_address_postal_code?.trim())
+            ) {
+                setLoading(false);
+                setError('Representative address is required for Japan business onboarding.');
+                return;
+            }
+
+            if (
+                (formData.business_type === 'company' ||
+                    formData.business_type === 'non_profit' ||
+                    formData.business_type === 'government_entity') &&
+                formData.company_address_country === 'JP'
+            ) {
+                const missingBusinessAddress =
+                    !formData.company_address_postal_code?.trim() ||
+                    !formData.company_address_state?.trim() ||
+                    !formData.company_address_city?.trim() ||
+                    !formData.company_address_line1?.trim();
+
+                const missingKanaAddress =
+                    !formData.company_address_kana_postal_code?.trim() ||
+                    !formData.company_address_kana_state?.trim() ||
+                    !formData.company_address_kana_city?.trim() ||
+                    !formData.company_address_kana_line1?.trim();
+
+                const missingKanjiAddress =
+                    !formData.company_address_kanji_postal_code?.trim() ||
+                    !formData.company_address_kanji_state?.trim() ||
+                    !formData.company_address_kanji_city?.trim() ||
+                    !formData.company_address_kanji_line1?.trim();
+
+                if (missingBusinessAddress) {
+                    setLoading(false);
+                    setError('Business address fields are required for Japan.');
+                    return;
+                }
+
+                if (missingKanaAddress) {
+                    setLoading(false);
+                    setError('Kana business address is required for Japan.');
+                    return;
+                }
+
+                if (missingKanjiAddress) {
+                    setLoading(false);
+                    setError('Kanji business address is required for Japan.');
+                    return;
+                }
+            }
+
             // Prepare payload with appropriate SSN fields based on toggle state
             const payload: any = { ...formData };
+            if (shouldAutoAssignRepresentativeDirector) {
+                payload.representative_relationship_director = true;
+                payload.representative_relationship_representative = true;
+                payload.company_directors_provided = true;
+            } else if (shouldShowDirectorsExecutives && hasAtLeastOneDirectorPerson) {
+                payload.company_directors_provided = true;
+            }
+
+            if (formData.representative_address_line1) {
+                payload.representative_address_line1 = formData.representative_address_line1.trim();
+            }
+            if (formData.representative_address_line2) {
+                payload.representative_address_line2 = formData.representative_address_line2.trim();
+            }
+            const representativeAddressLine2Kana = (formData as Record<string, any>)
+                .representative_address_line2_kana as string | undefined;
+            if (representativeAddressLine2Kana) {
+                payload.representative_address_line2_kana = representativeAddressLine2Kana.trim();
+            }
+            if (formData.representative_address_city) {
+                payload.representative_address_city = formData.representative_address_city.trim();
+            }
+            if (formData.representative_address_state) {
+                payload.representative_address_state = formData.representative_address_state.trim();
+            }
+            if (formData.representative_address_postal_code) {
+                payload.representative_address_postal_code =
+                    formData.representative_address_postal_code.trim();
+            }
+            if (formData.representative_address_country) {
+                payload.representative_address_country =
+                    formData.representative_address_country.trim();
+            }
+            if (formData.representative_first_name_kanji) {
+                payload.representative_first_name_kanji =
+                    formData.representative_first_name_kanji.trim();
+            }
+            if (formData.representative_last_name_kanji) {
+                payload.representative_last_name_kanji =
+                    formData.representative_last_name_kanji.trim();
+            }
+            if (formData.company_address_line1) {
+                payload.company_address_line1 = formData.company_address_line1.trim();
+            }
+            if (formData.company_address_line2) {
+                payload.company_address_line2 = formData.company_address_line2.trim();
+            }
+            if (formData.company_address_city) {
+                payload.company_address_city = formData.company_address_city.trim();
+            }
+            if (formData.company_address_state) {
+                payload.company_address_state = formData.company_address_state.trim();
+            }
+            if (formData.company_address_postal_code) {
+                payload.company_address_postal_code = formData.company_address_postal_code.trim();
+            }
+            if (formData.company_address_kana_postal_code) {
+                payload.company_address_kana_postal_code =
+                    formData.company_address_kana_postal_code.trim();
+            }
+            if (formData.company_address_kana_state) {
+                payload.company_address_kana_state = formData.company_address_kana_state.trim();
+            }
+            if (formData.company_address_kana_city) {
+                payload.company_address_kana_city = formData.company_address_kana_city.trim();
+            }
+            if (formData.company_address_kana_line1) {
+                payload.company_address_kana_line1 = formData.company_address_kana_line1.trim();
+            }
+            if (formData.company_address_kana_line2) {
+                payload.company_address_kana_line2 = formData.company_address_kana_line2.trim();
+            }
+            if (formData.company_address_kanji_postal_code) {
+                payload.company_address_kanji_postal_code =
+                    formData.company_address_kanji_postal_code.trim();
+            }
+            if (formData.company_address_kanji_state) {
+                payload.company_address_kanji_state = formData.company_address_kanji_state.trim();
+            }
+            if (formData.company_address_kanji_city) {
+                payload.company_address_kanji_city = formData.company_address_kanji_city.trim();
+            }
+            if (formData.company_address_kanji_line1) {
+                payload.company_address_kanji_line1 = formData.company_address_kanji_line1.trim();
+            }
+            if (formData.company_address_kanji_line2) {
+                payload.company_address_kanji_line2 = formData.company_address_kanji_line2.trim();
+            }
+            if (formData.company_name_kanji) {
+                payload.company_name_kanji = formData.company_name_kanji.trim();
+            }
+
+            const removeEmptyStrings = (obj: Record<string, any>) =>
+                Object.entries(obj).reduce<Record<string, any>>((acc, [key, value]) => {
+                    if (value === undefined || value === null) {
+                        return acc;
+                    }
+                    if (typeof value === 'string') {
+                        const trimmedValue = value.trim();
+                        if (trimmedValue === '') {
+                            return acc;
+                        }
+                        acc[key] = trimmedValue;
+                        return acc;
+                    }
+                    acc[key] = value;
+                    return acc;
+                }, {});
+
+            const formDataAny = formData as Record<string, any>;
+
+            const representativeDetails = removeEmptyStrings({
+                first_name: payload.representative_first_name,
+                last_name: payload.representative_last_name,
+                first_name_kana: formData.representative_first_name_kana,
+                last_name_kana: formData.representative_last_name_kana,
+                first_name_kanji: formDataAny.representative_first_name_kanji,
+                last_name_kanji: formDataAny.representative_last_name_kanji,
+                email: payload.representative_email,
+                phone: payload.representative_phone,
+                id_number: payload.representative_id_number,
+            }) as Record<string, any>;
+
+            const representativeDob = {
+                day: formData.representative_dob_day,
+                month: formData.representative_dob_month,
+                year: formData.representative_dob_year,
+            };
+
+            if (
+                Number.isFinite(representativeDob.day) &&
+                Number.isFinite(representativeDob.month) &&
+                Number.isFinite(representativeDob.year)
+            ) {
+                representativeDetails.dob = representativeDob;
+            }
+
+            const representativeAddress = removeEmptyStrings({
+                postal_code: payload.representative_address_postal_code,
+                line1: payload.representative_address_line1,
+                line2: payload.representative_address_line2,
+                line2_kana: payload.representative_address_line2_kana,
+                city: payload.representative_address_city,
+                state: payload.representative_address_state,
+                country: payload.representative_address_country,
+            });
+
+            if (Object.keys(representativeAddress).length > 0) {
+                representativeDetails.address = representativeAddress;
+            }
+
+            const representativeRelationship: Record<string, any> = {};
+            if (formData.representative_relationship_representative) {
+                representativeRelationship.representative = true;
+            }
+            if (formData.representative_relationship_executive) {
+                representativeRelationship.executive = true;
+            }
+            if (formData.representative_relationship_director) {
+                representativeRelationship.director = true;
+            }
+            const representativeRelationshipTitle =
+                payload.representative_relationship_title?.trim();
+            if (representativeRelationshipTitle) {
+                representativeRelationship.title = representativeRelationshipTitle;
+            }
+
+            if (Object.keys(representativeRelationship).length > 0) {
+                representativeDetails.relationship = representativeRelationship;
+            }
+
+            if (Object.keys(representativeDetails).length > 0) {
+                payload.company = {
+                    ...(payload.company || {}),
+                    representative: representativeDetails,
+                };
+            }
+
             // If directors/executives are not required, drop related fields & flags
             if (!shouldShowDirectorsExecutives) {
                 delete payload.company_directors_provided;
@@ -1038,7 +1449,8 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             if (
                 shouldShowDirectorsExecutives &&
                 formData.company_directors_provided &&
-                !hasAtLeastOneDirectorPerson
+                !hasAtLeastOneDirectorPerson &&
+                !shouldAutoAssignRepresentativeDirector
             ) {
                 setLoading(false);
                 setError(
@@ -1151,16 +1563,27 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                         product_description: '',
                         // Company fields
                         company_name: '',
+                        company_name_kanji: '',
                         company_name_kana: '',
                         company_tax_id: '',
                         company_registration_number: '',
-                        company_structure: 'private_corporation',
+                        company_structure: 'private_company',
                         company_address_line1: '',
                         company_address_line2: '',
                         company_address_city: '',
                         company_address_state: '',
                         company_address_postal_code: '',
                         company_address_country: country || DEFAULT_COUNTRY,
+                        company_address_kana_postal_code: '',
+                        company_address_kana_state: '',
+                        company_address_kana_city: '',
+                        company_address_kana_line1: '',
+                        company_address_kana_line2: '',
+                        company_address_kanji_postal_code: '',
+                        company_address_kanji_state: '',
+                        company_address_kanji_city: '',
+                        company_address_kanji_line1: '',
+                        company_address_kanji_line2: '',
                         company_directors_provided: false,
                         company_executives_provided: false,
                         // ToS Acceptance
@@ -1190,12 +1613,15 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                         representative_last_name: '',
                         representative_first_name_kana: '',
                         representative_last_name_kana: '',
+                        representative_first_name_kanji: '',
+                        representative_last_name_kanji: '',
                         representative_email: '',
                         representative_phone: '',
                         representative_dob_day: 1,
                         representative_dob_month: 1,
                         representative_dob_year: 1990,
                         representative_address_line1: '',
+                        representative_address_line2: '',
                         representative_address_city: '',
                         representative_address_state: '',
                         representative_address_postal_code: '',
@@ -1276,8 +1702,10 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             business_description: '',
             product_description: '',
             company_name: '',
+            company_name_kanji: '',
+            company_name_kana: '',
             company_tax_id: '',
-            company_structure: 'private_corporation',
+            company_structure: '',
             company_address_line1: '',
             company_address_line2: '',
             company_address_city: '',
@@ -1302,12 +1730,15 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             external_account_cvc: '',
             representative_first_name: '',
             representative_last_name: '',
+            representative_first_name_kanji: '',
+            representative_last_name_kanji: '',
             representative_email: '',
             representative_phone: '',
             representative_dob_day: 1,
             representative_dob_month: 1,
             representative_dob_year: 1990,
             representative_address_line1: '',
+            representative_address_line2: '',
             representative_address_city: '',
             representative_address_state: '',
             representative_address_postal_code: '',
@@ -2227,6 +2658,24 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                         />
                                     </Grid>
 
+                                    {/* Japan-specific: Company Name Kanji */}
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Company Name (Kanji)"
+                                            value={formData.company_name_kanji || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'company_name_kanji',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="株式会社ABC"
+                                            helperText="Required for Japan - Enter company name in Kanji"
+                                            required
+                                        />
+                                    </Grid>
+
                                     {/* Japan-specific: Company Name Kana */}
                                     <Grid size={{ xs: 12, sm: 6 }}>
                                         <TextField
@@ -2279,81 +2728,35 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                         />
                                     </Grid>
 
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <FormControl fullWidth>
-                                            <InputLabel>
-                                                {formData.business_type === 'non_profit'
-                                                    ? 'Non-profit Structure'
-                                                    : formData.business_type === 'government_entity'
-                                                      ? 'Government Entity Structure'
-                                                      : 'Company Structure'}
-                                            </InputLabel>
-                                            <Select
-                                                value={formData.company_structure}
-                                                label={
-                                                    formData.business_type === 'non_profit'
+                                    {shouldCollectCompanyStructure && (
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <FormControl fullWidth>
+                                                <InputLabel>
+                                                    {formData.business_type === 'non_profit'
                                                         ? 'Non-profit Structure'
                                                         : formData.business_type ===
                                                             'government_entity'
                                                           ? 'Government Entity Structure'
-                                                          : 'Company Structure'
-                                                }
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'company_structure',
-                                                        e.target.value
-                                                    )
-                                                }
-                                            >
-                                                {companyStructures
-                                                    .filter(structure => {
-                                                        // Filter structures based on business type
-                                                        if (
-                                                            formData.business_type === 'non_profit'
-                                                        ) {
-                                                            return [
-                                                                'unincorporated_non_profit',
-                                                                'incorporated_non_profit',
-                                                            ].includes(structure.value);
-                                                        } else if (
-                                                            formData.business_type ===
-                                                            'government_entity'
-                                                        ) {
-                                                            return [
-                                                                'governmental_unit',
-                                                                'government_instrumentality',
-                                                                'tax_exempt_government_instrumentality',
-                                                            ].includes(structure.value);
-                                                        } else if (
-                                                            formData.business_type === 'company'
-                                                        ) {
-                                                            // For Sweden company, restrict to supported structures
-                                                            if (
-                                                                formData.company_address_country ===
-                                                                'SE'
-                                                            ) {
-                                                                const allowedSe = [
-                                                                    'private_corporation',
-                                                                    'public_corporation',
-                                                                    'private_partnership',
-                                                                    'public_partnership',
-                                                                ];
-                                                                return allowedSe.includes(
-                                                                    structure.value
-                                                                );
-                                                            }
-                                                            // For other countries, exclude non-company-only structures
-                                                            return ![
-                                                                'governmental_unit',
-                                                                'government_instrumentality',
-                                                                'tax_exempt_government_instrumentality',
-                                                                'unincorporated_non_profit',
-                                                                'incorporated_non_profit',
-                                                            ].includes(structure.value);
-                                                        }
-                                                        return true;
-                                                    })
-                                                    .map(structure => (
+                                                          : 'Company Structure'}
+                                                </InputLabel>
+                                                <Select
+                                                    value={formData.company_structure}
+                                                    label={
+                                                        formData.business_type === 'non_profit'
+                                                            ? 'Non-profit Structure'
+                                                            : formData.business_type ===
+                                                                'government_entity'
+                                                              ? 'Government Entity Structure'
+                                                              : 'Company Structure'
+                                                    }
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'company_structure',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                >
+                                                    {availableCompanyStructures.map(structure => (
                                                         <MenuItem
                                                             key={structure.value}
                                                             value={structure.value}
@@ -2361,9 +2764,10 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                             {structure.label}
                                                         </MenuItem>
                                                     ))}
-                                            </Select>
-                                        </FormControl>
-                                    </Grid>
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+                                    )}
 
                                     {/* Company/Non-profit/Government Address */}
                                     <Grid size={{ xs: 12 }}>
@@ -2372,72 +2776,15 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 ? 'Non-profit Address'
                                                 : formData.business_type === 'government_entity'
                                                   ? 'Government Entity Address'
-                                                  : 'Company Address'}
+                                                  : 'Business Address'}
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Provide the primary business location in Latin
+                                            characters.
                                         </Typography>
                                     </Grid>
 
-                                    <Grid size={{ xs: 12 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Street Address"
-                                            value={formData.company_address_line1}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'company_address_line1',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="123 Main St"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Apartment, unit, or other (optional)"
-                                            value={formData.company_address_line2}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'company_address_line2',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="Apt 4B, Suite 200, etc."
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="City"
-                                            value={formData.company_address_city}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'company_address_city',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="New York"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="State"
-                                            value={formData.company_address_state}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'company_address_state',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="NY"
-                                            helperText="State, county, province, or region"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Grid size={{ xs: 12, sm: 4 }}>
                                         <TextField
                                             fullWidth
                                             label="Postal Code"
@@ -2448,7 +2795,74 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                     e.target.value
                                                 )
                                             }
-                                            placeholder="10001"
+                                            placeholder="123-4567"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Prefecture"
+                                            value={formData.company_address_state}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'company_address_state',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Tokyo"
+                                            helperText="Enter the prefecture (e.g., Tokyo, Osaka)"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="City / Ward"
+                                            value={formData.company_address_city}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'company_address_city',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Shibuya-ku"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Block number (e.g. 1-1)"
+                                            value={formData.company_address_line1}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'company_address_line1',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="1-1"
+                                            helperText="Include chōme and block numbers, if applicable"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Building name + unit number"
+                                            value={formData.company_address_line2}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'company_address_line2',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Sunrise Midtown 1503"
+                                            helperText="Optional"
                                         />
                                     </Grid>
 
@@ -2476,6 +2890,208 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             </Select>
                                         </FormControl>
                                     </Grid>
+
+                                    {formData.company_address_country === 'JP' && (
+                                        <>
+                                            <Grid size={{ xs: 12 }}>
+                                                <Typography
+                                                    variant="subtitle1"
+                                                    gutterBottom
+                                                    sx={{ mt: 2 }}
+                                                >
+                                                    Kana business address
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Enter the address in full-width Katakana as
+                                                    required by Stripe for Japanese verification.
+                                                </Typography>
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Postal code (digits only)"
+                                                    value={
+                                                        formData.company_address_kana_postal_code
+                                                    }
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'company_address_kana_postal_code',
+                                                            e.target.value.replace(/\D/g, '')
+                                                        )
+                                                    }
+                                                    placeholder="1234567"
+                                                    helperText="Use digits only; no hyphen"
+                                                    required
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Prefecture (カナ)"
+                                                    value={formData.company_address_kana_state}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'company_address_kana_state',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="トウキョウト"
+                                                    helperText="Full-width Katakana"
+                                                    required
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="City / Ward (カナ)"
+                                                    value={formData.company_address_kana_city}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'company_address_kana_city',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="シブヤク"
+                                                    helperText="Full-width Katakana"
+                                                    required
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Block number (カナ)"
+                                                    value={formData.company_address_kana_line1}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'company_address_kana_line1',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="１－１"
+                                                    helperText="Use full-width numbers and Katakana where needed"
+                                                    required
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Building name + unit number (カナ)"
+                                                    value={formData.company_address_kana_line2}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'company_address_kana_line2',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="サンライズミッドタウン１５０３"
+                                                    helperText="Optional"
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12 }}>
+                                                <Typography
+                                                    variant="subtitle1"
+                                                    gutterBottom
+                                                    sx={{ mt: 2 }}
+                                                >
+                                                    Kanji business address
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Provide the address using Kanji characters
+                                                    exactly as registered.
+                                                </Typography>
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="郵便番号"
+                                                    value={
+                                                        formData.company_address_kanji_postal_code
+                                                    }
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'company_address_kanji_postal_code',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="123-4567"
+                                                    helperText="７桁の郵便番号"
+                                                    required
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="都道府県"
+                                                    value={formData.company_address_kanji_state}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'company_address_kanji_state',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="東京都"
+                                                    required
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="市区町村"
+                                                    value={formData.company_address_kanji_city}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'company_address_kanji_city',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="渋谷区"
+                                                    required
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="番地"
+                                                    value={formData.company_address_kanji_line1}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'company_address_kanji_line1',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="１丁目１番"
+                                                    helperText="丁目・番・号を含めて入力"
+                                                    required
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="建物名・部屋番号"
+                                                    value={formData.company_address_kanji_line2}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'company_address_kanji_line2',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="サンライズミッドタウン１５０３"
+                                                    helperText="任意"
+                                                />
+                                            </Grid>
+                                        </>
+                                    )}
 
                                     {/* Company/Non-profit/Government Verification Documents */}
                                     <Grid size={{ xs: 12 }}>
@@ -2692,6 +3308,41 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                         />
                                     </Grid>
 
+                                    {/* Japan-specific: Representative Kanji fields */}
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Representative First Name (Kanji)"
+                                            value={formData.representative_first_name_kanji || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_first_name_kanji',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="太郎"
+                                            helperText="Required for Japan - Enter name in Kanji"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Representative Last Name (Kanji)"
+                                            value={formData.representative_last_name_kanji || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_last_name_kanji',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="山田"
+                                            helperText="Required for Japan - Enter name in Kanji"
+                                            required
+                                        />
+                                    </Grid>
+
                                     {/* Japan-specific: Representative Kana fields */}
                                     <Grid size={{ xs: 12, sm: 6 }}>
                                         <TextField
@@ -2776,7 +3427,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
 
                                     {/* Representative relationship toggles for director/executive countries */}
                                     {DIRECTOR_EXECUTIVE_COUNTRIES.includes(
-                                        formData.representative_address_country
+                                        normalizedRepresentativeCountry
                                     ) && (
                                         <Grid size={{ xs: 12 }}>
                                             <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
@@ -2819,16 +3470,32 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                                 !!formData.representative_relationship_director
                                                             }
                                                             onChange={e =>
-                                                                handleInputChange(
-                                                                    'representative_relationship_director',
-                                                                    e.target.checked
-                                                                )
+                                                                shouldAutoAssignRepresentativeDirector
+                                                                    ? undefined
+                                                                    : handleInputChange(
+                                                                          'representative_relationship_director',
+                                                                          e.target.checked
+                                                                      )
+                                                            }
+                                                            disabled={
+                                                                shouldAutoAssignRepresentativeDirector
                                                             }
                                                         />
                                                     }
                                                     label="Director"
                                                 />
                                             </Box>
+                                            {shouldAutoAssignRepresentativeDirector && (
+                                                <Typography
+                                                    variant="caption"
+                                                    color="text.secondary"
+                                                    sx={{ display: 'block', mt: 1 }}
+                                                >
+                                                    Required by Stripe for Japanese businesses. The
+                                                    representative is automatically marked as a
+                                                    director.
+                                                </Typography>
+                                            )}
                                         </Grid>
                                     )}
 
@@ -3052,53 +3719,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                     <Grid size={{ xs: 12 }}>
                                         <TextField
                                             fullWidth
-                                            label="Street Address"
-                                            value={formData.representative_address_line1}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'representative_address_line1',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="123 Main Street"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="City"
-                                            value={formData.representative_address_city}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'representative_address_city',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="New York"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="State Code"
-                                            value={formData.representative_address_state}
-                                            onChange={e =>
-                                                handleInputChange(
-                                                    'representative_address_state',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="NY"
-                                            helperText="2-letter state code"
-                                        />
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="ZIP Code"
+                                            label="Postal code"
                                             value={formData.representative_address_postal_code}
                                             onChange={e =>
                                                 handleInputChange(
@@ -3106,33 +3727,57 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                     e.target.value
                                                 )
                                             }
-                                            placeholder="12345"
+                                            placeholder="123-4567"
+                                            helperText="Format: 123-4567"
+                                            required
                                         />
                                     </Grid>
 
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <FormControl fullWidth>
-                                            <InputLabel>Country Code</InputLabel>
-                                            <Select
-                                                value={formData.representative_address_country}
-                                                label="Country Code"
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'representative_address_country',
-                                                        e.target.value
-                                                    )
-                                                }
-                                            >
-                                                {countries.map(country => (
-                                                    <MenuItem
-                                                        key={country.code}
-                                                        value={country.code}
-                                                    >
-                                                        {country.name}
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                        </FormControl>
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Block number (e.g. 1-1)"
+                                            value={formData.representative_address_line1}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_line1',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="1-1"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Building name + unit number"
+                                            value={formData.representative_address_line2 || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_line2',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Roppongi Hills Mori Tower 34F"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Building name + unit number (katakana)"
+                                            value={formData.representative_address_line2_kana || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_line2_kana',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="ロッポンギヒルズモリタワー 34F"
+                                            helperText="Enter using katakana characters"
+                                        />
                                     </Grid>
 
                                     {/* Identity Document Upload for Representative */}

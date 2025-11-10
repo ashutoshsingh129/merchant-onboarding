@@ -91,13 +91,16 @@ const buildPersonData = (data) => {
       month: data.dob_month,
       year: data.dob_year,
     } : undefined,
-    address: data.address_line1 ? {
-      line1: data.address_line1,
-      city: data.address_city,
-      state: data.address_state,
-      postal_code: data.address_postal_code,
-      country: data.address_country,
-    } : undefined,
+    address: data.address_line1
+      ? {
+          line1: data.address_line1,
+          line2: data.address_line2,
+          city: data.address_city,
+          state: data.address_state,
+          postal_code: data.address_postal_code,
+          country: data.address_country,
+        }
+      : undefined,
     relationship: data.relationship || {},
   };
 
