@@ -248,40 +248,14 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
         );
     }, [formData.business_type, normalizedCompanyCountry]);
 
-    const shouldAutoAssignRepresentativeDirector = useMemo(() => {
+    const shouldShowRepresentativeFields = useMemo(() => {
         return (
-            formData.business_type !== 'individual' &&
-            DIRECTOR_EXECUTIVE_COUNTRIES.includes(normalizedCompanyCountry)
+            formData.business_type === 'individual' ||
+            formData.business_type === 'company' ||
+            formData.business_type === 'non_profit' ||
+            formData.business_type === 'government_entity'
         );
-    }, [formData.business_type, normalizedCompanyCountry]);
-
-    useEffect(() => {
-        if (!shouldAutoAssignRepresentativeDirector) {
-            return;
-        }
-
-        setFormData(prev => {
-            let updated = false;
-            const next = { ...prev };
-
-            if (!prev.representative_relationship_representative) {
-                next.representative_relationship_representative = true;
-                updated = true;
-            }
-
-            if (!prev.representative_relationship_director) {
-                next.representative_relationship_director = true;
-                updated = true;
-            }
-
-            if (!prev.company_directors_provided) {
-                next.company_directors_provided = true;
-                updated = true;
-            }
-
-            return updated ? next : prev;
-        });
-    }, [shouldAutoAssignRepresentativeDirector]);
+    }, [formData.business_type]);
 
     useEffect(() => {
         if (!shouldShowDirectorsExecutives) {
@@ -720,10 +694,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                 value: 'incorporated_non_profit',
                 label: 'Incorporated Association or Foundation (Shadan/Zaidan Hojin)',
             },
-            {
-                value: 'unincorporated_non_profit',
-                label: 'Unincorporated Non-profit / NPO',
-            },
         ],
         government_entity: [
             { value: 'governmental_unit', label: 'Governmental Unit' },
@@ -737,7 +707,10 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
 
     const shouldCollectCompanyStructure = useMemo(() => {
         const companyCountry = formData.company_address_country || DEFAULT_COUNTRY;
-        return !(companyCountry === 'JP' && formData.business_type === 'company');
+        if (companyCountry === 'JP') {
+            return !['company', 'non_profit'].includes(formData.business_type);
+        }
+        return true;
     }, [formData.business_type, formData.company_address_country]);
 
     const availableCompanyStructures = useMemo(() => {
@@ -1126,201 +1099,10 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
         setError(null);
 
         try {
-            // For IBAN countries, require IBAN confirmation match
-            if (isIbanCountry) {
-                const iban = (formData.external_account_account_number || '')
-                    .replace(/\s+/g, '')
-                    .toUpperCase();
-                const ibanConfirm = (formData.external_account_account_number_confirm || '')
-                    .replace(/\s+/g, '')
-                    .toUpperCase();
-                if (iban !== ibanConfirm) {
-                    const accountCountryName =
-                        countries.find(c => c.code === formData.external_account_country)?.name ||
-                        formData.external_account_country;
-                    setLoading(false);
-                    setError(
-                        `IBAN and Confirm IBAN must match for accounts in ${accountCountryName}.`
-                    );
-                    return;
-                }
-            }
-
-            if (isJapanBankAccount) {
-                const bankCode = (formData.external_account_bank_code || '').trim();
-                if (bankCode.length !== 4) {
-                    setLoading(false);
-                    setError('Bank code must be 4 digits for Japan bank accounts.');
-                    return;
-                }
-
-                const branchCode = (formData.external_account_branch_code || '').trim();
-                if (branchCode.length !== 3) {
-                    setLoading(false);
-                    setError('Branch code must be 3 digits for Japan bank accounts.');
-                    return;
-                }
-
-                const accountNumber = (formData.external_account_account_number || '').trim();
-                if (accountNumber.length !== 7) {
-                    setLoading(false);
-                    setError('Account number must be 7 digits for Japan bank accounts.');
-                    return;
-                }
-
-                const confirmAccountNumber = (
-                    formData.external_account_account_number_confirm || ''
-                ).trim();
-                if (confirmAccountNumber !== accountNumber) {
-                    setLoading(false);
-                    setError('Account number and confirmation must match for Japan bank accounts.');
-                    return;
-                }
-
-                const accountHolderNameKana = (
-                    formData.external_account_account_holder_name_kana || ''
-                ).replace(/\s+/g, '');
-
-                if (accountHolderNameKana === '') {
-                    setLoading(false);
-                    setError('Account holder name (Katakana) is required for Japan bank accounts.');
-                    return;
-                }
-
-                const accountHolderName = (
-                    formData.external_account_account_holder_name || ''
-                ).trim();
-                if (accountHolderName === '') {
-                    setLoading(false);
-                    setError('Account holder name is required for Japan bank accounts.');
-                    return;
-                }
-            }
-
-            if (
-                (formData.business_type === 'company' ||
-                    formData.business_type === 'non_profit' ||
-                    formData.business_type === 'government_entity') &&
-                normalizedRepresentativeCountry === 'JP'
-            ) {
-                const missingEnglishName =
-                    !formData.representative_first_name?.trim() ||
-                    !formData.representative_last_name?.trim();
-                const missingKanaName =
-                    !formData.representative_first_name_kana?.trim() ||
-                    !formData.representative_last_name_kana?.trim();
-                const missingKanjiName =
-                    !formData.representative_first_name_kanji?.trim() ||
-                    !formData.representative_last_name_kanji?.trim();
-
-                if (missingEnglishName || missingKanaName || missingKanjiName) {
-                    setLoading(false);
-                    setError(
-                        'Representative name must include English, Katakana, and Kanji values for Japan.'
-                    );
-                    return;
-                }
-            }
-
-            if (
-                formData.business_type !== 'individual' &&
-                (!formData.representative_address_line1?.trim() ||
-                    !formData.representative_address_postal_code?.trim() ||
-                    !formData.representative_address_city?.trim() ||
-                    !formData.representative_address_state?.trim() ||
-                    !formData.representative_address_town?.trim() ||
-                    !formData.representative_address_country?.trim())
-            ) {
-                setLoading(false);
-                setError(
-                    'Representative address must include postal code, town, block, city, prefecture, and country for Japan business onboarding.'
-                );
-                return;
-            }
-
-            if (formData.representative_address_country === 'JP') {
-                const missingRepresentativeKanaAddress =
-                    !formData.representative_address_kana_postal_code?.trim() ||
-                    !formData.representative_address_kana_state?.trim() ||
-                    !formData.representative_address_kana_city?.trim() ||
-                    !formData.representative_address_kana_town?.trim() ||
-                    !formData.representative_address_kana_line1?.trim();
-
-                const missingRepresentativeKanjiAddress =
-                    !formData.representative_address_kanji_postal_code?.trim() ||
-                    !formData.representative_address_kanji_state?.trim() ||
-                    !formData.representative_address_kanji_city?.trim() ||
-                    !formData.representative_address_kanji_town?.trim() ||
-                    !formData.representative_address_kanji_line1?.trim();
-
-                if (missingRepresentativeKanaAddress) {
-                    setLoading(false);
-                    setError('Kana representative address is required for Japan.');
-                    return;
-                }
-
-                if (missingRepresentativeKanjiAddress) {
-                    setLoading(false);
-                    setError('Kanji representative address is required for Japan.');
-                    return;
-                }
-            }
-
-            if (
-                (formData.business_type === 'company' ||
-                    formData.business_type === 'non_profit' ||
-                    formData.business_type === 'government_entity') &&
-                formData.company_address_country === 'JP'
-            ) {
-                const missingBusinessAddress =
-                    !formData.company_address_postal_code?.trim() ||
-                    !formData.company_address_state?.trim() ||
-                    !formData.company_address_city?.trim() ||
-                    !formData.company_address_line1?.trim();
-
-                const missingKanaAddress =
-                    !formData.company_address_kana_postal_code?.trim() ||
-                    !formData.company_address_kana_state?.trim() ||
-                    !formData.company_address_kana_city?.trim() ||
-                    !formData.company_address_kana_line1?.trim();
-
-                const missingKanjiAddress =
-                    !formData.company_address_kanji_postal_code?.trim() ||
-                    !formData.company_address_kanji_state?.trim() ||
-                    !formData.company_address_kanji_city?.trim() ||
-                    !formData.company_address_kanji_line1?.trim();
-
-                if (missingBusinessAddress) {
-                    setLoading(false);
-                    setError('Business address fields are required for Japan.');
-                    return;
-                }
-
-                if (missingKanaAddress) {
-                    setLoading(false);
-                    setError('Kana business address is required for Japan.');
-                    return;
-                }
-
-                if (missingKanjiAddress) {
-                    setLoading(false);
-                    setError('Kanji business address is required for Japan.');
-                    return;
-                }
-            }
-
             // Prepare payload with appropriate SSN fields based on toggle state
             const payload: any = { ...formData };
             payload.external_account_account_holder_type =
                 payload.business_type !== 'individual' ? 'company' : 'individual';
-            if (shouldAutoAssignRepresentativeDirector) {
-                payload.representative_relationship_director = true;
-                payload.representative_relationship_representative = true;
-                payload.company_directors_provided = true;
-            } else if (shouldShowDirectorsExecutives && hasAtLeastOneDirectorPerson) {
-                payload.company_directors_provided = true;
-            }
-
             if (formData.representative_address_line1) {
                 payload.representative_address_line1 = formData.representative_address_line1.trim();
             }
@@ -1476,6 +1258,70 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                 payload.company_name_kanji = formData.company_name_kanji.trim();
             }
 
+            if (formData.business_type === 'individual') {
+                const payloadRecord = payload as Record<string, any>;
+                const setRepresentativeFallback = (key: string, value: any) => {
+                    if (value === undefined || value === null) {
+                        return;
+                    }
+                    const existing = payloadRecord[key];
+                    if (
+                        existing === undefined ||
+                        existing === null ||
+                        (typeof existing === 'string' && existing.trim() === '')
+                    ) {
+                        payloadRecord[key] = value;
+                    }
+                };
+
+                setRepresentativeFallback(
+                    'representative_first_name',
+                    payload.individual_first_name
+                );
+                setRepresentativeFallback('representative_last_name', payload.individual_last_name);
+                setRepresentativeFallback(
+                    'representative_first_name_kana',
+                    payload.individual_first_name_kana
+                );
+                setRepresentativeFallback(
+                    'representative_last_name_kana',
+                    payload.individual_last_name_kana
+                );
+                setRepresentativeFallback('representative_email', payload.individual_email);
+                setRepresentativeFallback('representative_phone', payload.individual_phone);
+                setRepresentativeFallback('representative_id_number', payload.individual_id_number);
+                setRepresentativeFallback('representative_dob_day', payload.individual_dob_day);
+                setRepresentativeFallback('representative_dob_month', payload.individual_dob_month);
+                setRepresentativeFallback('representative_dob_year', payload.individual_dob_year);
+                setRepresentativeFallback(
+                    'representative_address_line1',
+                    payload.individual_address_line1
+                );
+                setRepresentativeFallback(
+                    'representative_address_line2',
+                    payload.individual_address_line2
+                );
+                setRepresentativeFallback(
+                    'representative_address_city',
+                    payload.individual_address_city
+                );
+                setRepresentativeFallback(
+                    'representative_address_state',
+                    payload.individual_address_state
+                );
+                setRepresentativeFallback(
+                    'representative_address_postal_code',
+                    payload.individual_address_postal_code
+                );
+                setRepresentativeFallback(
+                    'representative_address_country',
+                    payload.individual_address_country
+                );
+                if (!payload.representative_relationship_representative) {
+                    payload.representative_relationship_representative = true;
+                }
+            }
+
             const removeEmptyStrings = (obj: Record<string, any>) =>
                 Object.entries(obj).reduce<Record<string, any>>((acc, [key, value]) => {
                     if (value === undefined || value === null) {
@@ -1584,10 +1430,12 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             }
 
             if (Object.keys(representativeDetails).length > 0) {
-                payload.company = {
-                    ...(payload.company || {}),
-                    representative: representativeDetails,
-                };
+                if (formData.business_type !== 'individual') {
+                    payload.company = {
+                        ...(payload.company || {}),
+                        representative: representativeDetails,
+                    };
+                }
             }
 
             // If directors/executives are not required, drop related fields & flags
@@ -1607,8 +1455,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             if (
                 shouldShowDirectorsExecutives &&
                 formData.company_directors_provided &&
-                !hasAtLeastOneDirectorPerson &&
-                !shouldAutoAssignRepresentativeDirector
+                !hasAtLeastOneDirectorPerson
             ) {
                 setLoading(false);
                 setError(
@@ -2134,8 +1981,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="タロウ"
-                                        helperText="Required for Japan - Enter name in Katakana"
-                                        required
+                                        helperText="Enter name in Katakana (if available)"
                                     />
                                 </Grid>
                             )}
@@ -2153,8 +1999,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             )
                                         }
                                         placeholder="ヤマダ"
-                                        helperText="Required for Japan - Enter name in Katakana"
-                                        required
+                                        helperText="Enter name in Katakana (if available)"
                                     />
                                 </Grid>
                             )}
@@ -2829,8 +2674,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 )
                                             }
                                             placeholder="株式会社ABC"
-                                            helperText="Required for Japan - Enter company name in Kanji"
-                                            required
+                                            helperText="Enter company name in Kanji (if available)"
                                         />
                                     </Grid>
 
@@ -2847,8 +2691,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 )
                                             }
                                             placeholder="カブシキガイシャエービーシー"
-                                            helperText="Required for Japan - Enter company name in Katakana"
-                                            required
+                                            helperText="Enter company name in Katakana (if available)"
                                         />
                                     </Grid>
 
@@ -2954,7 +2797,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 )
                                             }
                                             placeholder="123-4567"
-                                            required
                                         />
                                     </Grid>
 
@@ -2971,7 +2813,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="Tokyo"
                                             helperText="Enter the prefecture (e.g., Tokyo, Osaka)"
-                                            required
                                         />
                                     </Grid>
 
@@ -2987,7 +2828,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 )
                                             }
                                             placeholder="Shibuya-ku"
-                                            required
                                         />
                                     </Grid>
 
@@ -3004,7 +2844,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="1-1"
                                             helperText="Include chōme and block numbers, if applicable"
-                                            required
                                         />
                                     </Grid>
 
@@ -3080,7 +2919,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                     }
                                                     placeholder="1234567"
                                                     helperText="Use digits only; no hyphen"
-                                                    required
                                                 />
                                             </Grid>
 
@@ -3097,7 +2935,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                     }
                                                     placeholder="トウキョウト"
                                                     helperText="Full-width Katakana"
-                                                    required
                                                 />
                                             </Grid>
 
@@ -3114,7 +2951,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                     }
                                                     placeholder="シブヤク"
                                                     helperText="Full-width Katakana"
-                                                    required
                                                 />
                                             </Grid>
 
@@ -3131,7 +2967,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                     }
                                                     placeholder="１－１"
                                                     helperText="Use full-width numbers and Katakana where needed"
-                                                    required
                                                 />
                                             </Grid>
 
@@ -3180,7 +3015,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                     }
                                                     placeholder="123-4567"
                                                     helperText="７桁の郵便番号"
-                                                    required
                                                 />
                                             </Grid>
 
@@ -3196,7 +3030,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                         )
                                                     }
                                                     placeholder="東京都"
-                                                    required
                                                 />
                                             </Grid>
 
@@ -3212,7 +3045,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                         )
                                                     }
                                                     placeholder="渋谷区"
-                                                    required
                                                 />
                                             </Grid>
 
@@ -3229,7 +3061,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                     }
                                                     placeholder="１丁目１番"
                                                     helperText="丁目・番・号を含めて入力"
-                                                    required
                                                 />
                                             </Grid>
 
@@ -3425,10 +3256,8 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                 />
                             </Grid>
 
-                            {/* Representative Person Fields - Show when business type is Company, Non-profit, or Government Entity */}
-                            {(formData.business_type === 'company' ||
-                                formData.business_type === 'non_profit' ||
-                                formData.business_type === 'government_entity') && (
+                            {/* Representative Person Fields */}
+                            {shouldShowRepresentativeFields && (
                                 <>
                                     <Grid size={{ xs: 12 }}>
                                         <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
@@ -3479,8 +3308,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 )
                                             }
                                             placeholder="太郎"
-                                            helperText="Required for Japan - Enter name in Kanji"
-                                            required
+                                            helperText="Enter name in Kanji (if available)"
                                         />
                                     </Grid>
 
@@ -3496,8 +3324,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 )
                                             }
                                             placeholder="山田"
-                                            helperText="Required for Japan - Enter name in Kanji"
-                                            required
+                                            helperText="Enter name in Kanji (if available)"
                                         />
                                     </Grid>
 
@@ -3514,8 +3341,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 )
                                             }
                                             placeholder="タロウ"
-                                            helperText="Required for Japan - Enter name in Katakana"
-                                            required
+                                            helperText="Enter name in Katakana (if available)"
                                         />
                                     </Grid>
 
@@ -3531,8 +3357,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 )
                                             }
                                             placeholder="ヤマダ"
-                                            helperText="Required for Japan - Enter name in Katakana"
-                                            required
+                                            helperText="Enter name in Katakana (if available)"
                                         />
                                     </Grid>
 
@@ -3584,78 +3409,69 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                     </Grid>
 
                                     {/* Representative relationship toggles for director/executive countries */}
-                                    {DIRECTOR_EXECUTIVE_COUNTRIES.includes(
-                                        normalizedRepresentativeCountry
-                                    ) && (
-                                        <Grid size={{ xs: 12 }}>
-                                            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                                                <FormControlLabel
-                                                    control={
-                                                        <Checkbox
-                                                            checked={
-                                                                !!formData.representative_relationship_representative
-                                                            }
-                                                            onChange={e =>
-                                                                handleInputChange(
-                                                                    'representative_relationship_representative',
-                                                                    e.target.checked
-                                                                )
-                                                            }
-                                                        />
-                                                    }
-                                                    label="Business Representative"
-                                                />
-                                                <FormControlLabel
-                                                    control={
-                                                        <Checkbox
-                                                            checked={
-                                                                !!formData.representative_relationship_executive
-                                                            }
-                                                            onChange={e =>
-                                                                handleInputChange(
-                                                                    'representative_relationship_executive',
-                                                                    e.target.checked
-                                                                )
-                                                            }
-                                                        />
-                                                    }
-                                                    label="Executive"
-                                                />
-                                                <FormControlLabel
-                                                    control={
-                                                        <Checkbox
-                                                            checked={
-                                                                !!formData.representative_relationship_director
-                                                            }
-                                                            onChange={e =>
-                                                                shouldAutoAssignRepresentativeDirector
-                                                                    ? undefined
-                                                                    : handleInputChange(
-                                                                          'representative_relationship_director',
-                                                                          e.target.checked
-                                                                      )
-                                                            }
-                                                            disabled={
-                                                                shouldAutoAssignRepresentativeDirector
-                                                            }
-                                                        />
-                                                    }
-                                                    label="Director"
-                                                />
-                                            </Box>
-                                            {shouldAutoAssignRepresentativeDirector && (
-                                                <Typography
-                                                    variant="caption"
-                                                    color="text.secondary"
-                                                    sx={{ display: 'block', mt: 1 }}
+                                    {formData.business_type !== 'individual' &&
+                                        DIRECTOR_EXECUTIVE_COUNTRIES.includes(
+                                            normalizedRepresentativeCountry
+                                        ) && (
+                                            <Grid size={{ xs: 12 }}>
+                                                <Box
+                                                    sx={{
+                                                        display: 'flex',
+                                                        gap: 3,
+                                                        flexWrap: 'wrap',
+                                                    }}
                                                 >
-                                                    Required by Stripe for Japanese businesses. The
-                                                    representative is automatically marked as a
-                                                    director.
-                                                </Typography>
-                                            )}
-                                        </Grid>
-                                    )}
+                                                    <FormControlLabel
+                                                        control={
+                                                            <Checkbox
+                                                                checked={
+                                                                    !!formData.representative_relationship_representative
+                                                                }
+                                                                onChange={e =>
+                                                                    handleInputChange(
+                                                                        'representative_relationship_representative',
+                                                                        e.target.checked
+                                                                    )
+                                                                }
+                                                            />
+                                                        }
+                                                        label="Business Representative"
+                                                    />
+                                                    <FormControlLabel
+                                                        control={
+                                                            <Checkbox
+                                                                checked={
+                                                                    !!formData.representative_relationship_executive
+                                                                }
+                                                                onChange={e =>
+                                                                    handleInputChange(
+                                                                        'representative_relationship_executive',
+                                                                        e.target.checked
+                                                                    )
+                                                                }
+                                                            />
+                                                        }
+                                                        label="Executive"
+                                                    />
+                                                    <FormControlLabel
+                                                        control={
+                                                            <Checkbox
+                                                                checked={
+                                                                    !!formData.representative_relationship_director
+                                                                }
+                                                                onChange={e =>
+                                                                    handleInputChange(
+                                                                        'representative_relationship_director',
+                                                                        e.target.checked
+                                                                    )
+                                                                }
+                                                            />
+                                                        }
+                                                        label="Director"
+                                                    />
+                                                </Box>
+                                            </Grid>
+                                        )}
 
                                     <Grid size={{ xs: 12 }}>
                                         {formData.representative_address_country === 'US' ? (
@@ -3887,7 +3703,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="123-4567"
                                             helperText="Format: 123-4567"
-                                            required
                                         />
                                     </Grid>
 
@@ -3903,7 +3718,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 )
                                             }
                                             placeholder="1-1"
-                                            required
                                         />
                                     </Grid>
 
@@ -3920,7 +3734,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="Roppongi"
                                             helperText="Neighborhood or town (e.g., Roppongi)"
-                                            required
                                         />
                                     </Grid>
 
@@ -3937,7 +3750,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="Tokyo"
                                             helperText="Enter the prefecture or province"
-                                            required
                                         />
                                     </Grid>
 
@@ -3954,12 +3766,11 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="Minato"
                                             helperText="Enter the municipality"
-                                            required
                                         />
                                     </Grid>
 
                                     <Grid size={{ xs: 12, sm: 6 }}>
-                                        <FormControl fullWidth required>
+                                        <FormControl fullWidth>
                                             <InputLabel>Country</InputLabel>
                                             <Select
                                                 value={
@@ -4027,7 +3838,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="1234567"
                                             helperText="Use digits only; no hyphen"
-                                            required
                                         />
                                     </Grid>
 
@@ -4044,7 +3854,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="トウキョウト"
                                             helperText="Full-width Katakana"
-                                            required
                                         />
                                     </Grid>
 
@@ -4061,7 +3870,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="ミナトク"
                                             helperText="Full-width Katakana"
-                                            required
                                         />
                                     </Grid>
 
@@ -4078,7 +3886,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="ロッポンギ"
                                             helperText="Full-width Katakana"
-                                            required
                                         />
                                     </Grid>
 
@@ -4095,7 +3902,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="３－５－７"
                                             helperText="Use full-width numbers and Katakana where needed"
-                                            required
                                         />
                                     </Grid>
 
@@ -4146,7 +3952,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="106-0032"
                                             helperText="７桁の郵便番号"
-                                            required
                                         />
                                     </Grid>
 
@@ -4164,7 +3969,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 )
                                             }
                                             placeholder="東京都"
-                                            required
                                         />
                                     </Grid>
 
@@ -4180,7 +3984,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 )
                                             }
                                             placeholder="港区"
-                                            required
                                         />
                                     </Grid>
 
@@ -4197,7 +4000,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="六本木"
                                             helperText="町名を入力"
-                                            required
                                         />
                                     </Grid>
 
@@ -4216,7 +4018,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="３丁目５番７号"
                                             helperText="丁目・番・号を含めて入力"
-                                            required
                                         />
                                     </Grid>
 
@@ -4517,8 +4318,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                     )
                                                 }
                                                 placeholder="タロウ"
-                                                helperText="Required for Japan - Enter name in Katakana"
-                                                required
+                                                helperText="Enter name in Katakana (if available)"
                                             />
                                         </Grid>
 
@@ -4534,8 +4334,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                     )
                                                 }
                                                 placeholder="ヤマダ"
-                                                helperText="Required for Japan - Enter name in Katakana"
-                                                required
+                                                helperText="Enter name in Katakana (if available)"
                                             />
                                         </Grid>
 
@@ -5226,7 +5025,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                             inputMode: 'numeric',
                                                             pattern: '[0-9]*',
                                                         }}
-                                                        required
                                                     />
                                                 </Grid>
                                                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -5255,7 +5053,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                             inputMode: 'numeric',
                                                             pattern: '[0-9]*',
                                                         }}
-                                                        required
                                                     />
                                                 </Grid>
                                                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -5320,7 +5117,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 error={
                                                     isJapanBankAccount && japanAccountNumberHasError
                                                 }
-                                                required={isJapanBankAccount}
                                                 value={formData.external_account_account_number}
                                                 onChange={e =>
                                                     handleInputChange(
@@ -5369,7 +5165,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                         isJapanBankAccount &&
                                                         japanAccountNumberConfirmHasError
                                                     }
-                                                    required={isJapanBankAccount}
                                                     value={
                                                         formData.external_account_account_number_confirm ||
                                                         ''
@@ -5429,7 +5224,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 <TextField
                                                     fullWidth
                                                     label="Account Holder Name (カタカナ)"
-                                                    required
                                                     value={
                                                         formData.external_account_account_holder_name_kana ||
                                                         ''
