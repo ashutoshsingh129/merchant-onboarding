@@ -18,6 +18,8 @@ export interface DirectOnboardFormData {
     // Japan-specific fields
     individual_first_name_kana?: string;
     individual_last_name_kana?: string;
+    individual_first_name_kanji?: string;
+    individual_last_name_kanji?: string;
     business_type: string;
     business_profile_mcc: string;
     business_profile_url: string;
@@ -123,10 +125,25 @@ export interface DirectOnboardFormData {
     owner_dob_month: number;
     owner_dob_year: number;
     owner_address_line1: string;
+    owner_address_line2?: string;
     owner_address_city: string;
     owner_address_state: string;
     owner_address_postal_code: string;
     owner_address_country: string;
+    owner_address_town?: string;
+    owner_address_line2_kana?: string;
+    owner_address_kana_postal_code?: string;
+    owner_address_kana_state?: string;
+    owner_address_kana_city?: string;
+    owner_address_kana_town?: string;
+    owner_address_kana_line1?: string;
+    owner_address_kana_line2?: string;
+    owner_address_kanji_postal_code?: string;
+    owner_address_kanji_state?: string;
+    owner_address_kanji_city?: string;
+    owner_address_kanji_town?: string;
+    owner_address_kanji_line1?: string;
+    owner_address_kanji_line2?: string;
     owner_relationship_owner: boolean;
     owner_relationship_director?: boolean;
     owner_relationship_title: string;

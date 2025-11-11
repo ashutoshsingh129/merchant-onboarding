@@ -185,10 +185,25 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
         owner_dob_month: 1,
         owner_dob_year: 1990,
         owner_address_line1: '',
+        owner_address_line2: '',
         owner_address_city: '',
         owner_address_state: '',
         owner_address_postal_code: '',
         owner_address_country: country || DEFAULT_COUNTRY,
+        owner_address_town: '',
+        owner_address_line2_kana: '',
+        owner_address_kana_postal_code: '',
+        owner_address_kana_state: '',
+        owner_address_kana_city: '',
+        owner_address_kana_town: '',
+        owner_address_kana_line1: '',
+        owner_address_kana_line2: '',
+        owner_address_kanji_postal_code: '',
+        owner_address_kanji_state: '',
+        owner_address_kanji_city: '',
+        owner_address_kanji_town: '',
+        owner_address_kanji_line1: '',
+        owner_address_kanji_line2: '',
         owner_relationship_owner: true,
         owner_relationship_director: false,
         owner_relationship_title: '',
@@ -256,6 +271,18 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             formData.business_type === 'government_entity'
         );
     }, [formData.business_type]);
+
+    const shouldShowOwnerFields = useMemo(() => {
+        if (representativeIsOwner) {
+            return false;
+        }
+        return (
+            formData.business_type === 'individual' ||
+            formData.business_type === 'company' ||
+            formData.business_type === 'non_profit' ||
+            formData.business_type === 'government_entity'
+        );
+    }, [formData.business_type, representativeIsOwner]);
 
     useEffect(() => {
         if (!shouldShowDirectorsExecutives) {
@@ -1199,6 +1226,104 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                 payload.representative_address_country =
                     formData.representative_address_country.trim();
             }
+            const individualFirstNameKanji = (formData as Record<string, any>)
+                .individual_first_name_kanji as string | undefined;
+            if (individualFirstNameKanji) {
+                payload.individual_first_name_kanji = individualFirstNameKanji.trim();
+            }
+            const individualLastNameKanji = (formData as Record<string, any>)
+                .individual_last_name_kanji as string | undefined;
+            if (individualLastNameKanji) {
+                payload.individual_last_name_kanji = individualLastNameKanji.trim();
+            }
+            if (formData.owner_address_line1) {
+                payload.owner_address_line1 = formData.owner_address_line1.trim();
+            }
+            if (formData.owner_address_line2) {
+                payload.owner_address_line2 = formData.owner_address_line2.trim();
+            }
+            if (formData.owner_address_city) {
+                payload.owner_address_city = formData.owner_address_city.trim();
+            }
+            if (formData.owner_address_state) {
+                payload.owner_address_state = formData.owner_address_state.trim();
+            }
+            if (formData.owner_address_postal_code) {
+                payload.owner_address_postal_code = formData.owner_address_postal_code.trim();
+            }
+            if (formData.owner_address_country) {
+                payload.owner_address_country = formData.owner_address_country.trim();
+            }
+            if ((formData as Record<string, any>).owner_address_town) {
+                payload.owner_address_town = (
+                    (formData as Record<string, any>).owner_address_town as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).owner_address_line2_kana) {
+                payload.owner_address_line2_kana = (
+                    (formData as Record<string, any>).owner_address_line2_kana as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).owner_address_kana_postal_code) {
+                payload.owner_address_kana_postal_code = (
+                    (formData as Record<string, any>).owner_address_kana_postal_code as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).owner_address_kana_state) {
+                payload.owner_address_kana_state = (
+                    (formData as Record<string, any>).owner_address_kana_state as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).owner_address_kana_city) {
+                payload.owner_address_kana_city = (
+                    (formData as Record<string, any>).owner_address_kana_city as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).owner_address_kana_town) {
+                payload.owner_address_kana_town = (
+                    (formData as Record<string, any>).owner_address_kana_town as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).owner_address_kana_line1) {
+                payload.owner_address_kana_line1 = (
+                    (formData as Record<string, any>).owner_address_kana_line1 as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).owner_address_kana_line2) {
+                payload.owner_address_kana_line2 = (
+                    (formData as Record<string, any>).owner_address_kana_line2 as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).owner_address_kanji_postal_code) {
+                payload.owner_address_kanji_postal_code = (
+                    (formData as Record<string, any>).owner_address_kanji_postal_code as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).owner_address_kanji_state) {
+                payload.owner_address_kanji_state = (
+                    (formData as Record<string, any>).owner_address_kanji_state as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).owner_address_kanji_city) {
+                payload.owner_address_kanji_city = (
+                    (formData as Record<string, any>).owner_address_kanji_city as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).owner_address_kanji_town) {
+                payload.owner_address_kanji_town = (
+                    (formData as Record<string, any>).owner_address_kanji_town as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).owner_address_kanji_line1) {
+                payload.owner_address_kanji_line1 = (
+                    (formData as Record<string, any>).owner_address_kanji_line1 as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).owner_address_kanji_line2) {
+                payload.owner_address_kanji_line2 = (
+                    (formData as Record<string, any>).owner_address_kanji_line2 as string
+                ).trim();
+            }
             if (formData.representative_first_name_kanji) {
                 payload.representative_first_name_kanji =
                     formData.representative_first_name_kanji.trim();
@@ -1286,6 +1411,14 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                 setRepresentativeFallback(
                     'representative_last_name_kana',
                     payload.individual_last_name_kana
+                );
+                setRepresentativeFallback(
+                    'representative_first_name_kanji',
+                    payload.individual_first_name_kanji
+                );
+                setRepresentativeFallback(
+                    'representative_last_name_kanji',
+                    payload.individual_last_name_kanji
                 );
                 setRepresentativeFallback('representative_email', payload.individual_email);
                 setRepresentativeFallback('representative_phone', payload.individual_phone);
@@ -1438,6 +1571,146 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                 }
             }
 
+            if (representativeIsOwner) {
+                const ownerRecord = payload as Record<string, any>;
+                const normalizeString = (value?: string) => {
+                    if (value === undefined || value === null) {
+                        return undefined;
+                    }
+                    const trimmed = value.trim();
+                    return trimmed === '' ? undefined : trimmed;
+                };
+                const assignOwnerString = (key: string, value?: string) => {
+                    const normalized = normalizeString(value);
+                    if (normalized !== undefined) {
+                        ownerRecord[key] = normalized;
+                    }
+                };
+                const assignOwnerNumber = (key: string, value?: number) => {
+                    if (typeof value === 'number' && Number.isFinite(value)) {
+                        ownerRecord[key] = value;
+                    }
+                };
+
+                assignOwnerString(
+                    'owner_first_name',
+                    formData.representative_first_name || formData.individual_first_name
+                );
+                assignOwnerString(
+                    'owner_last_name',
+                    formData.representative_last_name || formData.individual_last_name
+                );
+                assignOwnerString(
+                    'owner_first_name_kana',
+                    formData.representative_first_name_kana || formData.individual_first_name_kana
+                );
+                assignOwnerString(
+                    'owner_last_name_kana',
+                    formData.representative_last_name_kana || formData.individual_last_name_kana
+                );
+                assignOwnerString(
+                    'owner_email',
+                    formData.representative_email || formData.individual_email
+                );
+                assignOwnerString(
+                    'owner_phone',
+                    formData.representative_phone || formData.individual_phone
+                );
+                assignOwnerNumber('owner_dob_day', formData.representative_dob_day);
+                assignOwnerNumber('owner_dob_month', formData.representative_dob_month);
+                assignOwnerNumber('owner_dob_year', formData.representative_dob_year);
+                assignOwnerString(
+                    'owner_address_line1',
+                    formData.representative_address_line1 || formData.individual_address_line1
+                );
+                assignOwnerString(
+                    'owner_address_line2',
+                    formData.representative_address_line2 || formData.individual_address_line2
+                );
+                assignOwnerString(
+                    'owner_address_city',
+                    formData.representative_address_city || formData.individual_address_city
+                );
+                assignOwnerString(
+                    'owner_address_state',
+                    formData.representative_address_state || formData.individual_address_state
+                );
+                assignOwnerString(
+                    'owner_address_postal_code',
+                    formData.representative_address_postal_code ||
+                        formData.individual_address_postal_code
+                );
+                assignOwnerString(
+                    'owner_address_country',
+                    formData.representative_address_country ||
+                        formData.individual_address_country ||
+                        country ||
+                        DEFAULT_COUNTRY
+                );
+                assignOwnerString('owner_address_town', formData.representative_address_town);
+                assignOwnerString(
+                    'owner_address_line2_kana',
+                    formData.representative_address_line2_kana
+                );
+                assignOwnerString(
+                    'owner_address_kana_postal_code',
+                    formData.representative_address_kana_postal_code
+                );
+                assignOwnerString(
+                    'owner_address_kana_state',
+                    formData.representative_address_kana_state
+                );
+                assignOwnerString(
+                    'owner_address_kana_city',
+                    formData.representative_address_kana_city
+                );
+                assignOwnerString(
+                    'owner_address_kana_town',
+                    formData.representative_address_kana_town
+                );
+                assignOwnerString(
+                    'owner_address_kana_line1',
+                    formData.representative_address_kana_line1
+                );
+                assignOwnerString(
+                    'owner_address_kana_line2',
+                    formData.representative_address_kana_line2
+                );
+                assignOwnerString(
+                    'owner_address_kanji_postal_code',
+                    formData.representative_address_kanji_postal_code
+                );
+                assignOwnerString(
+                    'owner_address_kanji_state',
+                    formData.representative_address_kanji_state
+                );
+                assignOwnerString(
+                    'owner_address_kanji_city',
+                    formData.representative_address_kanji_city
+                );
+                assignOwnerString(
+                    'owner_address_kanji_town',
+                    formData.representative_address_kanji_town
+                );
+                assignOwnerString(
+                    'owner_address_kanji_line1',
+                    formData.representative_address_kanji_line1
+                );
+                assignOwnerString(
+                    'owner_address_kanji_line2',
+                    formData.representative_address_kanji_line2
+                );
+                ownerRecord.owner_relationship_owner = true;
+                ownerRecord.owner_relationship_director =
+                    !!formData.representative_relationship_director;
+                assignOwnerString(
+                    'owner_relationship_title',
+                    formData.representative_relationship_title
+                );
+                assignOwnerString('owner_ssn_last_4', formData.representative_ssn_last_4);
+                assignOwnerString('owner_id_number', formData.representative_id_number);
+            }
+
             // If directors/executives are not required, drop related fields & flags
             if (!shouldShowDirectorsExecutives) {
                 delete payload.company_directors_provided;
@@ -1561,6 +1834,8 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                         individual_id_number: '',
                         individual_first_name_kana: '',
                         individual_last_name_kana: '',
+                        individual_first_name_kanji: '',
+                        individual_last_name_kanji: '',
                         business_type: businessType || 'individual',
                         business_profile_mcc: '',
                         business_profile_url: '',
@@ -1646,10 +1921,25 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                         owner_dob_month: 1,
                         owner_dob_year: 1990,
                         owner_address_line1: '',
+                        owner_address_line2: '',
                         owner_address_city: '',
                         owner_address_state: '',
                         owner_address_postal_code: '',
                         owner_address_country: country || DEFAULT_COUNTRY,
+                        owner_address_town: '',
+                        owner_address_line2_kana: '',
+                        owner_address_kana_postal_code: '',
+                        owner_address_kana_state: '',
+                        owner_address_kana_city: '',
+                        owner_address_kana_town: '',
+                        owner_address_kana_line1: '',
+                        owner_address_kana_line2: '',
+                        owner_address_kanji_postal_code: '',
+                        owner_address_kanji_state: '',
+                        owner_address_kanji_city: '',
+                        owner_address_kanji_town: '',
+                        owner_address_kanji_line1: '',
+                        owner_address_kanji_line2: '',
                         owner_relationship_owner: true,
                         owner_relationship_director: false,
                         owner_relationship_title: '',
@@ -1701,6 +1991,10 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             individual_address_country: country || DEFAULT_COUNTRY,
             individual_ssn_last_4: '',
             individual_id_number: '',
+            individual_first_name_kana: '',
+            individual_last_name_kana: '',
+            individual_first_name_kanji: '',
+            individual_last_name_kanji: '',
             business_type: businessType || 'individual',
             business_profile_mcc: '',
             business_profile_url: '',
@@ -1762,10 +2056,25 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             owner_dob_month: 1,
             owner_dob_year: 1990,
             owner_address_line1: '',
+            owner_address_line2: '',
             owner_address_city: '',
             owner_address_state: '',
             owner_address_postal_code: '',
             owner_address_country: country || DEFAULT_COUNTRY,
+            owner_address_town: '',
+            owner_address_line2_kana: '',
+            owner_address_kana_postal_code: '',
+            owner_address_kana_state: '',
+            owner_address_kana_city: '',
+            owner_address_kana_town: '',
+            owner_address_kana_line1: '',
+            owner_address_kana_line2: '',
+            owner_address_kanji_postal_code: '',
+            owner_address_kanji_state: '',
+            owner_address_kanji_city: '',
+            owner_address_kanji_town: '',
+            owner_address_kanji_line1: '',
+            owner_address_kanji_line2: '',
             owner_relationship_owner: true,
             owner_relationship_director: false,
             owner_relationship_title: '',
@@ -1982,6 +2291,42 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                         }
                                         placeholder="タロウ"
                                         helperText="Enter name in Katakana (if available)"
+                                    />
+                                </Grid>
+                            )}
+
+                            {formData.business_type === 'individual' && (
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="First Name (Kanji)"
+                                        value={formData.individual_first_name_kanji || ''}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'individual_first_name_kanji',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="太郎"
+                                        helperText="Enter name in Kanji (if available)"
+                                    />
+                                </Grid>
+                            )}
+
+                            {formData.business_type === 'individual' && (
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Last Name (Kanji)"
+                                        value={formData.individual_last_name_kanji || ''}
+                                        onChange={e =>
+                                            handleInputChange(
+                                                'individual_last_name_kanji',
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="山田"
+                                        helperText="Enter name in Kanji (if available)"
                                     />
                                 </Grid>
                             )}
@@ -4230,29 +4575,194 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                         const isChecked = e.target.checked;
                                                         setRepresentativeIsOwner(isChecked);
 
-                                                        // Clear owner fields when representative is also owner
                                                         if (isChecked) {
-                                                            setFormData(prev => ({
-                                                                ...prev,
-                                                                owner_first_name: '',
-                                                                owner_last_name: '',
-                                                                owner_email: '',
-                                                                owner_phone: '',
-                                                                owner_dob_day: 1,
-                                                                owner_dob_month: 1,
-                                                                owner_dob_year: 1990,
-                                                                owner_address_line1: '',
-                                                                owner_address_city: '',
-                                                                owner_address_state: '',
-                                                                owner_address_postal_code: '',
-                                                                owner_address_country:
-                                                                    country || DEFAULT_COUNTRY,
-                                                                owner_relationship_owner: true,
-                                                                owner_relationship_director: false,
-                                                                owner_relationship_title: '',
-                                                                owner_ssn_last_4: '',
-                                                                owner_id_number: '',
-                                                            }));
+                                                            setFormData(prev => {
+                                                                const pickString = (
+                                                                    ...values: (
+                                                                        | string
+                                                                        | undefined
+                                                                    )[]
+                                                                ) => {
+                                                                    for (const value of values) {
+                                                                        if (
+                                                                            value &&
+                                                                            value.trim() !== ''
+                                                                        ) {
+                                                                            return value.trim();
+                                                                        }
+                                                                    }
+                                                                    const last =
+                                                                        values[values.length - 1];
+                                                                    return last ?? '';
+                                                                };
+
+                                                                return {
+                                                                    ...prev,
+                                                                    owner_first_name: pickString(
+                                                                        prev.representative_first_name,
+                                                                        prev.individual_first_name,
+                                                                        prev.owner_first_name
+                                                                    ),
+                                                                    owner_last_name: pickString(
+                                                                        prev.representative_last_name,
+                                                                        prev.individual_last_name,
+                                                                        prev.owner_last_name
+                                                                    ),
+                                                                    owner_first_name_kana:
+                                                                        pickString(
+                                                                            prev.representative_first_name_kana,
+                                                                            prev.individual_first_name_kana,
+                                                                            prev.owner_first_name_kana
+                                                                        ),
+                                                                    owner_last_name_kana:
+                                                                        pickString(
+                                                                            prev.representative_last_name_kana,
+                                                                            prev.individual_last_name_kana,
+                                                                            prev.owner_last_name_kana
+                                                                        ),
+                                                                    owner_email: pickString(
+                                                                        prev.representative_email,
+                                                                        prev.individual_email,
+                                                                        prev.owner_email
+                                                                    ),
+                                                                    owner_phone: pickString(
+                                                                        prev.representative_phone,
+                                                                        prev.individual_phone,
+                                                                        prev.owner_phone
+                                                                    ),
+                                                                    owner_dob_day:
+                                                                        prev.representative_dob_day ||
+                                                                        prev.owner_dob_day ||
+                                                                        1,
+                                                                    owner_dob_month:
+                                                                        prev.representative_dob_month ||
+                                                                        prev.owner_dob_month ||
+                                                                        1,
+                                                                    owner_dob_year:
+                                                                        prev.representative_dob_year ||
+                                                                        prev.owner_dob_year ||
+                                                                        1990,
+                                                                    owner_address_line1: pickString(
+                                                                        prev.representative_address_line1,
+                                                                        prev.individual_address_line1,
+                                                                        prev.owner_address_line1
+                                                                    ),
+                                                                    owner_address_line2: pickString(
+                                                                        prev.representative_address_line2,
+                                                                        prev.owner_address_line2,
+                                                                        prev.individual_address_line2
+                                                                    ),
+                                                                    owner_address_city: pickString(
+                                                                        prev.representative_address_city,
+                                                                        prev.individual_address_city,
+                                                                        prev.owner_address_city
+                                                                    ),
+                                                                    owner_address_state: pickString(
+                                                                        prev.representative_address_state,
+                                                                        prev.individual_address_state,
+                                                                        prev.owner_address_state
+                                                                    ),
+                                                                    owner_address_postal_code:
+                                                                        pickString(
+                                                                            prev.representative_address_postal_code,
+                                                                            prev.individual_address_postal_code,
+                                                                            prev.owner_address_postal_code
+                                                                        ),
+                                                                    owner_address_country:
+                                                                        pickString(
+                                                                            prev.representative_address_country,
+                                                                            prev.individual_address_country,
+                                                                            prev.owner_address_country,
+                                                                            country ||
+                                                                                DEFAULT_COUNTRY
+                                                                        ),
+                                                                    owner_address_town: pickString(
+                                                                        prev.representative_address_town,
+                                                                        prev.owner_address_town
+                                                                    ),
+                                                                    owner_address_line2_kana:
+                                                                        pickString(
+                                                                            prev.representative_address_line2_kana,
+                                                                            prev.owner_address_line2_kana
+                                                                        ),
+                                                                    owner_address_kana_postal_code:
+                                                                        pickString(
+                                                                            prev.representative_address_kana_postal_code,
+                                                                            prev.owner_address_kana_postal_code
+                                                                        ),
+                                                                    owner_address_kana_state:
+                                                                        pickString(
+                                                                            prev.representative_address_kana_state,
+                                                                            prev.owner_address_kana_state
+                                                                        ),
+                                                                    owner_address_kana_city:
+                                                                        pickString(
+                                                                            prev.representative_address_kana_city,
+                                                                            prev.owner_address_kana_city
+                                                                        ),
+                                                                    owner_address_kana_town:
+                                                                        pickString(
+                                                                            prev.representative_address_kana_town,
+                                                                            prev.owner_address_kana_town
+                                                                        ),
+                                                                    owner_address_kana_line1:
+                                                                        pickString(
+                                                                            prev.representative_address_kana_line1,
+                                                                            prev.owner_address_kana_line1
+                                                                        ),
+                                                                    owner_address_kana_line2:
+                                                                        pickString(
+                                                                            prev.representative_address_kana_line2,
+                                                                            prev.owner_address_kana_line2
+                                                                        ),
+                                                                    owner_address_kanji_postal_code:
+                                                                        pickString(
+                                                                            prev.representative_address_kanji_postal_code,
+                                                                            prev.owner_address_kanji_postal_code
+                                                                        ),
+                                                                    owner_address_kanji_state:
+                                                                        pickString(
+                                                                            prev.representative_address_kanji_state,
+                                                                            prev.owner_address_kanji_state
+                                                                        ),
+                                                                    owner_address_kanji_city:
+                                                                        pickString(
+                                                                            prev.representative_address_kanji_city,
+                                                                            prev.owner_address_kanji_city
+                                                                        ),
+                                                                    owner_address_kanji_town:
+                                                                        pickString(
+                                                                            prev.representative_address_kanji_town,
+                                                                            prev.owner_address_kanji_town
+                                                                        ),
+                                                                    owner_address_kanji_line1:
+                                                                        pickString(
+                                                                            prev.representative_address_kanji_line1,
+                                                                            prev.owner_address_kanji_line1
+                                                                        ),
+                                                                    owner_address_kanji_line2:
+                                                                        pickString(
+                                                                            prev.representative_address_kanji_line2,
+                                                                            prev.owner_address_kanji_line2
+                                                                        ),
+                                                                    owner_relationship_owner: true,
+                                                                    owner_relationship_director:
+                                                                        !!prev.representative_relationship_director,
+                                                                    owner_relationship_title:
+                                                                        pickString(
+                                                                            prev.representative_relationship_title,
+                                                                            prev.owner_relationship_title
+                                                                        ),
+                                                                    owner_ssn_last_4: pickString(
+                                                                        prev.representative_ssn_last_4,
+                                                                        prev.owner_ssn_last_4
+                                                                    ),
+                                                                    owner_id_number: pickString(
+                                                                        prev.representative_id_number,
+                                                                        prev.owner_id_number
+                                                                    ),
+                                                                };
+                                                            });
                                                         }
                                                     }}
                                                 />
@@ -4263,159 +4773,193 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                 </>
                             )}
 
-                            {/* Owner Person Fields - Only show when business type is Company, Non-Profit, or Government Entity and representative is NOT owner */}
-                            {(formData.business_type === 'company' ||
-                                formData.business_type === 'non_profit' ||
-                                formData.business_type === 'government_entity') &&
-                                !representativeIsOwner && (
-                                    <>
-                                        <Grid size={{ xs: 12 }}>
-                                            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                                Owner Information
-                                            </Typography>
-                                        </Grid>
+                            {/* Owner Person Fields */}
+                            {shouldShowOwnerFields && (
+                                <>
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Owner Information
+                                        </Typography>
+                                    </Grid>
 
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="First Name"
-                                                value={formData.owner_first_name}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'owner_first_name',
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="Owner First Name"
-                                            />
-                                        </Grid>
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="First Name"
+                                            value={formData.owner_first_name}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_first_name',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Owner First Name"
+                                        />
+                                    </Grid>
 
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="Last Name"
-                                                value={formData.owner_last_name}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'owner_last_name',
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="Owner Last Name"
-                                            />
-                                        </Grid>
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Last Name"
+                                            value={formData.owner_last_name}
+                                            onChange={e =>
+                                                handleInputChange('owner_last_name', e.target.value)
+                                            }
+                                            placeholder="Owner Last Name"
+                                        />
+                                    </Grid>
 
-                                        {/* Japan-specific: Owner Kana fields */}
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="Owner First Name (Katakana)"
-                                                value={formData.owner_first_name_kana || ''}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'owner_first_name_kana',
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="タロウ"
-                                                helperText="Enter name in Katakana (if available)"
-                                            />
-                                        </Grid>
+                                    {/* Japan-specific: Owner Kana fields */}
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Owner First Name (Katakana)"
+                                            value={formData.owner_first_name_kana || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_first_name_kana',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="タロウ"
+                                            helperText="Enter name in Katakana (if available)"
+                                        />
+                                    </Grid>
 
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="Owner Last Name (Katakana)"
-                                                value={formData.owner_last_name_kana || ''}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'owner_last_name_kana',
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="ヤマダ"
-                                                helperText="Enter name in Katakana (if available)"
-                                            />
-                                        </Grid>
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Owner Last Name (Katakana)"
+                                            value={formData.owner_last_name_kana || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_last_name_kana',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="ヤマダ"
+                                            helperText="Enter name in Katakana (if available)"
+                                        />
+                                    </Grid>
 
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="Email Address"
-                                                type="email"
-                                                value={formData.owner_email}
-                                                onChange={e =>
-                                                    handleInputChange('owner_email', e.target.value)
-                                                }
-                                                placeholder="owner@example.com"
-                                            />
-                                        </Grid>
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Email Address"
+                                            type="email"
+                                            value={formData.owner_email}
+                                            onChange={e =>
+                                                handleInputChange('owner_email', e.target.value)
+                                            }
+                                            placeholder="owner@example.com"
+                                        />
+                                    </Grid>
 
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="Phone Number"
-                                                value={formData.owner_phone}
-                                                onChange={e =>
-                                                    handleInputChange('owner_phone', e.target.value)
-                                                }
-                                                placeholder="+31612345678"
-                                                helperText="Include country code (e.g., +1 for US, +31 for Netherlands)"
-                                            />
-                                        </Grid>
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Phone Number"
+                                            value={formData.owner_phone}
+                                            onChange={e =>
+                                                handleInputChange('owner_phone', e.target.value)
+                                            }
+                                            placeholder="+31612345678"
+                                            helperText="Include country code (e.g., +1 for US, +31 for Netherlands)"
+                                        />
+                                    </Grid>
 
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="Job Title"
-                                                value={formData.owner_relationship_title}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'owner_relationship_title',
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="Owner, Founder, etc."
-                                            />
-                                        </Grid>
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Job Title"
+                                            value={formData.owner_relationship_title}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_relationship_title',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Owner, Founder, etc."
+                                        />
+                                    </Grid>
 
-                                        <Grid size={{ xs: 12 }}>
-                                            {formData.owner_address_country === 'US' ? (
-                                                <>
-                                                    <Box sx={{ mb: 2 }}>
-                                                        <Typography
-                                                            variant="subtitle2"
-                                                            sx={{ mb: 1 }}
-                                                        >
-                                                            Social Security Number (SSN)
-                                                        </Typography>
-                                                        <ToggleButtonGroup
-                                                            value={ownerSsnType}
-                                                            exclusive
-                                                            onChange={(e, newValue) => {
-                                                                if (newValue !== null) {
-                                                                    setOwnerSsnType(newValue);
-                                                                    setFormData(prev => ({
-                                                                        ...prev,
-                                                                        owner_ssn_last_4: '',
-                                                                        owner_id_number: '',
-                                                                    }));
-                                                                }
-                                                            }}
-                                                            size="small"
+                                    <Grid size={{ xs: 12 }}>
+                                        {formData.owner_address_country === 'US' ? (
+                                            <>
+                                                <Box sx={{ mb: 2 }}>
+                                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                                                        Social Security Number (SSN)
+                                                    </Typography>
+                                                    <ToggleButtonGroup
+                                                        value={ownerSsnType}
+                                                        exclusive
+                                                        onChange={(e, newValue) => {
+                                                            if (newValue !== null) {
+                                                                setOwnerSsnType(newValue);
+                                                                setFormData(prev => ({
+                                                                    ...prev,
+                                                                    owner_ssn_last_4: '',
+                                                                    owner_id_number: '',
+                                                                }));
+                                                            }
+                                                        }}
+                                                        size="small"
+                                                        fullWidth
+                                                    >
+                                                        <ToggleButton value="last4">
+                                                            Last 4 Digits
+                                                        </ToggleButton>
+                                                        <ToggleButton value="full">
+                                                            Full SSN
+                                                        </ToggleButton>
+                                                        <ToggleButton value="both">
+                                                            Both
+                                                        </ToggleButton>
+                                                    </ToggleButtonGroup>
+                                                    {ownerSsnType === 'last4' ? (
+                                                        <TextField
                                                             fullWidth
+                                                            label="SSN Last 4 Digits"
+                                                            value={formData.owner_ssn_last_4}
+                                                            onChange={e =>
+                                                                handleInputChange(
+                                                                    'owner_ssn_last_4',
+                                                                    e.target.value.replace(
+                                                                        /\D/g,
+                                                                        ''
+                                                                    )
+                                                                )
+                                                            }
+                                                            placeholder="1234"
+                                                            inputProps={{ maxLength: 4 }}
+                                                            helperText="Last 4 digits of Social Security Number (US only)"
+                                                        />
+                                                    ) : ownerSsnType === 'full' ? (
+                                                        <TextField
+                                                            fullWidth
+                                                            label="Full SSN"
+                                                            value={formData.owner_id_number}
+                                                            onChange={e =>
+                                                                handleInputChange(
+                                                                    'owner_id_number',
+                                                                    e.target.value.replace(
+                                                                        /\D/g,
+                                                                        ''
+                                                                    )
+                                                                )
+                                                            }
+                                                            placeholder="123456789"
+                                                            inputProps={{ maxLength: 9 }}
+                                                            helperText="9-digit Social Security Number (US only)"
+                                                        />
+                                                    ) : (
+                                                        <Box
+                                                            sx={{
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                gap: 2,
+                                                            }}
                                                         >
-                                                            <ToggleButton value="last4">
-                                                                Last 4 Digits
-                                                            </ToggleButton>
-                                                            <ToggleButton value="full">
-                                                                Full SSN
-                                                            </ToggleButton>
-                                                            <ToggleButton value="both">
-                                                                Both
-                                                            </ToggleButton>
-                                                        </ToggleButtonGroup>
-                                                        {ownerSsnType === 'last4' ? (
                                                             <TextField
                                                                 fullWidth
                                                                 label="SSN Last 4 Digits"
@@ -4431,9 +4975,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                                 }
                                                                 placeholder="1234"
                                                                 inputProps={{ maxLength: 4 }}
-                                                                helperText="Last 4 digits of Social Security Number (US only)"
                                                             />
-                                                        ) : ownerSsnType === 'full' ? (
                                                             <TextField
                                                                 fullWidth
                                                                 label="Full SSN"
@@ -4449,418 +4991,630 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                                 }
                                                                 placeholder="123456789"
                                                                 inputProps={{ maxLength: 9 }}
-                                                                helperText="9-digit Social Security Number (US only)"
                                                             />
-                                                        ) : (
-                                                            <Box
-                                                                sx={{
-                                                                    display: 'flex',
-                                                                    flexDirection: 'column',
-                                                                    gap: 2,
-                                                                }}
-                                                            >
-                                                                <TextField
-                                                                    fullWidth
-                                                                    label="SSN Last 4 Digits"
-                                                                    value={
-                                                                        formData.owner_ssn_last_4
-                                                                    }
-                                                                    onChange={e =>
-                                                                        handleInputChange(
-                                                                            'owner_ssn_last_4',
-                                                                            e.target.value.replace(
-                                                                                /\D/g,
-                                                                                ''
-                                                                            )
-                                                                        )
-                                                                    }
-                                                                    placeholder="1234"
-                                                                    inputProps={{ maxLength: 4 }}
-                                                                />
-                                                                <TextField
-                                                                    fullWidth
-                                                                    label="Full SSN"
-                                                                    value={formData.owner_id_number}
-                                                                    onChange={e =>
-                                                                        handleInputChange(
-                                                                            'owner_id_number',
-                                                                            e.target.value.replace(
-                                                                                /\D/g,
-                                                                                ''
-                                                                            )
-                                                                        )
-                                                                    }
-                                                                    placeholder="123456789"
-                                                                    inputProps={{ maxLength: 9 }}
-                                                                />
-                                                            </Box>
-                                                        )}
-                                                    </Box>
-                                                </>
-                                            ) : (
-                                                <TextField
-                                                    fullWidth
-                                                    label="National ID Number"
-                                                    value={formData.owner_id_number}
-                                                    onChange={e =>
-                                                        handleInputChange(
-                                                            'owner_id_number',
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    placeholder="e.g., Swedish personnummer"
-                                                    helperText="Provide full national ID number"
-                                                />
-                                            )}
-                                        </Grid>
+                                                        </Box>
+                                                    )}
+                                                </Box>
+                                            </>
+                                        ) : (
+                                            <TextField
+                                                fullWidth
+                                                label="National ID Number"
+                                                value={formData.owner_id_number}
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'owner_id_number',
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="e.g., Swedish personnummer"
+                                                helperText="Provide full national ID number"
+                                            />
+                                        )}
+                                    </Grid>
 
-                                        {/* Owner Date of Birth */}
-                                        <Grid size={{ xs: 12 }}>
-                                            <Typography variant="subtitle1" gutterBottom>
-                                                Owner Date of Birth
-                                            </Typography>
-                                        </Grid>
+                                    {/* Owner Date of Birth */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="subtitle1" gutterBottom>
+                                            Owner Date of Birth
+                                        </Typography>
+                                    </Grid>
 
-                                        <Grid size={{ xs: 4 }}>
-                                            <FormControl fullWidth>
-                                                <InputLabel>Day</InputLabel>
-                                                <Select
-                                                    value={formData.owner_dob_day}
-                                                    label="Day"
-                                                    onChange={e =>
-                                                        handleInputChange(
-                                                            'owner_dob_day',
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                >
-                                                    {Array.from(
-                                                        { length: 31 },
-                                                        (_, i) => i + 1
-                                                    ).map(day => (
+                                    <Grid size={{ xs: 4 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Day</InputLabel>
+                                            <Select
+                                                value={formData.owner_dob_day}
+                                                label="Day"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'owner_dob_day',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                                                    day => (
                                                         <MenuItem key={day} value={day}>
                                                             {day}
                                                         </MenuItem>
-                                                    ))}
-                                                </Select>
-                                            </FormControl>
-                                        </Grid>
+                                                    )
+                                                )}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
 
-                                        <Grid size={{ xs: 4 }}>
-                                            <FormControl fullWidth>
-                                                <InputLabel>Month</InputLabel>
-                                                <Select
-                                                    value={formData.owner_dob_month}
-                                                    label="Month"
+                                    <Grid size={{ xs: 4 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Month</InputLabel>
+                                            <Select
+                                                value={formData.owner_dob_month}
+                                                label="Month"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'owner_dob_month',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {months.map(month => (
+                                                    <MenuItem key={month.value} value={month.value}>
+                                                        {month.name}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Year"
+                                            type="number"
+                                            value={formData.owner_dob_year}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_dob_year',
+                                                    parseInt(e.target.value)
+                                                )
+                                            }
+                                            inputProps={{
+                                                min: 1900,
+                                                max: new Date().getFullYear(),
+                                            }}
+                                        />
+                                    </Grid>
+
+                                    {/* Owner Address */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Owner Address
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Street Address"
+                                            value={formData.owner_address_line1}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_address_line1',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="123 Main Street"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Building name + unit number"
+                                            value={formData.owner_address_line2 || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_address_line2',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Apartment 4B"
+                                            helperText="Optional"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="City"
+                                            value={formData.owner_address_city}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_address_city',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="New York"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="State Code"
+                                            value={formData.owner_address_state}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_address_state',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="NY"
+                                            helperText="2-letter state code"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="ZIP Code"
+                                            value={formData.owner_address_postal_code}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_address_postal_code',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="12345"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Country Code</InputLabel>
+                                            <Select
+                                                value={formData.owner_address_country}
+                                                label="Country Code"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'owner_address_country',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {countries.map(country => (
+                                                    <MenuItem
+                                                        key={country.code}
+                                                        value={country.code}
+                                                    >
+                                                        {country.name}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    {formData.owner_address_country === 'JP' && (
+                                        <>
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Town / District"
+                                                    value={formData.owner_address_town || ''}
                                                     onChange={e =>
                                                         handleInputChange(
-                                                            'owner_dob_month',
+                                                            'owner_address_town',
                                                             e.target.value
                                                         )
                                                     }
-                                                >
-                                                    {months.map(month => (
-                                                        <MenuItem
-                                                            key={month.value}
-                                                            value={month.value}
-                                                        >
-                                                            {month.name}
-                                                        </MenuItem>
-                                                    ))}
-                                                </Select>
-                                            </FormControl>
-                                        </Grid>
+                                                    placeholder="六本木"
+                                                    helperText="町名・地区名を入力"
+                                                />
+                                            </Grid>
 
-                                        <Grid size={{ xs: 4 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="Year"
-                                                type="number"
-                                                value={formData.owner_dob_year}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'owner_dob_year',
-                                                        parseInt(e.target.value)
-                                                    )
-                                                }
-                                                inputProps={{
-                                                    min: 1900,
-                                                    max: new Date().getFullYear(),
+                                            <Grid size={{ xs: 12 }}>
+                                                <Typography
+                                                    variant="subtitle1"
+                                                    gutterBottom
+                                                    sx={{ mt: 2 }}
+                                                >
+                                                    Owner Address (Kana)
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    住所を全角カタカナで入力してください
+                                                </Typography>
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="郵便番号（カナ）"
+                                                    value={
+                                                        formData.owner_address_kana_postal_code ||
+                                                        ''
+                                                    }
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_address_kana_postal_code',
+                                                            e.target.value.replace(/\D/g, '')
+                                                        )
+                                                    }
+                                                    placeholder="1234567"
+                                                    helperText="ハイフンなし７桁"
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="都道府県（カナ）"
+                                                    value={formData.owner_address_kana_state || ''}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_address_kana_state',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="トウキョウト"
+                                                    helperText="全角カタカナ"
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="市区町村（カナ）"
+                                                    value={formData.owner_address_kana_city || ''}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_address_kana_city',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="ミナトク"
+                                                    helperText="全角カタカナ"
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="町名（カナ）"
+                                                    value={formData.owner_address_kana_town || ''}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_address_kana_town',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="ロッポンギ"
+                                                    helperText="全角カタカナ"
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="番地（カナ）"
+                                                    value={formData.owner_address_kana_line1 || ''}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_address_kana_line1',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="３−５−７"
+                                                    helperText="全角表記"
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="建物名・部屋番号（カナ）"
+                                                    value={formData.owner_address_kana_line2 || ''}
+                                                    onChange={e => {
+                                                        const value = e.target.value;
+                                                        handleInputChange(
+                                                            'owner_address_kana_line2',
+                                                            value
+                                                        );
+                                                        handleInputChange(
+                                                            'owner_address_line2_kana',
+                                                            value
+                                                        );
+                                                    }}
+                                                    placeholder="ロッポンギヒルズモリタワー３４Ｆ"
+                                                    helperText="任意項目"
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12 }}>
+                                                <Typography
+                                                    variant="subtitle1"
+                                                    gutterBottom
+                                                    sx={{ mt: 2 }}
+                                                >
+                                                    Owner Address (Kanji)
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    登記上の住所を漢字で入力してください
+                                                </Typography>
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="郵便番号（漢字）"
+                                                    value={
+                                                        formData.owner_address_kanji_postal_code ||
+                                                        ''
+                                                    }
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_address_kanji_postal_code',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="106-0032"
+                                                    helperText="７桁の郵便番号"
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="都道府県（漢字）"
+                                                    value={formData.owner_address_kanji_state || ''}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_address_kanji_state',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="東京都"
+                                                    helperText="正式名称で入力"
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="市区町村（漢字）"
+                                                    value={formData.owner_address_kanji_city || ''}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_address_kanji_city',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="港区"
+                                                    helperText="正式名称で入力"
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="町名（漢字）"
+                                                    value={formData.owner_address_kanji_town || ''}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_address_kanji_town',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="六本木"
+                                                    helperText="正式名称で入力"
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="番地（漢字）"
+                                                    value={formData.owner_address_kanji_line1 || ''}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_address_kanji_line1',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="３丁目５番７号"
+                                                    helperText="丁目・番・号まで入力"
+                                                />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12 }}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="建物名・部屋番号（漢字）"
+                                                    value={formData.owner_address_kanji_line2 || ''}
+                                                    onChange={e =>
+                                                        handleInputChange(
+                                                            'owner_address_kanji_line2',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="六本木ヒルズ森タワー３４階"
+                                                    helperText="任意項目"
+                                                />
+                                            </Grid>
+                                        </>
+                                    )}
+
+                                    {/* Owner Identity Verification Documents */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Owner Identity Verification (Optional)
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            gutterBottom
+                                        >
+                                            Upload identity document for the owner (driver's
+                                            license, passport, etc.)
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.owner_front ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'owner_front'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'owner_front'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.owner_front
+                                                  ? `Uploaded: ${uploadedFiles.owner_front.name}`
+                                                  : 'Upload Owner ID (Front)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(file, 'owner_front');
+                                                    }
                                                 }}
                                             />
-                                        </Grid>
+                                        </Button>
+                                    </Grid>
 
-                                        {/* Owner Address */}
-                                        <Grid size={{ xs: 12 }}>
-                                            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                                Owner Address
-                                            </Typography>
-                                        </Grid>
-
-                                        <Grid size={{ xs: 12 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="Street Address"
-                                                value={formData.owner_address_line1}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'owner_address_line1',
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="123 Main Street"
-                                            />
-                                        </Grid>
-
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="City"
-                                                value={formData.owner_address_city}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'owner_address_city',
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="New York"
-                                            />
-                                        </Grid>
-
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="State Code"
-                                                value={formData.owner_address_state}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'owner_address_state',
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="NY"
-                                                helperText="2-letter state code"
-                                            />
-                                        </Grid>
-
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="ZIP Code"
-                                                value={formData.owner_address_postal_code}
-                                                onChange={e =>
-                                                    handleInputChange(
-                                                        'owner_address_postal_code',
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="12345"
-                                            />
-                                        </Grid>
-
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <FormControl fullWidth>
-                                                <InputLabel>Country Code</InputLabel>
-                                                <Select
-                                                    value={formData.owner_address_country}
-                                                    label="Country Code"
-                                                    onChange={e =>
-                                                        handleInputChange(
-                                                            'owner_address_country',
-                                                            e.target.value
-                                                        )
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.owner_back ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'owner_back'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'owner_back'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.owner_back
+                                                  ? `Uploaded: ${uploadedFiles.owner_back.name}`
+                                                  : 'Upload Owner ID (Back)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(file, 'owner_back');
                                                     }
-                                                >
-                                                    {countries.map(country => (
-                                                        <MenuItem
-                                                            key={country.code}
-                                                            value={country.code}
-                                                        >
-                                                            {country.name}
-                                                        </MenuItem>
-                                                    ))}
-                                                </Select>
-                                            </FormControl>
-                                        </Grid>
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
 
-                                        {/* Owner Identity Verification Documents */}
-                                        <Grid size={{ xs: 12 }}>
-                                            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                                Owner Identity Verification (Optional)
-                                            </Typography>
-                                            <Typography
-                                                variant="body2"
-                                                color="text.secondary"
-                                                gutterBottom
-                                            >
-                                                Upload identity document for the owner (driver's
-                                                license, passport, etc.)
-                                            </Typography>
-                                        </Grid>
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                                            Additional Document (Address Proof - Optional)
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            gutterBottom
+                                        >
+                                            Upload utility bill, bank statement, or official
+                                            correspondence for the owner
+                                        </Typography>
+                                    </Grid>
 
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <Button
-                                                variant="outlined"
-                                                component="label"
-                                                fullWidth
-                                                startIcon={
-                                                    uploadedFiles.owner_front ? (
-                                                        <CheckCircleIcon color="success" />
-                                                    ) : (
-                                                        <CloudUploadIcon />
-                                                    )
-                                                }
-                                                disabled={uploadingFile === 'owner_front'}
-                                                sx={{ height: '56px' }}
-                                            >
-                                                {uploadingFile === 'owner_front'
-                                                    ? 'Uploading...'
-                                                    : uploadedFiles.owner_front
-                                                      ? `Uploaded: ${uploadedFiles.owner_front.name}`
-                                                      : 'Upload Owner ID (Front)'}
-                                                <input
-                                                    type="file"
-                                                    hidden
-                                                    accept="image/*,.pdf"
-                                                    onChange={e => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            handleFileUpload(file, 'owner_front');
-                                                        }
-                                                    }}
-                                                />
-                                            </Button>
-                                        </Grid>
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.owner_additional_front ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'owner_additional_front'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'owner_additional_front'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.owner_additional_front
+                                                  ? `Uploaded: ${uploadedFiles.owner_additional_front.name}`
+                                                  : 'Upload Address Proof (Front)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'owner_additional_front'
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
 
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <Button
-                                                variant="outlined"
-                                                component="label"
-                                                fullWidth
-                                                startIcon={
-                                                    uploadedFiles.owner_back ? (
-                                                        <CheckCircleIcon color="success" />
-                                                    ) : (
-                                                        <CloudUploadIcon />
-                                                    )
-                                                }
-                                                disabled={uploadingFile === 'owner_back'}
-                                                sx={{ height: '56px' }}
-                                            >
-                                                {uploadingFile === 'owner_back'
-                                                    ? 'Uploading...'
-                                                    : uploadedFiles.owner_back
-                                                      ? `Uploaded: ${uploadedFiles.owner_back.name}`
-                                                      : 'Upload Owner ID (Back)'}
-                                                <input
-                                                    type="file"
-                                                    hidden
-                                                    accept="image/*,.pdf"
-                                                    onChange={e => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            handleFileUpload(file, 'owner_back');
-                                                        }
-                                                    }}
-                                                />
-                                            </Button>
-                                        </Grid>
-
-                                        <Grid size={{ xs: 12 }}>
-                                            <Typography
-                                                variant="subtitle1"
-                                                gutterBottom
-                                                sx={{ mt: 2 }}
-                                            >
-                                                Additional Document (Address Proof - Optional)
-                                            </Typography>
-                                            <Typography
-                                                variant="body2"
-                                                color="text.secondary"
-                                                gutterBottom
-                                            >
-                                                Upload utility bill, bank statement, or official
-                                                correspondence for the owner
-                                            </Typography>
-                                        </Grid>
-
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <Button
-                                                variant="outlined"
-                                                component="label"
-                                                fullWidth
-                                                startIcon={
-                                                    uploadedFiles.owner_additional_front ? (
-                                                        <CheckCircleIcon color="success" />
-                                                    ) : (
-                                                        <CloudUploadIcon />
-                                                    )
-                                                }
-                                                disabled={
-                                                    uploadingFile === 'owner_additional_front'
-                                                }
-                                                sx={{ height: '56px' }}
-                                            >
-                                                {uploadingFile === 'owner_additional_front'
-                                                    ? 'Uploading...'
-                                                    : uploadedFiles.owner_additional_front
-                                                      ? `Uploaded: ${uploadedFiles.owner_additional_front.name}`
-                                                      : 'Upload Address Proof (Front)'}
-                                                <input
-                                                    type="file"
-                                                    hidden
-                                                    accept="image/*,.pdf"
-                                                    onChange={e => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            handleFileUpload(
-                                                                file,
-                                                                'owner_additional_front'
-                                                            );
-                                                        }
-                                                    }}
-                                                />
-                                            </Button>
-                                        </Grid>
-
-                                        <Grid size={{ xs: 12, sm: 6 }}>
-                                            <Button
-                                                variant="outlined"
-                                                component="label"
-                                                fullWidth
-                                                startIcon={
-                                                    uploadedFiles.owner_additional_back ? (
-                                                        <CheckCircleIcon color="success" />
-                                                    ) : (
-                                                        <CloudUploadIcon />
-                                                    )
-                                                }
-                                                disabled={uploadingFile === 'owner_additional_back'}
-                                                sx={{ height: '56px' }}
-                                            >
-                                                {uploadingFile === 'owner_additional_back'
-                                                    ? 'Uploading...'
-                                                    : uploadedFiles.owner_additional_back
-                                                      ? `Uploaded: ${uploadedFiles.owner_additional_back.name}`
-                                                      : 'Upload Address Proof (Back)'}
-                                                <input
-                                                    type="file"
-                                                    hidden
-                                                    accept="image/*,.pdf"
-                                                    onChange={e => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            handleFileUpload(
-                                                                file,
-                                                                'owner_additional_back'
-                                                            );
-                                                        }
-                                                    }}
-                                                />
-                                            </Button>
-                                        </Grid>
-                                    </>
-                                )}
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.owner_additional_back ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'owner_additional_back'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'owner_additional_back'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.owner_additional_back
+                                                  ? `Uploaded: ${uploadedFiles.owner_additional_back.name}`
+                                                  : 'Upload Address Proof (Back)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'owner_additional_back'
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+                                </>
+                            )}
 
                             {renderDirectorsExecutivesSection()}
 
