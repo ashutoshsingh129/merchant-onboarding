@@ -124,7 +124,8 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
         external_account_account_number: '',
         external_account_account_number_confirm: '',
         external_account_account_holder_name: '',
-        external_account_account_holder_type: 'individual',
+        external_account_account_holder_type:
+            businessType && businessType !== 'individual' ? 'company' : 'individual',
         // Japan-specific bank account fields
         external_account_bank_code: '',
         external_account_branch_code: '',
@@ -1185,6 +1186,15 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                     setError('Account holder name (Katakana) is required for Japan bank accounts.');
                     return;
                 }
+
+                const accountHolderName = (
+                    formData.external_account_account_holder_name || ''
+                ).trim();
+                if (accountHolderName === '') {
+                    setLoading(false);
+                    setError('Account holder name is required for Japan bank accounts.');
+                    return;
+                }
             }
 
             if (
@@ -1301,6 +1311,8 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
 
             // Prepare payload with appropriate SSN fields based on toggle state
             const payload: any = { ...formData };
+            payload.external_account_account_holder_type =
+                payload.business_type !== 'individual' ? 'company' : 'individual';
             if (shouldAutoAssignRepresentativeDirector) {
                 payload.representative_relationship_director = true;
                 payload.representative_relationship_representative = true;
@@ -1372,6 +1384,24 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                 .representative_address_kanji_line2 as string | undefined;
             if (representativeAddressKanjiLine2) {
                 payload.representative_address_kanji_line2 = representativeAddressKanjiLine2.trim();
+            }
+            if (formData.external_account_bank_code) {
+                payload.external_account_bank_code = formData.external_account_bank_code.trim();
+            }
+            if (formData.external_account_branch_code) {
+                payload.external_account_branch_code = formData.external_account_branch_code.trim();
+            }
+            if (formData.external_account_account_number) {
+                payload.external_account_account_number =
+                    formData.external_account_account_number.trim();
+            }
+            if (formData.external_account_account_holder_name) {
+                payload.external_account_account_holder_name =
+                    formData.external_account_account_holder_name.trim();
+            }
+            if (formData.external_account_account_holder_name_kana) {
+                payload.external_account_account_holder_name_kana =
+                    formData.external_account_account_holder_name_kana.trim();
             }
             if (formData.representative_address_city) {
                 payload.representative_address_city = formData.representative_address_city.trim();

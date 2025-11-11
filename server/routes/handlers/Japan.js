@@ -349,7 +349,6 @@ class JapanHandler extends BaseHandler {
         external_account_account_holder_name,
         external_account_account_holder_type,
         external_account_account_type,
-        external_account_account_holder_name_kana,
       } = reqBody;
 
       if (!external_account_account_number) {
@@ -363,20 +362,14 @@ class JapanHandler extends BaseHandler {
         account_number: external_account_account_number,
       };
 
-      if (external_account_bank_code) {
-        bankAccountData.bank_code = external_account_bank_code;
-      }
-      if (external_account_branch_code) {
-        bankAccountData.branch_code = external_account_branch_code;
+      if (external_account_bank_code && external_account_branch_code) {
+        bankAccountData.routing_number = `${external_account_bank_code}${external_account_branch_code}`;
       }
       if (external_account_account_holder_name) {
         bankAccountData.account_holder_name = external_account_account_holder_name;
       }
       if (external_account_account_holder_type) {
         bankAccountData.account_holder_type = external_account_account_holder_type;
-      }
-      if (external_account_account_holder_name_kana) {
-        bankAccountData.account_holder_name_kana = external_account_account_holder_name_kana;
       }
       if (external_account_account_type) {
         const mappedType = this.mapJapanAccountType(external_account_account_type);
@@ -390,8 +383,9 @@ class JapanHandler extends BaseHandler {
           external_account: bankAccountData,
         });
       } catch (error) {
-        console.warn('Failed to create Japan bank account:', error.message);
-        return null;
+        const message = error?.message || 'Unknown error creating Japan bank account';
+        console.warn('Failed to create Japan bank account:', message);
+        throw new Error(message);
       }
     }
 
