@@ -81,6 +81,25 @@ const createVerification = (docFront, docBack, additionalDocFront, additionalDoc
  * Build person data object
  */
 const buildPersonData = (data) => {
+  const hasAddressKana =
+    data.address_kana_line1 ||
+    data.address_kana_line2 ||
+    data.address_kana_town ||
+    data.address_kana_city ||
+    data.address_kana_state ||
+    data.address_kana_postal_code;
+
+  const hasAddressKanji =
+    data.address_kanji_line1 ||
+    data.address_kanji_line2 ||
+    data.address_kanji_town ||
+    data.address_kanji_city ||
+    data.address_kanji_state ||
+    data.address_kanji_postal_code;
+
+  const shouldIncludeLatinAddress =
+    data.address_country?.toUpperCase() !== 'JP' || (!hasAddressKana && !hasAddressKanji);
+
   const personData = {
     first_name: data.first_name,
     last_name: data.last_name,
@@ -95,6 +114,7 @@ const buildPersonData = (data) => {
       ? {
           line1: data.address_line1,
           line2: data.address_line2,
+          town: data.address_town,
           city: data.address_city,
           state: data.address_state,
           postal_code: data.address_postal_code,
@@ -103,6 +123,34 @@ const buildPersonData = (data) => {
       : undefined,
     relationship: data.relationship || {},
   };
+
+  if (!shouldIncludeLatinAddress) {
+    delete personData.address;
+  }
+
+  if (hasAddressKana) {
+    personData.address_kana = {
+      line1: data.address_kana_line1,
+      line2: data.address_kana_line2,
+      town: data.address_kana_town,
+      city: data.address_kana_city,
+      state: data.address_kana_state,
+      postal_code: data.address_kana_postal_code,
+      country: data.address_country,
+    };
+  }
+
+  if (hasAddressKanji) {
+    personData.address_kanji = {
+      line1: data.address_kanji_line1,
+      line2: data.address_kanji_line2,
+      town: data.address_kanji_town,
+      city: data.address_kanji_city,
+      state: data.address_kanji_state,
+      postal_code: data.address_kanji_postal_code,
+      country: data.address_country,
+    };
+  }
 
   if (data.first_name_kana) {
     personData.first_name_kana = data.first_name_kana;

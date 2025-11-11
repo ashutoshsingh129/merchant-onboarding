@@ -150,10 +150,23 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
         representative_address_line1: '',
         representative_address_line2: '',
         representative_address_line2_kana: '',
+        representative_address_kana_postal_code: '',
+        representative_address_kana_state: '',
+        representative_address_kana_city: '',
+        representative_address_kana_line1: '',
+        representative_address_kana_line2: '',
+        representative_address_kanji_postal_code: '',
+        representative_address_kanji_state: '',
+        representative_address_kanji_city: '',
+        representative_address_kanji_line1: '',
+        representative_address_kanji_line2: '',
         representative_address_city: '',
         representative_address_state: '',
         representative_address_postal_code: '',
         representative_address_country: country || DEFAULT_COUNTRY,
+        representative_address_town: '',
+        representative_address_kana_town: '',
+        representative_address_kanji_town: '',
         representative_relationship_representative: true,
         representative_relationship_executive: false,
         representative_relationship_director: false,
@@ -1202,11 +1215,45 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             if (
                 formData.business_type !== 'individual' &&
                 (!formData.representative_address_line1?.trim() ||
-                    !formData.representative_address_postal_code?.trim())
+                    !formData.representative_address_postal_code?.trim() ||
+                    !formData.representative_address_city?.trim() ||
+                    !formData.representative_address_state?.trim() ||
+                    !formData.representative_address_town?.trim() ||
+                    !formData.representative_address_country?.trim())
             ) {
                 setLoading(false);
-                setError('Representative address is required for Japan business onboarding.');
+                setError(
+                    'Representative address must include postal code, town, block, city, prefecture, and country for Japan business onboarding.'
+                );
                 return;
+            }
+
+            if (formData.representative_address_country === 'JP') {
+                const missingRepresentativeKanaAddress =
+                    !formData.representative_address_kana_postal_code?.trim() ||
+                    !formData.representative_address_kana_state?.trim() ||
+                    !formData.representative_address_kana_city?.trim() ||
+                    !formData.representative_address_kana_town?.trim() ||
+                    !formData.representative_address_kana_line1?.trim();
+
+                const missingRepresentativeKanjiAddress =
+                    !formData.representative_address_kanji_postal_code?.trim() ||
+                    !formData.representative_address_kanji_state?.trim() ||
+                    !formData.representative_address_kanji_city?.trim() ||
+                    !formData.representative_address_kanji_town?.trim() ||
+                    !formData.representative_address_kanji_line1?.trim();
+
+                if (missingRepresentativeKanaAddress) {
+                    setLoading(false);
+                    setError('Kana representative address is required for Japan.');
+                    return;
+                }
+
+                if (missingRepresentativeKanjiAddress) {
+                    setLoading(false);
+                    setError('Kanji representative address is required for Japan.');
+                    return;
+                }
             }
 
             if (
@@ -1268,10 +1315,63 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             if (formData.representative_address_line2) {
                 payload.representative_address_line2 = formData.representative_address_line2.trim();
             }
+            if (formData.representative_address_town) {
+                payload.representative_address_town = formData.representative_address_town.trim();
+            }
             const representativeAddressLine2Kana = (formData as Record<string, any>)
                 .representative_address_line2_kana as string | undefined;
             if (representativeAddressLine2Kana) {
                 payload.representative_address_line2_kana = representativeAddressLine2Kana.trim();
+            }
+            if (formData.representative_address_kana_postal_code) {
+                payload.representative_address_kana_postal_code =
+                    formData.representative_address_kana_postal_code.trim();
+            }
+            if (formData.representative_address_kana_state) {
+                payload.representative_address_kana_state =
+                    formData.representative_address_kana_state.trim();
+            }
+            if (formData.representative_address_kana_city) {
+                payload.representative_address_kana_city =
+                    formData.representative_address_kana_city.trim();
+            }
+            if (formData.representative_address_kana_town) {
+                payload.representative_address_kana_town =
+                    formData.representative_address_kana_town.trim();
+            }
+            if (formData.representative_address_kana_line1) {
+                payload.representative_address_kana_line1 =
+                    formData.representative_address_kana_line1.trim();
+            }
+            const representativeAddressKanaLine2 = (formData as Record<string, any>)
+                .representative_address_kana_line2 as string | undefined;
+            if (representativeAddressKanaLine2) {
+                payload.representative_address_kana_line2 = representativeAddressKanaLine2.trim();
+            }
+            if (formData.representative_address_kanji_postal_code) {
+                payload.representative_address_kanji_postal_code =
+                    formData.representative_address_kanji_postal_code.trim();
+            }
+            if (formData.representative_address_kanji_state) {
+                payload.representative_address_kanji_state =
+                    formData.representative_address_kanji_state.trim();
+            }
+            if (formData.representative_address_kanji_city) {
+                payload.representative_address_kanji_city =
+                    formData.representative_address_kanji_city.trim();
+            }
+            if (formData.representative_address_kanji_town) {
+                payload.representative_address_kanji_town =
+                    formData.representative_address_kanji_town.trim();
+            }
+            if (formData.representative_address_kanji_line1) {
+                payload.representative_address_kanji_line1 =
+                    formData.representative_address_kanji_line1.trim();
+            }
+            const representativeAddressKanjiLine2 = (formData as Record<string, any>)
+                .representative_address_kanji_line2 as string | undefined;
+            if (representativeAddressKanjiLine2) {
+                payload.representative_address_kanji_line2 = representativeAddressKanjiLine2.trim();
             }
             if (formData.representative_address_city) {
                 payload.representative_address_city = formData.representative_address_city.trim();
@@ -1395,7 +1495,7 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                 postal_code: payload.representative_address_postal_code,
                 line1: payload.representative_address_line1,
                 line2: payload.representative_address_line2,
-                line2_kana: payload.representative_address_line2_kana,
+                town: payload.representative_address_town,
                 city: payload.representative_address_city,
                 state: payload.representative_address_state,
                 country: payload.representative_address_country,
@@ -1403,6 +1503,34 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
 
             if (Object.keys(representativeAddress).length > 0) {
                 representativeDetails.address = representativeAddress;
+            }
+
+            const representativeAddressKana = removeEmptyStrings({
+                postal_code: payload.representative_address_kana_postal_code,
+                state: payload.representative_address_kana_state,
+                city: payload.representative_address_kana_city,
+                town: payload.representative_address_kana_town,
+                line1: payload.representative_address_kana_line1,
+                line2: payload.representative_address_kana_line2,
+                country: payload.representative_address_country,
+            });
+
+            if (Object.keys(representativeAddressKana).length > 0) {
+                representativeDetails.address_kana = representativeAddressKana;
+            }
+
+            const representativeAddressKanji = removeEmptyStrings({
+                postal_code: payload.representative_address_kanji_postal_code,
+                state: payload.representative_address_kanji_state,
+                city: payload.representative_address_kanji_city,
+                town: payload.representative_address_kanji_town,
+                line1: payload.representative_address_kanji_line1,
+                line2: payload.representative_address_kanji_line2,
+                country: payload.representative_address_country,
+            });
+
+            if (Object.keys(representativeAddressKanji).length > 0) {
+                representativeDetails.address_kanji = representativeAddressKanji;
             }
 
             const representativeRelationship: Record<string, any> = {};
@@ -3752,6 +3880,85 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                     <Grid size={{ xs: 12 }}>
                                         <TextField
                                             fullWidth
+                                            label="Town / District"
+                                            value={formData.representative_address_town || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_town',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Roppongi"
+                                            helperText="Neighborhood or town (e.g., Roppongi)"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Prefecture"
+                                            value={formData.representative_address_state}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_state',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Tokyo"
+                                            helperText="Enter the prefecture or province"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="City / Ward"
+                                            value={formData.representative_address_city}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_city',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Minato"
+                                            helperText="Enter the municipality"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <FormControl fullWidth required>
+                                            <InputLabel>Country</InputLabel>
+                                            <Select
+                                                value={
+                                                    formData.representative_address_country ||
+                                                    DEFAULT_COUNTRY
+                                                }
+                                                label="Country"
+                                                onChange={e =>
+                                                    handleInputChange(
+                                                        'representative_address_country',
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+                                                {countries.map(countryOption => (
+                                                    <MenuItem
+                                                        key={countryOption.code}
+                                                        value={countryOption.code}
+                                                    >
+                                                        {countryOption.name}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
                                             label="Building name + unit number"
                                             value={formData.representative_address_line2 || ''}
                                             onChange={e =>
@@ -3765,18 +3972,239 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                     </Grid>
 
                                     <Grid size={{ xs: 12 }}>
+                                        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                                            Representative Address (Kana)
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Enter the address in full-width Katakana as required by
+                                            Stripe.
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 4 }}>
                                         <TextField
                                             fullWidth
-                                            label="Building name + unit number (katakana)"
-                                            value={formData.representative_address_line2_kana || ''}
+                                            label="Postal code (digits only)"
+                                            value={
+                                                formData.representative_address_kana_postal_code ||
+                                                ''
+                                            }
                                             onChange={e =>
                                                 handleInputChange(
-                                                    'representative_address_line2_kana',
+                                                    'representative_address_kana_postal_code',
+                                                    e.target.value.replace(/\D/g, '')
+                                                )
+                                            }
+                                            placeholder="1234567"
+                                            helperText="Use digits only; no hyphen"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Prefecture (カナ)"
+                                            value={formData.representative_address_kana_state || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_kana_state',
                                                     e.target.value
                                                 )
                                             }
-                                            placeholder="ロッポンギヒルズモリタワー 34F"
-                                            helperText="Enter using katakana characters"
+                                            placeholder="トウキョウト"
+                                            helperText="Full-width Katakana"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="City / Ward (カナ)"
+                                            value={formData.representative_address_kana_city || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_kana_city',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="ミナトク"
+                                            helperText="Full-width Katakana"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Town / District (カナ)"
+                                            value={formData.representative_address_kana_town || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_kana_town',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="ロッポンギ"
+                                            helperText="Full-width Katakana"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Block number (カナ)"
+                                            value={formData.representative_address_kana_line1 || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_kana_line1',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="３－５－７"
+                                            helperText="Use full-width numbers and Katakana where needed"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Building name + unit number (カナ)"
+                                            value={formData.representative_address_kana_line2 || ''}
+                                            onChange={e => {
+                                                const value = e.target.value;
+                                                handleInputChange(
+                                                    'representative_address_kana_line2',
+                                                    value
+                                                );
+                                                handleInputChange(
+                                                    'representative_address_line2_kana',
+                                                    value
+                                                );
+                                            }}
+                                            placeholder="ロッポンギヒルズモリタワー ３４Ｆ"
+                                            helperText="Optional – enter in Katakana"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                                            Representative Address (Kanji)
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Provide the legally registered address using Kanji
+                                            characters.
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="郵便番号"
+                                            value={
+                                                formData.representative_address_kanji_postal_code ||
+                                                ''
+                                            }
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_kanji_postal_code',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="106-0032"
+                                            helperText="７桁の郵便番号"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="都道府県"
+                                            value={
+                                                formData.representative_address_kanji_state || ''
+                                            }
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_kanji_state',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="東京都"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 4 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="市区町村"
+                                            value={formData.representative_address_kanji_city || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_kanji_city',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="港区"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="町域"
+                                            value={formData.representative_address_kanji_town || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_kanji_town',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="六本木"
+                                            helperText="町名を入力"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="番地"
+                                            value={
+                                                formData.representative_address_kanji_line1 || ''
+                                            }
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_kanji_line1',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="３丁目５番７号"
+                                            helperText="丁目・番・号を含めて入力"
+                                            required
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="建物名・部屋番号"
+                                            value={
+                                                formData.representative_address_kanji_line2 || ''
+                                            }
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'representative_address_kanji_line2',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="六本木ヒルズ森タワー３４階"
+                                            helperText="任意項目"
                                         />
                                     </Grid>
 
