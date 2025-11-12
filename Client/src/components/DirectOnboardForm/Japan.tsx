@@ -197,6 +197,8 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
         owner_last_name: '',
         owner_first_name_kana: '', // Japan-specific
         owner_last_name_kana: '', // Japan-specific
+        owner_first_name_kanji: '', // Japan-specific
+        owner_last_name_kanji: '', // Japan-specific
         owner_email: '',
         owner_phone: '',
         owner_dob_day: 1,
@@ -403,6 +405,48 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                             onChange={e => onFieldChange(idx, 'last_name', e.target.value)}
                         />
                     </Grid>
+                    {/* Japan-specific: Kana fields */}
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="First Name (Katakana)"
+                            value={person.first_name_kana || ''}
+                            onChange={e => onFieldChange(idx, 'first_name_kana', e.target.value)}
+                            placeholder="タロウ"
+                            helperText="Enter name in Katakana (if available)"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="Last Name (Katakana)"
+                            value={person.last_name_kana || ''}
+                            onChange={e => onFieldChange(idx, 'last_name_kana', e.target.value)}
+                            placeholder="ヤマダ"
+                            helperText="Enter name in Katakana (if available)"
+                        />
+                    </Grid>
+                    {/* Japan-specific: Kanji fields */}
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="First Name (Kanji)"
+                            value={person.first_name_kanji || ''}
+                            onChange={e => onFieldChange(idx, 'first_name_kanji', e.target.value)}
+                            placeholder="太郎"
+                            helperText="Enter name in Kanji (if available)"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="Last Name (Kanji)"
+                            value={person.last_name_kanji || ''}
+                            onChange={e => onFieldChange(idx, 'last_name_kanji', e.target.value)}
+                            placeholder="山田"
+                            helperText="Enter name in Kanji (if available)"
+                        />
+                    </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                             fullWidth
@@ -415,9 +459,29 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                     <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                             fullWidth
+                            label="Phone Number"
+                            value={person.phone || ''}
+                            onChange={e => onFieldChange(idx, 'phone', e.target.value)}
+                            placeholder="+31612345678"
+                            helperText="Include country code (e.g., +1 for US, +81 for Japan)"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
                             label="Job Title"
                             value={person.relationship_title || ''}
                             onChange={e => onFieldChange(idx, 'relationship_title', e.target.value)}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="National ID Number"
+                            value={person.id_number || ''}
+                            onChange={e => onFieldChange(idx, 'id_number', e.target.value)}
+                            placeholder="e.g., My Number (Japan)"
+                            helperText="Provide full national ID number"
                         />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
@@ -456,30 +520,60 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                             onChange={e => onFieldChange(idx, 'dob_year', Number(e.target.value))}
                         />
                     </Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                            fullWidth
-                            label="Address Line 1"
-                            value={person.address_line1 || ''}
-                            onChange={e => onFieldChange(idx, 'address_line1', e.target.value)}
-                        />
+                    <Grid size={{ xs: 12 }}>
+                        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                            Address
+                        </Typography>
                     </Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}>
+                    <Grid size={{ xs: 12 }}>
                         <TextField
                             fullWidth
-                            label="City"
-                            value={person.address_city || ''}
-                            onChange={e => onFieldChange(idx, 'address_city', e.target.value)}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                            fullWidth
-                            label="Postal Code"
+                            label="Postal code"
                             value={person.address_postal_code || ''}
                             onChange={e =>
                                 onFieldChange(idx, 'address_postal_code', e.target.value)
                             }
+                            placeholder="123-4567"
+                            helperText="Format: 123-4567"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <TextField
+                            fullWidth
+                            label="Block number (e.g. 1-1)"
+                            value={person.address_line1 || ''}
+                            onChange={e => onFieldChange(idx, 'address_line1', e.target.value)}
+                            placeholder="1-1"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <TextField
+                            fullWidth
+                            label="Town / District"
+                            value={person.address_town || ''}
+                            onChange={e => onFieldChange(idx, 'address_town', e.target.value)}
+                            placeholder="Roppongi"
+                            helperText="Neighborhood or town (e.g., Roppongi)"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="Prefecture"
+                            value={person.address_state || ''}
+                            onChange={e => onFieldChange(idx, 'address_state', e.target.value)}
+                            placeholder="Tokyo"
+                            helperText="Enter the prefecture or province"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="City / Ward"
+                            value={person.address_city || ''}
+                            onChange={e => onFieldChange(idx, 'address_city', e.target.value)}
+                            placeholder="Minato"
+                            helperText="Enter the municipality"
                         />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
@@ -499,6 +593,171 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                 ))}
                             </Select>
                         </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <TextField
+                            fullWidth
+                            label="Building name + unit number"
+                            value={person.address_line2 || ''}
+                            onChange={e => onFieldChange(idx, 'address_line2', e.target.value)}
+                            placeholder="Roppongi Hills Mori Tower 34F"
+                        />
+                    </Grid>
+                    {/* Japan-specific: Address Kana fields */}
+                    <Grid size={{ xs: 12 }}>
+                        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                            Address (Kana)
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            Enter the address in full-width Katakana as required by Stripe.
+                        </Typography>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField
+                            fullWidth
+                            label="Postal code (digits only)"
+                            value={person.address_kana_postal_code || ''}
+                            onChange={e =>
+                                onFieldChange(
+                                    idx,
+                                    'address_kana_postal_code',
+                                    e.target.value.replace(/\D/g, '')
+                                )
+                            }
+                            placeholder="1234567"
+                            helperText="Use digits only; no hyphen"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField
+                            fullWidth
+                            label="Prefecture (カナ)"
+                            value={person.address_kana_state || ''}
+                            onChange={e => onFieldChange(idx, 'address_kana_state', e.target.value)}
+                            placeholder="トウキョウト"
+                            helperText="Full-width Katakana"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField
+                            fullWidth
+                            label="City / Ward (カナ)"
+                            value={person.address_kana_city || ''}
+                            onChange={e => onFieldChange(idx, 'address_kana_city', e.target.value)}
+                            placeholder="ミナトク"
+                            helperText="Full-width Katakana"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="Town / District (カナ)"
+                            value={person.address_kana_town || ''}
+                            onChange={e => onFieldChange(idx, 'address_kana_town', e.target.value)}
+                            placeholder="ロッポンギ"
+                            helperText="Full-width Katakana"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="Block number (カナ)"
+                            value={person.address_kana_line1 || ''}
+                            onChange={e => onFieldChange(idx, 'address_kana_line1', e.target.value)}
+                            placeholder="３－５－７"
+                            helperText="Use full-width numbers and Katakana where needed"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="Building name + unit number (カナ)"
+                            value={person.address_kana_line2 || ''}
+                            onChange={e => onFieldChange(idx, 'address_kana_line2', e.target.value)}
+                            placeholder="ロッポンギヒルズモリタワー ３４Ｆ"
+                            helperText="Optional – enter in Katakana"
+                        />
+                    </Grid>
+                    {/* Japan-specific: Address Kanji fields */}
+                    <Grid size={{ xs: 12 }}>
+                        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                            Address (Kanji)
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            Provide the legally registered address using Kanji characters.
+                        </Typography>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField
+                            fullWidth
+                            label="Postal code (digits only)"
+                            value={person.address_kanji_postal_code || ''}
+                            onChange={e =>
+                                onFieldChange(
+                                    idx,
+                                    'address_kanji_postal_code',
+                                    e.target.value.replace(/\D/g, '')
+                                )
+                            }
+                            placeholder="1234567"
+                            helperText="Use digits only; no hyphen"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField
+                            fullWidth
+                            label="Prefecture (漢字)"
+                            value={person.address_kanji_state || ''}
+                            onChange={e =>
+                                onFieldChange(idx, 'address_kanji_state', e.target.value)
+                            }
+                            placeholder="東京都"
+                            helperText="Enter in Kanji"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField
+                            fullWidth
+                            label="City / Ward (漢字)"
+                            value={person.address_kanji_city || ''}
+                            onChange={e => onFieldChange(idx, 'address_kanji_city', e.target.value)}
+                            placeholder="港区"
+                            helperText="Enter in Kanji"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="Town / District (漢字)"
+                            value={person.address_kanji_town || ''}
+                            onChange={e => onFieldChange(idx, 'address_kanji_town', e.target.value)}
+                            placeholder="六本木"
+                            helperText="Enter in Kanji"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="Block number (漢字)"
+                            value={person.address_kanji_line1 || ''}
+                            onChange={e =>
+                                onFieldChange(idx, 'address_kanji_line1', e.target.value)
+                            }
+                            placeholder="３－５－７"
+                            helperText="Use full-width numbers and Kanji where needed"
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            fullWidth
+                            label="Building name + unit number (漢字)"
+                            value={person.address_kanji_line2 || ''}
+                            onChange={e =>
+                                onFieldChange(idx, 'address_kanji_line2', e.target.value)
+                            }
+                            placeholder="六本木ヒルズ森タワー ３４Ｆ"
+                            helperText="Optional – enter in Kanji"
+                        />
                     </Grid>
                     <Grid size={{ xs: 12 }}>
                         <Button
@@ -1057,16 +1316,34 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                 {
                     first_name: '',
                     last_name: '',
+                    first_name_kana: '',
+                    last_name_kana: '',
+                    first_name_kanji: '',
+                    last_name_kanji: '',
                     email: '',
                     phone: '',
                     dob_day: 1,
                     dob_month: 1,
                     dob_year: 1990,
                     address_line1: '',
+                    address_line2: '',
+                    address_town: '',
                     address_city: '',
                     address_state: '',
                     address_postal_code: '',
                     address_country: prev.company_address_country || DEFAULT_COUNTRY,
+                    address_kana_postal_code: '',
+                    address_kana_state: '',
+                    address_kana_city: '',
+                    address_kana_town: '',
+                    address_kana_line1: '',
+                    address_kana_line2: '',
+                    address_kanji_postal_code: '',
+                    address_kanji_state: '',
+                    address_kanji_city: '',
+                    address_kanji_town: '',
+                    address_kanji_line1: '',
+                    address_kanji_line2: '',
                     relationship_title: '',
                     id_number: '',
                     ssn_last_4: '',
@@ -1102,16 +1379,34 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                 {
                     first_name: '',
                     last_name: '',
+                    first_name_kana: '',
+                    last_name_kana: '',
+                    first_name_kanji: '',
+                    last_name_kanji: '',
                     email: '',
                     phone: '',
                     dob_day: 1,
                     dob_month: 1,
                     dob_year: 1990,
                     address_line1: '',
+                    address_line2: '',
+                    address_town: '',
                     address_city: '',
                     address_state: '',
                     address_postal_code: '',
                     address_country: prev.company_address_country || DEFAULT_COUNTRY,
+                    address_kana_postal_code: '',
+                    address_kana_state: '',
+                    address_kana_city: '',
+                    address_kana_town: '',
+                    address_kana_line1: '',
+                    address_kana_line2: '',
+                    address_kanji_postal_code: '',
+                    address_kanji_state: '',
+                    address_kanji_city: '',
+                    address_kanji_town: '',
+                    address_kanji_line1: '',
+                    address_kanji_line2: '',
                     relationship_title: '',
                     id_number: '',
                     ssn_last_4: '',
@@ -1773,6 +2068,14 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                     formData.representative_last_name_kana || formData.individual_last_name_kana
                 );
                 assignOwnerString(
+                    'owner_first_name_kanji',
+                    formData.representative_first_name_kanji || formData.individual_first_name_kanji
+                );
+                assignOwnerString(
+                    'owner_last_name_kanji',
+                    formData.representative_last_name_kanji || formData.individual_last_name_kanji
+                );
+                assignOwnerString(
                     'owner_email',
                     formData.representative_email || formData.individual_email
                 );
@@ -2246,6 +2549,10 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             representative_id_number: '',
             owner_first_name: '',
             owner_last_name: '',
+            owner_first_name_kana: '',
+            owner_last_name_kana: '',
+            owner_first_name_kanji: '',
+            owner_last_name_kanji: '',
             owner_email: '',
             owner_phone: '',
             owner_dob_day: 1,
@@ -5237,6 +5544,39 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             }
                                             placeholder="ヤマダ"
                                             helperText="Enter name in Katakana (if available)"
+                                        />
+                                    </Grid>
+
+                                    {/* Japan-specific: Owner Kanji fields */}
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Owner First Name (Kanji)"
+                                            value={formData.owner_first_name_kanji || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_first_name_kanji',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="太郎"
+                                            helperText="Enter name in Kanji (if available)"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Owner Last Name (Kanji)"
+                                            value={formData.owner_last_name_kanji || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'owner_last_name_kanji',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="山田"
+                                            helperText="Enter name in Kanji (if available)"
                                         />
                                     </Grid>
 

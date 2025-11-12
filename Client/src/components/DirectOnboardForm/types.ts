@@ -135,6 +135,8 @@ export interface DirectOnboardFormData {
     owner_last_name: string;
     owner_first_name_kana?: string; // Japan-specific
     owner_last_name_kana?: string; // Japan-specific
+    owner_first_name_kanji?: string; // Japan-specific
+    owner_last_name_kanji?: string; // Japan-specific
     owner_email: string;
     owner_phone: string;
     owner_dob_day: number;
@@ -184,16 +186,34 @@ export interface DirectOnboardFormData {
     directors?: Array<{
         first_name: string;
         last_name: string;
+        first_name_kana?: string; // Japan-specific
+        last_name_kana?: string; // Japan-specific
+        first_name_kanji?: string; // Japan-specific
+        last_name_kanji?: string; // Japan-specific
         email?: string;
         phone?: string;
         dob_day?: number;
         dob_month?: number;
         dob_year?: number;
         address_line1?: string;
+        address_line2?: string;
+        address_town?: string; // Japan-specific
         address_city?: string;
         address_state?: string;
         address_postal_code?: string;
         address_country?: string;
+        address_kana_postal_code?: string; // Japan-specific
+        address_kana_state?: string; // Japan-specific
+        address_kana_city?: string; // Japan-specific
+        address_kana_town?: string; // Japan-specific
+        address_kana_line1?: string; // Japan-specific
+        address_kana_line2?: string; // Japan-specific
+        address_kanji_postal_code?: string; // Japan-specific
+        address_kanji_state?: string; // Japan-specific
+        address_kanji_city?: string; // Japan-specific
+        address_kanji_town?: string; // Japan-specific
+        address_kanji_line1?: string; // Japan-specific
+        address_kanji_line2?: string; // Japan-specific
         relationship_title?: string;
         id_number?: string;
         ssn_last_4?: string;
@@ -202,16 +222,34 @@ export interface DirectOnboardFormData {
     executives?: Array<{
         first_name: string;
         last_name: string;
+        first_name_kana?: string; // Japan-specific
+        last_name_kana?: string; // Japan-specific
+        first_name_kanji?: string; // Japan-specific
+        last_name_kanji?: string; // Japan-specific
         email?: string;
         phone?: string;
         dob_day?: number;
         dob_month?: number;
         dob_year?: number;
         address_line1?: string;
+        address_line2?: string;
+        address_town?: string; // Japan-specific
         address_city?: string;
         address_state?: string;
         address_postal_code?: string;
         address_country?: string;
+        address_kana_postal_code?: string; // Japan-specific
+        address_kana_state?: string; // Japan-specific
+        address_kana_city?: string; // Japan-specific
+        address_kana_town?: string; // Japan-specific
+        address_kana_line1?: string; // Japan-specific
+        address_kana_line2?: string; // Japan-specific
+        address_kanji_postal_code?: string; // Japan-specific
+        address_kanji_state?: string; // Japan-specific
+        address_kanji_city?: string; // Japan-specific
+        address_kanji_town?: string; // Japan-specific
+        address_kanji_line1?: string; // Japan-specific
+        address_kanji_line2?: string; // Japan-specific
         relationship_title?: string;
         id_number?: string;
         ssn_last_4?: string;
