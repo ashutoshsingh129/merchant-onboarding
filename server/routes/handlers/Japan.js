@@ -19,6 +19,117 @@ class JapanHandler extends BaseHandler {
   }
 
   /**
+   * Handle individual business type for Japan
+   * Override to also handle representative person with verification documents
+   */
+  async handleIndividual(accountUpdateData, reqBody, stripe, accountId) {
+    // First, handle the individual data (from parent)
+    await super.handleIndividual(accountUpdateData, reqBody, stripe, accountId);
+
+    // Then, if representative data is provided, create/update representative person
+    const {
+      representative_first_name,
+      representative_last_name,
+      representative_first_name_kana,
+      representative_last_name_kana,
+      representative_first_name_kanji,
+      representative_last_name_kanji,
+      representative_email,
+      representative_phone,
+      representative_dob_day,
+      representative_dob_month,
+      representative_dob_year,
+      representative_address_line1,
+      representative_address_line2,
+      representative_address_town,
+      representative_address_line2_kana,
+      representative_address_city,
+      representative_address_state,
+      representative_address_postal_code,
+      representative_address_country,
+      representative_address_kana_postal_code,
+      representative_address_kana_state,
+      representative_address_kana_city,
+      representative_address_kana_town,
+      representative_address_kana_line1,
+      representative_address_kana_line2,
+      representative_address_kanji_postal_code,
+      representative_address_kanji_state,
+      representative_address_kanji_city,
+      representative_address_kanji_town,
+      representative_address_kanji_line1,
+      representative_address_kanji_line2,
+      representative_relationship_representative,
+      representative_relationship_title,
+      representative_id_number,
+      representative_verification_document_front,
+      representative_verification_document_back,
+      representative_verification_additional_document_front,
+      representative_verification_additional_document_back,
+    } = reqBody;
+
+    // Only create representative if we have at least first name or last name
+    if (!representative_first_name && !representative_last_name) {
+      return;
+    }
+
+    // Get existing representative person
+    const existingRepresentative = await this.getExistingPerson(stripe, accountId, 'representative');
+
+    // Build representative person data
+    const representativeData = buildPersonData({
+      first_name: representative_first_name || reqBody.individual_first_name,
+      last_name: representative_last_name || reqBody.individual_last_name,
+      first_name_kana: representative_first_name_kana || reqBody.individual_first_name_kana,
+      last_name_kana: representative_last_name_kana || reqBody.individual_last_name_kana,
+      first_name_kanji: representative_first_name_kanji || reqBody.individual_first_name_kanji,
+      last_name_kanji: representative_last_name_kanji || reqBody.individual_last_name_kanji,
+      email: representative_email || reqBody.individual_email,
+      phone: representative_phone || reqBody.individual_phone,
+      dob_day: representative_dob_day || reqBody.individual_dob_day,
+      dob_month: representative_dob_month || reqBody.individual_dob_month,
+      dob_year: representative_dob_year || reqBody.individual_dob_year,
+      address_line1: representative_address_line1 || reqBody.individual_address_line1,
+      address_line2: representative_address_line2 || reqBody.individual_address_line2,
+      address_town: representative_address_town || reqBody.individual_address_town,
+      address_city: representative_address_city || reqBody.individual_address_city,
+      address_state: representative_address_state || reqBody.individual_address_state,
+      address_postal_code: representative_address_postal_code || reqBody.individual_address_postal_code,
+      address_country: representative_address_country || reqBody.individual_address_country,
+      address_line2_kana: representative_address_line2_kana,
+      address_kana_postal_code: representative_address_kana_postal_code,
+      address_kana_state: representative_address_kana_state,
+      address_kana_city: representative_address_kana_city,
+      address_kana_town: representative_address_kana_town,
+      address_kana_line1: representative_address_kana_line1,
+      address_kana_line2: representative_address_kana_line2,
+      address_kanji_postal_code: representative_address_kanji_postal_code,
+      address_kanji_state: representative_address_kanji_state,
+      address_kanji_city: representative_address_kanji_city,
+      address_kanji_town: representative_address_kanji_town,
+      address_kanji_line1: representative_address_kanji_line1,
+      address_kanji_line2: representative_address_kanji_line2,
+      id_number: representative_id_number || reqBody.individual_id_number,
+      verification_document_front: representative_verification_document_front,
+      verification_document_back: representative_verification_document_back,
+      verification_additional_document_front: representative_verification_additional_document_front,
+      verification_additional_document_back: representative_verification_additional_document_back,
+      relationship: {
+        representative: representative_relationship_representative !== false, // Default to true
+        title: representative_relationship_title,
+      },
+    });
+
+    // Create or update the representative person
+    await createOrUpdatePerson(
+      stripe,
+      accountId,
+      existingRepresentative,
+      representativeData
+    );
+  }
+
+  /**
    * Handle company business type for Japan
    */
   async handleCompany(accountUpdateData, reqBody, stripe, accountId) {

@@ -1540,6 +1540,80 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                     'representative_address_country',
                     payload.individual_address_country
                 );
+                // Include representative verification documents if they exist
+                const formDataAny = formData as Record<string, any>;
+                if (formDataAny.representative_verification_document_front) {
+                    payload.representative_verification_document_front =
+                        formDataAny.representative_verification_document_front;
+                }
+                if (formDataAny.representative_verification_document_back) {
+                    payload.representative_verification_document_back =
+                        formDataAny.representative_verification_document_back;
+                }
+                if (formDataAny.representative_verification_additional_document_front) {
+                    payload.representative_verification_additional_document_front =
+                        formDataAny.representative_verification_additional_document_front;
+                }
+                if (formDataAny.representative_verification_additional_document_back) {
+                    payload.representative_verification_additional_document_back =
+                        formDataAny.representative_verification_additional_document_back;
+                }
+                // Include representative address fields (kana/kanji) if they exist
+                if (formDataAny.representative_address_kana_postal_code) {
+                    payload.representative_address_kana_postal_code =
+                        formDataAny.representative_address_kana_postal_code;
+                }
+                if (formDataAny.representative_address_kana_state) {
+                    payload.representative_address_kana_state =
+                        formDataAny.representative_address_kana_state;
+                }
+                if (formDataAny.representative_address_kana_city) {
+                    payload.representative_address_kana_city =
+                        formDataAny.representative_address_kana_city;
+                }
+                if (formDataAny.representative_address_kana_town) {
+                    payload.representative_address_kana_town =
+                        formDataAny.representative_address_kana_town;
+                }
+                if (formDataAny.representative_address_kana_line1) {
+                    payload.representative_address_kana_line1 =
+                        formDataAny.representative_address_kana_line1;
+                }
+                if (formDataAny.representative_address_kana_line2) {
+                    payload.representative_address_kana_line2 =
+                        formDataAny.representative_address_kana_line2;
+                }
+                if (formDataAny.representative_address_kanji_postal_code) {
+                    payload.representative_address_kanji_postal_code =
+                        formDataAny.representative_address_kanji_postal_code;
+                }
+                if (formDataAny.representative_address_kanji_state) {
+                    payload.representative_address_kanji_state =
+                        formDataAny.representative_address_kanji_state;
+                }
+                if (formDataAny.representative_address_kanji_city) {
+                    payload.representative_address_kanji_city =
+                        formDataAny.representative_address_kanji_city;
+                }
+                if (formDataAny.representative_address_kanji_town) {
+                    payload.representative_address_kanji_town =
+                        formDataAny.representative_address_kanji_town;
+                }
+                if (formDataAny.representative_address_kanji_line1) {
+                    payload.representative_address_kanji_line1 =
+                        formDataAny.representative_address_kanji_line1;
+                }
+                if (formDataAny.representative_address_kanji_line2) {
+                    payload.representative_address_kanji_line2 =
+                        formDataAny.representative_address_kanji_line2;
+                }
+                if (formDataAny.representative_address_town) {
+                    payload.representative_address_town = formDataAny.representative_address_town;
+                }
+                if (formDataAny.representative_address_line2_kana) {
+                    payload.representative_address_line2_kana =
+                        formDataAny.representative_address_line2_kana;
+                }
                 if (!payload.representative_relationship_representative) {
                     payload.representative_relationship_representative = true;
                 }
@@ -4077,6 +4151,187 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                         />
                                     </Grid>
 
+                                    {/* Identity Document Upload for Representative */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Representative Identity Verification (Optional)
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            gutterBottom
+                                        >
+                                            Upload an identity document (driver's license, passport,
+                                            etc.) for the representative
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.representative_front ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'representative_front'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'representative_front'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.representative_front
+                                                  ? `Uploaded: ${uploadedFiles.representative_front.name}`
+                                                  : 'Upload ID Document (Front)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'representative_front'
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.representative_back ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={uploadingFile === 'representative_back'}
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'representative_back'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.representative_back
+                                                  ? `Uploaded: ${uploadedFiles.representative_back.name}`
+                                                  : 'Upload ID Document (Back)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'representative_back'
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                                            Additional Document (Address Proof - Optional)
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            gutterBottom
+                                        >
+                                            Upload utility bill, bank statement, or official
+                                            correspondence for the representative
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.representative_additional_front ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={
+                                                uploadingFile === 'representative_additional_front'
+                                            }
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'representative_additional_front'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.representative_additional_front
+                                                  ? `Uploaded: ${uploadedFiles.representative_additional_front.name}`
+                                                  : 'Upload Address Proof (Front)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'representative_additional_front'
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Button
+                                            variant="outlined"
+                                            component="label"
+                                            fullWidth
+                                            startIcon={
+                                                uploadedFiles.representative_additional_back ? (
+                                                    <CheckCircleIcon color="success" />
+                                                ) : (
+                                                    <CloudUploadIcon />
+                                                )
+                                            }
+                                            disabled={
+                                                uploadingFile === 'representative_additional_back'
+                                            }
+                                            sx={{ height: '56px' }}
+                                        >
+                                            {uploadingFile === 'representative_additional_back'
+                                                ? 'Uploading...'
+                                                : uploadedFiles.representative_additional_back
+                                                  ? `Uploaded: ${uploadedFiles.representative_additional_back.name}`
+                                                  : 'Upload Address Proof (Back)'}
+                                            <input
+                                                type="file"
+                                                hidden
+                                                accept="image/*,.pdf"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        handleFileUpload(
+                                                            file,
+                                                            'representative_additional_back'
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </Button>
+                                    </Grid>
+
                                     {/* Representative relationship toggles for director/executive countries */}
                                     {formData.business_type !== 'individual' &&
                                         DIRECTOR_EXECUTIVE_COUNTRIES.includes(
@@ -4706,187 +4961,6 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                             placeholder="六本木ヒルズ森タワー３４階"
                                             helperText="任意項目"
                                         />
-                                    </Grid>
-
-                                    {/* Identity Document Upload for Representative */}
-                                    <Grid size={{ xs: 12 }}>
-                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                                            Representative Identity Verification (Optional)
-                                        </Typography>
-                                        <Typography
-                                            variant="body2"
-                                            color="text.secondary"
-                                            gutterBottom
-                                        >
-                                            Upload an identity document (driver's license, passport,
-                                            etc.) for the representative
-                                        </Typography>
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <Button
-                                            variant="outlined"
-                                            component="label"
-                                            fullWidth
-                                            startIcon={
-                                                uploadedFiles.representative_front ? (
-                                                    <CheckCircleIcon color="success" />
-                                                ) : (
-                                                    <CloudUploadIcon />
-                                                )
-                                            }
-                                            disabled={uploadingFile === 'representative_front'}
-                                            sx={{ height: '56px' }}
-                                        >
-                                            {uploadingFile === 'representative_front'
-                                                ? 'Uploading...'
-                                                : uploadedFiles.representative_front
-                                                  ? `Uploaded: ${uploadedFiles.representative_front.name}`
-                                                  : 'Upload ID Document (Front)'}
-                                            <input
-                                                type="file"
-                                                hidden
-                                                accept="image/*,.pdf"
-                                                onChange={e => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        handleFileUpload(
-                                                            file,
-                                                            'representative_front'
-                                                        );
-                                                    }
-                                                }}
-                                            />
-                                        </Button>
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <Button
-                                            variant="outlined"
-                                            component="label"
-                                            fullWidth
-                                            startIcon={
-                                                uploadedFiles.representative_back ? (
-                                                    <CheckCircleIcon color="success" />
-                                                ) : (
-                                                    <CloudUploadIcon />
-                                                )
-                                            }
-                                            disabled={uploadingFile === 'representative_back'}
-                                            sx={{ height: '56px' }}
-                                        >
-                                            {uploadingFile === 'representative_back'
-                                                ? 'Uploading...'
-                                                : uploadedFiles.representative_back
-                                                  ? `Uploaded: ${uploadedFiles.representative_back.name}`
-                                                  : 'Upload ID Document (Back)'}
-                                            <input
-                                                type="file"
-                                                hidden
-                                                accept="image/*,.pdf"
-                                                onChange={e => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        handleFileUpload(
-                                                            file,
-                                                            'representative_back'
-                                                        );
-                                                    }
-                                                }}
-                                            />
-                                        </Button>
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12 }}>
-                                        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
-                                            Additional Document (Address Proof - Optional)
-                                        </Typography>
-                                        <Typography
-                                            variant="body2"
-                                            color="text.secondary"
-                                            gutterBottom
-                                        >
-                                            Upload utility bill, bank statement, or official
-                                            correspondence for the representative
-                                        </Typography>
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <Button
-                                            variant="outlined"
-                                            component="label"
-                                            fullWidth
-                                            startIcon={
-                                                uploadedFiles.representative_additional_front ? (
-                                                    <CheckCircleIcon color="success" />
-                                                ) : (
-                                                    <CloudUploadIcon />
-                                                )
-                                            }
-                                            disabled={
-                                                uploadingFile === 'representative_additional_front'
-                                            }
-                                            sx={{ height: '56px' }}
-                                        >
-                                            {uploadingFile === 'representative_additional_front'
-                                                ? 'Uploading...'
-                                                : uploadedFiles.representative_additional_front
-                                                  ? `Uploaded: ${uploadedFiles.representative_additional_front.name}`
-                                                  : 'Upload Address Proof (Front)'}
-                                            <input
-                                                type="file"
-                                                hidden
-                                                accept="image/*,.pdf"
-                                                onChange={e => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        handleFileUpload(
-                                                            file,
-                                                            'representative_additional_front'
-                                                        );
-                                                    }
-                                                }}
-                                            />
-                                        </Button>
-                                    </Grid>
-
-                                    <Grid size={{ xs: 12, sm: 6 }}>
-                                        <Button
-                                            variant="outlined"
-                                            component="label"
-                                            fullWidth
-                                            startIcon={
-                                                uploadedFiles.representative_additional_back ? (
-                                                    <CheckCircleIcon color="success" />
-                                                ) : (
-                                                    <CloudUploadIcon />
-                                                )
-                                            }
-                                            disabled={
-                                                uploadingFile === 'representative_additional_back'
-                                            }
-                                            sx={{ height: '56px' }}
-                                        >
-                                            {uploadingFile === 'representative_additional_back'
-                                                ? 'Uploading...'
-                                                : uploadedFiles.representative_additional_back
-                                                  ? `Uploaded: ${uploadedFiles.representative_additional_back.name}`
-                                                  : 'Upload Address Proof (Back)'}
-                                            <input
-                                                type="file"
-                                                hidden
-                                                accept="image/*,.pdf"
-                                                onChange={e => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        handleFileUpload(
-                                                            file,
-                                                            'representative_additional_back'
-                                                        );
-                                                    }
-                                                }}
-                                            />
-                                        </Button>
                                     </Grid>
 
                                     {/* Owner Checkbox */}

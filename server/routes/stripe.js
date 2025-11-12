@@ -43,11 +43,28 @@ const ensureKeysInCache = async (userId) => {
 
 // Helper function to get Stripe instance with cached keys for specific user (lazy-load from DB if needed)
 const getStripeInstance = (userId) => {
+    if (!userId) {
+        throw new Error('User ID is required to get Stripe instance');
+    }
+    
     const keys = stripeKeysCache.getKeys(userId);
-    if (!keys.secretKey) {
+    if (!keys || !keys.secretKey) {
         throw new Error('No Stripe secret key available for this user. Please configure your Stripe keys first.');
     }
-    return require("stripe")(keys.secretKey);
+    
+    try {
+        const Stripe = require("stripe");
+        const stripe = Stripe(keys.secretKey);
+        
+        if (!stripe || typeof stripe.accounts === 'undefined') {
+            throw new Error('Failed to initialize Stripe SDK');
+        }
+        
+        return stripe;
+    } catch (error) {
+        console.error('Error creating Stripe instance:', error);
+        throw new Error(`Failed to initialize Stripe: ${error.message}`);
+    }
 };
 
 // Middleware to auto-load keys into cache if missing
@@ -211,8 +228,35 @@ router.post("/create-account-link", async (req, res) => {
 // Direct merchant onboarding with complete details
 router.post("/direct-onboard", async (req, res) => {
   try {
-    const userId = req.user.id; // Get user ID from authenticated token
+    const userId = req.user && req.user.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "User ID is missing. Please ensure you are authenticated.",
+      });
+    }
+    
+    // Ensure keys are in cache before getting Stripe instance
+    const keysResult = await ensureKeysInCache(userId);
+    
+    if (!keysResult || !keysResult.secretKey) {
+      return res.status(500).json({
+        error: "Stripe keys not configured",
+        message: "No Stripe secret key found for this user. Please configure your Stripe keys first.",
+      });
+    }
+    
     const stripe = getStripeInstance(userId);
+    
+    // Validate Stripe instance
+    if (!stripe || typeof stripe.accounts === 'undefined') {
+      return res.status(500).json({
+        error: "Failed to initialize Stripe",
+        message: "Stripe instance is not properly configured. Please check your Stripe keys.",
+      });
+    }
+    
     const { account_id } = req.body;
 
     // Validate required fields
@@ -232,9 +276,10 @@ router.post("/direct-onboard", async (req, res) => {
     });
   } catch (error) {
     console.error("Error in direct onboarding:", error);
+    console.error("Error stack:", error.stack);
     res.status(500).json({
       error: "Failed to onboard merchant",
-      message: error.message,
+      message: error.message || "An unexpected error occurred during onboarding",
     });
   }
 });

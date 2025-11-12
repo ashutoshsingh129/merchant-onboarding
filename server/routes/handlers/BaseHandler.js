@@ -62,7 +62,7 @@ class BaseHandler {
 
     // Handle based on business type
     if (business_type === "individual") {
-      await this.handleIndividual(accountUpdateData, reqBody);
+      await this.handleIndividual(accountUpdateData, reqBody, stripe, accountId);
     } else if (["company", "non_profit", "government_entity"].includes(business_type)) {
       await this.handleCompany(accountUpdateData, reqBody, stripe, accountId);
     }
@@ -102,7 +102,7 @@ class BaseHandler {
   /**
    * Handle individual business type
    */
-  async handleIndividual(accountUpdateData, reqBody) {
+  async handleIndividual(accountUpdateData, reqBody, stripe, accountId) {
     const {
       individual_first_name,
       individual_last_name,
