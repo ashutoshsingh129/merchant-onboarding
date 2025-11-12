@@ -13,6 +13,7 @@ export interface DirectOnboardFormData {
     individual_address_state: string;
     individual_address_postal_code: string;
     individual_address_country: string;
+    individual_address_town?: string; // Japan-specific
     individual_ssn_last_4: string;
     individual_id_number: string;
     // Japan-specific fields
@@ -20,6 +21,21 @@ export interface DirectOnboardFormData {
     individual_last_name_kana?: string;
     individual_first_name_kanji?: string;
     individual_last_name_kanji?: string;
+    // Japan-specific address fields
+    individual_address_kana_line1?: string;
+    individual_address_kana_line2?: string;
+    individual_address_kana_town?: string;
+    individual_address_kana_city?: string;
+    individual_address_kana_state?: string;
+    individual_address_kana_postal_code?: string;
+    individual_address_kana_country?: string;
+    individual_address_kanji_line1?: string;
+    individual_address_kanji_line2?: string;
+    individual_address_kanji_town?: string;
+    individual_address_kanji_city?: string;
+    individual_address_kanji_state?: string;
+    individual_address_kanji_postal_code?: string;
+    individual_address_kanji_country?: string;
     business_type: string;
     business_profile_mcc: string;
     business_profile_url: string;

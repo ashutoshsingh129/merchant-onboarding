@@ -77,11 +77,29 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
         individual_address_state: '',
         individual_address_postal_code: '',
         individual_address_country: country || DEFAULT_COUNTRY,
+        individual_address_town: '',
         individual_ssn_last_4: '',
         individual_id_number: '',
         // Japan-specific kana fields
         individual_first_name_kana: '',
         individual_last_name_kana: '',
+        individual_first_name_kanji: '',
+        individual_last_name_kanji: '',
+        // Japan-specific address fields
+        individual_address_kana_line1: '',
+        individual_address_kana_line2: '',
+        individual_address_kana_town: '',
+        individual_address_kana_city: '',
+        individual_address_kana_state: '',
+        individual_address_kana_postal_code: '',
+        individual_address_kana_country: '',
+        individual_address_kanji_line1: '',
+        individual_address_kanji_line2: '',
+        individual_address_kanji_town: '',
+        individual_address_kanji_city: '',
+        individual_address_kanji_state: '',
+        individual_address_kanji_postal_code: '',
+        individual_address_kanji_country: '',
         business_type: businessType || 'individual',
         business_profile_mcc: '4816',
         business_profile_url: '',
@@ -1236,6 +1254,78 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             if (individualLastNameKanji) {
                 payload.individual_last_name_kanji = individualLastNameKanji.trim();
             }
+            // Individual address kanji fields
+            if ((formData as Record<string, any>).individual_address_kanji_line1) {
+                payload.individual_address_kanji_line1 = (
+                    (formData as Record<string, any>).individual_address_kanji_line1 as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).individual_address_kanji_line2) {
+                payload.individual_address_kanji_line2 = (
+                    (formData as Record<string, any>).individual_address_kanji_line2 as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).individual_address_kanji_town) {
+                payload.individual_address_kanji_town = (
+                    (formData as Record<string, any>).individual_address_kanji_town as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).individual_address_kanji_city) {
+                payload.individual_address_kanji_city = (
+                    (formData as Record<string, any>).individual_address_kanji_city as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).individual_address_kanji_state) {
+                payload.individual_address_kanji_state = (
+                    (formData as Record<string, any>).individual_address_kanji_state as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).individual_address_kanji_postal_code) {
+                payload.individual_address_kanji_postal_code = (
+                    (formData as Record<string, any>).individual_address_kanji_postal_code as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).individual_address_kanji_country) {
+                payload.individual_address_kanji_country = (
+                    (formData as Record<string, any>).individual_address_kanji_country as string
+                ).trim();
+            }
+            // Individual address kana fields
+            if ((formData as Record<string, any>).individual_address_kana_line1) {
+                payload.individual_address_kana_line1 = (
+                    (formData as Record<string, any>).individual_address_kana_line1 as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).individual_address_kana_line2) {
+                payload.individual_address_kana_line2 = (
+                    (formData as Record<string, any>).individual_address_kana_line2 as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).individual_address_kana_town) {
+                payload.individual_address_kana_town = (
+                    (formData as Record<string, any>).individual_address_kana_town as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).individual_address_kana_city) {
+                payload.individual_address_kana_city = (
+                    (formData as Record<string, any>).individual_address_kana_city as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).individual_address_kana_state) {
+                payload.individual_address_kana_state = (
+                    (formData as Record<string, any>).individual_address_kana_state as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).individual_address_kana_postal_code) {
+                payload.individual_address_kana_postal_code = (
+                    (formData as Record<string, any>).individual_address_kana_postal_code as string
+                ).trim();
+            }
+            if ((formData as Record<string, any>).individual_address_kana_country) {
+                payload.individual_address_kana_country = (
+                    (formData as Record<string, any>).individual_address_kana_country as string
+                ).trim();
+            }
             if (formData.owner_address_line1) {
                 payload.owner_address_line1 = formData.owner_address_line1.trim();
             }
@@ -1830,12 +1920,28 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                         individual_address_state: '',
                         individual_address_postal_code: '',
                         individual_address_country: country || DEFAULT_COUNTRY,
+                        individual_address_town: '',
                         individual_ssn_last_4: '',
                         individual_id_number: '',
                         individual_first_name_kana: '',
                         individual_last_name_kana: '',
                         individual_first_name_kanji: '',
                         individual_last_name_kanji: '',
+                        // Japan-specific address fields
+                        individual_address_kana_line1: '',
+                        individual_address_kana_line2: '',
+                        individual_address_kana_town: '',
+                        individual_address_kana_city: '',
+                        individual_address_kana_state: '',
+                        individual_address_kana_postal_code: '',
+                        individual_address_kana_country: '',
+                        individual_address_kanji_line1: '',
+                        individual_address_kanji_line2: '',
+                        individual_address_kanji_town: '',
+                        individual_address_kanji_city: '',
+                        individual_address_kanji_state: '',
+                        individual_address_kanji_postal_code: '',
+                        individual_address_kanji_country: '',
                         business_type: businessType || 'individual',
                         business_profile_mcc: '',
                         business_profile_url: '',
@@ -1989,12 +2095,28 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
             individual_address_state: '',
             individual_address_postal_code: '',
             individual_address_country: country || DEFAULT_COUNTRY,
+            individual_address_town: '',
             individual_ssn_last_4: '',
             individual_id_number: '',
             individual_first_name_kana: '',
             individual_last_name_kana: '',
             individual_first_name_kanji: '',
             individual_last_name_kanji: '',
+            // Japan-specific address fields
+            individual_address_kana_line1: '',
+            individual_address_kana_line2: '',
+            individual_address_kana_town: '',
+            individual_address_kana_city: '',
+            individual_address_kana_state: '',
+            individual_address_kana_postal_code: '',
+            individual_address_kana_country: '',
+            individual_address_kanji_line1: '',
+            individual_address_kanji_line2: '',
+            individual_address_kanji_town: '',
+            individual_address_kanji_city: '',
+            individual_address_kanji_state: '',
+            individual_address_kanji_postal_code: '',
+            individual_address_kanji_country: '',
             business_type: businessType || 'individual',
             business_profile_mcc: '',
             business_profile_url: '',
@@ -2702,6 +2824,208 @@ const JapanForm: React.FC<DirectOnboardFormProps> = ({
                                                 inputProps={{ maxLength: 12 }}
                                             />
                                         )}
+                                    </Grid>
+
+                                    {/* Japan-specific: Address in Kanji */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Address (Kanji) - 住所（漢字）
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Address Line 1 (Kanji)"
+                                            value={formData.individual_address_kanji_line1 || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_kanji_line1',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="六本木３丁目５番７号"
+                                            helperText="Enter address in Kanji"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Address Line 2 (Kanji)"
+                                            value={formData.individual_address_kanji_line2 || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_kanji_line2',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="六本木ヒルズ森タワー３４階"
+                                            helperText="Optional - Building name, floor, etc."
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Town (Kanji)"
+                                            value={formData.individual_address_kanji_town || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_kanji_town',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="六本木"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="City (Kanji)"
+                                            value={formData.individual_address_kanji_city || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_kanji_city',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="港区"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="State/Prefecture (Kanji)"
+                                            value={formData.individual_address_kanji_state || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_kanji_state',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="東京都"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Postal Code (Kanji)"
+                                            value={
+                                                formData.individual_address_kanji_postal_code || ''
+                                            }
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_kanji_postal_code',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="106-0032"
+                                        />
+                                    </Grid>
+
+                                    {/* Japan-specific: Address in Kana */}
+                                    <Grid size={{ xs: 12 }}>
+                                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                                            Address (Katakana) - 住所（カタカナ）
+                                        </Typography>
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Address Line 1 (Katakana)"
+                                            value={formData.individual_address_kana_line1 || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_kana_line1',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="ロッポンギ３－５－７"
+                                            helperText="Enter address in Katakana"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Address Line 2 (Katakana)"
+                                            value={formData.individual_address_kana_line2 || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_kana_line2',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="ロッポンギヒルズモリタワー３４Ｆ"
+                                            helperText="Optional - Building name, floor, etc."
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Town (Katakana)"
+                                            value={formData.individual_address_kana_town || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_kana_town',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="ロッポンギ"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="City (Katakana)"
+                                            value={formData.individual_address_kana_city || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_kana_city',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="ミナトク"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="State/Prefecture (Katakana)"
+                                            value={formData.individual_address_kana_state || ''}
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_kana_state',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="トウキョウト"
+                                        />
+                                    </Grid>
+
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Postal Code (Katakana)"
+                                            value={
+                                                formData.individual_address_kana_postal_code || ''
+                                            }
+                                            onChange={e =>
+                                                handleInputChange(
+                                                    'individual_address_kana_postal_code',
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="1060032"
+                                        />
                                     </Grid>
                                 </>
                             )}

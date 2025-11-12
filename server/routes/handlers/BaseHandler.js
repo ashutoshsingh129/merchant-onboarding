@@ -117,12 +117,28 @@ class BaseHandler {
       individual_address_state,
       individual_address_postal_code,
       individual_address_country,
+      individual_address_town,
       individual_ssn_last_4,
       individual_id_number,
       individual_verification_document_front,
       individual_verification_document_back,
       individual_verification_additional_document_front,
       individual_verification_additional_document_back,
+      // Japan-specific address fields
+      individual_address_kanji_line1,
+      individual_address_kanji_line2,
+      individual_address_kanji_town,
+      individual_address_kanji_city,
+      individual_address_kanji_state,
+      individual_address_kanji_postal_code,
+      individual_address_kanji_country,
+      individual_address_kana_line1,
+      individual_address_kana_line2,
+      individual_address_kana_town,
+      individual_address_kana_city,
+      individual_address_kana_state,
+      individual_address_kana_postal_code,
+      individual_address_kana_country,
     } = reqBody;
 
     accountUpdateData.individual = {
@@ -145,6 +161,11 @@ class BaseHandler {
       },
     };
 
+    // Add town if provided
+    if (individual_address_town) {
+      accountUpdateData.individual.address.town = individual_address_town;
+    }
+
     if (reqBody.individual_first_name_kana) {
       accountUpdateData.individual.first_name_kana = reqBody.individual_first_name_kana;
     }
@@ -156,6 +177,64 @@ class BaseHandler {
     }
     if (reqBody.individual_last_name_kanji) {
       accountUpdateData.individual.last_name_kanji = reqBody.individual_last_name_kanji;
+    }
+
+    // Handle address_kanji if provided
+    if (individual_address_kanji_line1 || individual_address_kanji_line2 || 
+        individual_address_kanji_town || individual_address_kanji_city || 
+        individual_address_kanji_state || individual_address_kanji_postal_code || 
+        individual_address_kanji_country) {
+      accountUpdateData.individual.address_kanji = {};
+      if (individual_address_kanji_line1) {
+        accountUpdateData.individual.address_kanji.line1 = individual_address_kanji_line1;
+      }
+      if (individual_address_kanji_line2) {
+        accountUpdateData.individual.address_kanji.line2 = individual_address_kanji_line2;
+      }
+      if (individual_address_kanji_town) {
+        accountUpdateData.individual.address_kanji.town = individual_address_kanji_town;
+      }
+      if (individual_address_kanji_city) {
+        accountUpdateData.individual.address_kanji.city = individual_address_kanji_city;
+      }
+      if (individual_address_kanji_state) {
+        accountUpdateData.individual.address_kanji.state = individual_address_kanji_state;
+      }
+      if (individual_address_kanji_postal_code) {
+        accountUpdateData.individual.address_kanji.postal_code = individual_address_kanji_postal_code;
+      }
+      if (individual_address_kanji_country) {
+        accountUpdateData.individual.address_kanji.country = individual_address_kanji_country;
+      }
+    }
+
+    // Handle address_kana if provided
+    if (individual_address_kana_line1 || individual_address_kana_line2 || 
+        individual_address_kana_town || individual_address_kana_city || 
+        individual_address_kana_state || individual_address_kana_postal_code || 
+        individual_address_kana_country) {
+      accountUpdateData.individual.address_kana = {};
+      if (individual_address_kana_line1) {
+        accountUpdateData.individual.address_kana.line1 = individual_address_kana_line1;
+      }
+      if (individual_address_kana_line2) {
+        accountUpdateData.individual.address_kana.line2 = individual_address_kana_line2;
+      }
+      if (individual_address_kana_town) {
+        accountUpdateData.individual.address_kana.town = individual_address_kana_town;
+      }
+      if (individual_address_kana_city) {
+        accountUpdateData.individual.address_kana.city = individual_address_kana_city;
+      }
+      if (individual_address_kana_state) {
+        accountUpdateData.individual.address_kana.state = individual_address_kana_state;
+      }
+      if (individual_address_kana_postal_code) {
+        accountUpdateData.individual.address_kana.postal_code = individual_address_kana_postal_code;
+      }
+      if (individual_address_kana_country) {
+        accountUpdateData.individual.address_kana.country = individual_address_kana_country;
+      }
     }
 
     if (individual_id_number) {
