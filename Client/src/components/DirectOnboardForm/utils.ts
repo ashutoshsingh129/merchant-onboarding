@@ -1,5 +1,5 @@
 export const DIRECTOR_EXECUTIVE_COUNTRIES = ['SE', 'FR'];
-export const IBAN_COUNTRIES = ['SE', 'FR', 'CY'];
+export const IBAN_COUNTRIES = ['SE', 'FR', 'CY', 'GR'];
 
 export const getDefaultCurrencyForCountry = (countryCode?: string) => {
     const code = (countryCode || '').toUpperCase();
@@ -8,6 +8,7 @@ export const getDefaultCurrencyForCountry = (countryCode?: string) => {
     if (code === 'GB' || code === 'UK') return 'gbp';
     if (code === 'JP') return 'jpy';
     if (code === 'CY') return 'eur';
+    if (code === 'GR') return 'eur';
     return 'usd';
 };
 
