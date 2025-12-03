@@ -6,6 +6,7 @@ const SwedenHandler = require("./Sweden");
 const FranceHandler = require("./France");
 const UKHandler = require("./UK");
 const JapanHandler = require("./Japan");
+const CyprusHandler = require("./Cyprus");
 
 const getHandler = (countryCode) => {
   const country = (countryCode || "US").toUpperCase();
@@ -20,6 +21,8 @@ const getHandler = (countryCode) => {
       return new UKHandler();
     case "JP":
       return new JapanHandler();
+    case "CY":
+      return new CyprusHandler();
     case "US":
     default:
       return new USAHandler();

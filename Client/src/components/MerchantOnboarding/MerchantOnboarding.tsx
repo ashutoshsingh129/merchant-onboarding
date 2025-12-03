@@ -148,6 +148,7 @@ const MerchantOnboarding: React.FC = () => {
         { code: 'ES', name: 'Spain' },
         { code: 'IT', name: 'Italy' },
         { code: 'SE', name: 'Sweden' },
+        { code: 'CY', name: 'Cyprus' },
     ];
 
     const baseBusinessTypes = [
@@ -158,13 +159,13 @@ const MerchantOnboarding: React.FC = () => {
     ];
 
     const availableBusinessTypes =
-        formData.country === 'SE' || formData.country === 'FR'
+        formData.country === 'SE' || formData.country === 'FR' || formData.country === 'CY'
             ? baseBusinessTypes.filter(type => type.value !== 'government_entity')
             : baseBusinessTypes;
 
     useEffect(() => {
         if (
-            (formData.country === 'SE' || formData.country === 'FR') &&
+            (formData.country === 'SE' || formData.country === 'FR' || formData.country === 'CY') &&
             formData.business_type === 'government_entity'
         ) {
             setFormData(prev => ({
