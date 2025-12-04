@@ -226,153 +226,473 @@ const GreeceForm: React.FC<DirectOnboardFormProps> = ({
         }
     }, [shouldShowDirectorsExecutives]);
 
+    const handlePersonFileUpload = async (
+        file: File,
+        personIndex: number,
+        field: string,
+        personType: 'director' | 'executive'
+    ) => {
+        try {
+            setUploadingFile(`${personType}_${personIndex}_${field}`);
+            setError(null);
+
+            const response = await uploadDocument(file, 'identity_document');
+
+            if (response.success && response.file_id) {
+                if (personType === 'director') {
+                    updateDirectorField(personIndex, field, response.file_id);
+                } else {
+                    updateExecutiveField(personIndex, field, response.file_id);
+                }
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to upload document');
+        } finally {
+            setUploadingFile(null);
+        }
+    };
+
     const renderPersonCard = (
         person: any,
         idx: number,
         onFieldChange: (index: number, field: string, value: any) => void,
         onRemove: (index: number) => void,
-        singularLabel: string
-    ) => (
-        <Grid key={`${singularLabel}-${idx}`} size={{ xs: 12 }}>
-            <Box
-                sx={{
-                    p: 2,
-                    border: '1px solid #e0e0e0',
-                    borderRadius: 1,
-                    mb: 2,
-                }}
-            >
-                <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                    {`${singularLabel} #${idx + 1}`}
-                </Typography>
-                <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                            fullWidth
-                            label="First Name"
-                            value={person.first_name}
-                            onChange={e => onFieldChange(idx, 'first_name', e.target.value)}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                            fullWidth
-                            label="Last Name"
-                            value={person.last_name}
-                            onChange={e => onFieldChange(idx, 'last_name', e.target.value)}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                            fullWidth
-                            label="Email"
-                            type="email"
-                            value={person.email || ''}
-                            onChange={e => onFieldChange(idx, 'email', e.target.value)}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                            fullWidth
-                            label="Job Title"
-                            value={person.relationship_title || ''}
-                            onChange={e => onFieldChange(idx, 'relationship_title', e.target.value)}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 4 }}>
-                        <FormControl fullWidth>
-                            <InputLabel>Birth Month</InputLabel>
-                            <Select
-                                label="Birth Month"
-                                value={person.dob_month || 1}
+        singularLabel: string,
+        personType: 'director' | 'executive'
+    ) => {
+        const personCountry = person.address_country || country || DEFAULT_COUNTRY;
+        const isUS = personCountry === 'US';
+
+        return (
+            <Grid key={`${singularLabel}-${idx}`} size={{ xs: 12 }}>
+                <Box
+                    sx={{
+                        p: 2,
+                        border: '1px solid #e0e0e0',
+                        borderRadius: 1,
+                        mb: 2,
+                    }}
+                >
+                    <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                        {`${singularLabel} #${idx + 1}`}
+                    </Typography>
+                    <Grid container spacing={2}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                                fullWidth
+                                label="First Name"
+                                value={person.first_name}
+                                onChange={e => onFieldChange(idx, 'first_name', e.target.value)}
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                                fullWidth
+                                label="Last Name"
+                                value={person.last_name}
+                                onChange={e => onFieldChange(idx, 'last_name', e.target.value)}
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                                fullWidth
+                                label="Email"
+                                type="email"
+                                value={person.email || ''}
+                                onChange={e => onFieldChange(idx, 'email', e.target.value)}
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                                fullWidth
+                                label="Phone Number"
+                                value={person.phone || ''}
+                                onChange={e => onFieldChange(idx, 'phone', e.target.value)}
+                                placeholder="+306912345678"
+                                helperText="Include country code (e.g., +30 for Greece, +357 for Cyprus)"
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                                fullWidth
+                                label="Job Title"
+                                value={person.relationship_title || ''}
                                 onChange={e =>
-                                    onFieldChange(idx, 'dob_month', Number(e.target.value))
+                                    onFieldChange(idx, 'relationship_title', e.target.value)
                                 }
-                            >
-                                {months.map(m => (
-                                    <MenuItem key={m.value} value={m.value}>
-                                        {m.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    </Grid>
-                    <Grid size={{ xs: 6, sm: 4 }}>
-                        <TextField
-                            fullWidth
-                            label="Birth Day"
-                            type="number"
-                            value={person.dob_day || 1}
-                            onChange={e => onFieldChange(idx, 'dob_day', Number(e.target.value))}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 6, sm: 4 }}>
-                        <TextField
-                            fullWidth
-                            label="Birth Year"
-                            type="number"
-                            value={person.dob_year || 1990}
-                            onChange={e => onFieldChange(idx, 'dob_year', Number(e.target.value))}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                            fullWidth
-                            label="Address Line 1"
-                            value={person.address_line1 || ''}
-                            onChange={e => onFieldChange(idx, 'address_line1', e.target.value)}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                            fullWidth
-                            label="City"
-                            value={person.address_city || ''}
-                            onChange={e => onFieldChange(idx, 'address_city', e.target.value)}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                            fullWidth
-                            label="Postal Code"
-                            value={person.address_postal_code || ''}
-                            onChange={e =>
-                                onFieldChange(idx, 'address_postal_code', e.target.value)
-                            }
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}>
-                        <FormControl fullWidth>
-                            <InputLabel>Country</InputLabel>
-                            <Select
-                                label="Country"
-                                value={person.address_country || country || DEFAULT_COUNTRY}
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12 }}>
+                            <Typography variant="subtitle2" gutterBottom>
+                                Date of Birth
+                            </Typography>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 4 }}>
+                            <FormControl fullWidth>
+                                <InputLabel>Birth Month</InputLabel>
+                                <Select
+                                    label="Birth Month"
+                                    value={person.dob_month || 1}
+                                    onChange={e =>
+                                        onFieldChange(idx, 'dob_month', Number(e.target.value))
+                                    }
+                                >
+                                    {months.map(m => (
+                                        <MenuItem key={m.value} value={m.value}>
+                                            {m.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid size={{ xs: 6, sm: 4 }}>
+                            <TextField
+                                fullWidth
+                                label="Birth Day"
+                                type="number"
+                                value={person.dob_day || 1}
                                 onChange={e =>
-                                    onFieldChange(idx, 'address_country', String(e.target.value))
+                                    onFieldChange(idx, 'dob_day', Number(e.target.value))
                                 }
+                                inputProps={{ min: 1, max: 31 }}
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 6, sm: 4 }}>
+                            <TextField
+                                fullWidth
+                                label="Birth Year"
+                                type="number"
+                                value={person.dob_year || 1990}
+                                onChange={e =>
+                                    onFieldChange(idx, 'dob_year', Number(e.target.value))
+                                }
+                                inputProps={{
+                                    min: 1900,
+                                    max: new Date().getFullYear(),
+                                }}
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12 }}>
+                            <Typography variant="subtitle2" gutterBottom sx={{ mt: 1 }}>
+                                Address
+                            </Typography>
+                        </Grid>
+                        <Grid size={{ xs: 12 }}>
+                            <TextField
+                                fullWidth
+                                label="Address Line 1"
+                                value={person.address_line1 || ''}
+                                onChange={e => onFieldChange(idx, 'address_line1', e.target.value)}
+                                placeholder="Street address"
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12 }}>
+                            <TextField
+                                fullWidth
+                                label="Address Line 2 (Optional)"
+                                value={person.address_line2 || ''}
+                                onChange={e => onFieldChange(idx, 'address_line2', e.target.value)}
+                                placeholder="Apartment, suite, etc."
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                                fullWidth
+                                label="City"
+                                value={person.address_city || ''}
+                                onChange={e => onFieldChange(idx, 'address_city', e.target.value)}
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                                fullWidth
+                                label="State/Region"
+                                value={person.address_state || ''}
+                                onChange={e => onFieldChange(idx, 'address_state', e.target.value)}
+                                placeholder="Attica, Central Macedonia, etc."
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                                fullWidth
+                                label="Postal Code"
+                                value={person.address_postal_code || ''}
+                                onChange={e =>
+                                    onFieldChange(idx, 'address_postal_code', e.target.value)
+                                }
+                            />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <FormControl fullWidth>
+                                <InputLabel>Country</InputLabel>
+                                <Select
+                                    label="Country"
+                                    value={person.address_country || country || DEFAULT_COUNTRY}
+                                    onChange={e =>
+                                        onFieldChange(
+                                            idx,
+                                            'address_country',
+                                            String(e.target.value)
+                                        )
+                                    }
+                                >
+                                    {countries.map(c => (
+                                        <MenuItem key={c.code} value={c.code}>
+                                            {c.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid size={{ xs: 12 }}>
+                            <Typography variant="subtitle2" gutterBottom sx={{ mt: 1 }}>
+                                Identity Information
+                            </Typography>
+                        </Grid>
+                        {isUS ? (
+                            <>
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="SSN Last 4 Digits"
+                                        value={person.ssn_last_4 || ''}
+                                        onChange={e =>
+                                            onFieldChange(
+                                                idx,
+                                                'ssn_last_4',
+                                                e.target.value.replace(/\D/g, '').slice(0, 4)
+                                            )
+                                        }
+                                        placeholder="1234"
+                                        inputProps={{ maxLength: 4 }}
+                                        helperText="Last 4 digits of Social Security Number (US only)"
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Full SSN (Optional)"
+                                        value={person.id_number || ''}
+                                        onChange={e =>
+                                            onFieldChange(
+                                                idx,
+                                                'id_number',
+                                                e.target.value.replace(/\D/g, '').slice(0, 9)
+                                            )
+                                        }
+                                        placeholder="123456789"
+                                        inputProps={{ maxLength: 9 }}
+                                        helperText="9-digit Social Security Number (US only)"
+                                    />
+                                </Grid>
+                            </>
+                        ) : (
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <TextField
+                                    fullWidth
+                                    label="National ID Number"
+                                    value={person.id_number || ''}
+                                    onChange={e => onFieldChange(idx, 'id_number', e.target.value)}
+                                    placeholder="e.g., Greek ID number"
+                                    helperText="Provide full national ID number"
+                                />
+                            </Grid>
+                        )}
+                        <Grid size={{ xs: 12 }}>
+                            <Typography variant="subtitle2" gutterBottom sx={{ mt: 1 }}>
+                                Identity Verification Documents (Optional)
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                                Upload identity documents for this {singularLabel.toLowerCase()}
+                            </Typography>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <Button
+                                variant="outlined"
+                                component="label"
+                                fullWidth
+                                startIcon={
+                                    person.verification_document_front ? (
+                                        <CheckCircleIcon color="success" />
+                                    ) : (
+                                        <CloudUploadIcon />
+                                    )
+                                }
+                                disabled={
+                                    uploadingFile ===
+                                    `${personType}_${idx}_verification_document_front`
+                                }
+                                sx={{ height: '56px' }}
                             >
-                                {countries.map(c => (
-                                    <MenuItem key={c.code} value={c.code}>
-                                        {c.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
+                                {uploadingFile ===
+                                `${personType}_${idx}_verification_document_front`
+                                    ? 'Uploading...'
+                                    : person.verification_document_front
+                                      ? 'ID Document (Front) - Uploaded'
+                                      : 'Upload ID Document (Front)'}
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept="image/*,.pdf"
+                                    onChange={e => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            handlePersonFileUpload(
+                                                file,
+                                                idx,
+                                                'verification_document_front',
+                                                personType
+                                            );
+                                        }
+                                    }}
+                                />
+                            </Button>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <Button
+                                variant="outlined"
+                                component="label"
+                                fullWidth
+                                startIcon={
+                                    person.verification_document_back ? (
+                                        <CheckCircleIcon color="success" />
+                                    ) : (
+                                        <CloudUploadIcon />
+                                    )
+                                }
+                                disabled={
+                                    uploadingFile ===
+                                    `${personType}_${idx}_verification_document_back`
+                                }
+                                sx={{ height: '56px' }}
+                            >
+                                {uploadingFile === `${personType}_${idx}_verification_document_back`
+                                    ? 'Uploading...'
+                                    : person.verification_document_back
+                                      ? 'ID Document (Back) - Uploaded'
+                                      : 'Upload ID Document (Back)'}
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept="image/*,.pdf"
+                                    onChange={e => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            handlePersonFileUpload(
+                                                file,
+                                                idx,
+                                                'verification_document_back',
+                                                personType
+                                            );
+                                        }
+                                    }}
+                                />
+                            </Button>
+                        </Grid>
+                        <Grid size={{ xs: 12 }}>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                                Additional Document (Address Proof - Optional)
+                            </Typography>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <Button
+                                variant="outlined"
+                                component="label"
+                                fullWidth
+                                startIcon={
+                                    person.verification_additional_document_front ? (
+                                        <CheckCircleIcon color="success" />
+                                    ) : (
+                                        <CloudUploadIcon />
+                                    )
+                                }
+                                disabled={
+                                    uploadingFile ===
+                                    `${personType}_${idx}_verification_additional_document_front`
+                                }
+                                sx={{ height: '56px' }}
+                            >
+                                {uploadingFile ===
+                                `${personType}_${idx}_verification_additional_document_front`
+                                    ? 'Uploading...'
+                                    : person.verification_additional_document_front
+                                      ? 'Address Proof (Front) - Uploaded'
+                                      : 'Upload Address Proof (Front)'}
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept="image/*,.pdf"
+                                    onChange={e => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            handlePersonFileUpload(
+                                                file,
+                                                idx,
+                                                'verification_additional_document_front',
+                                                personType
+                                            );
+                                        }
+                                    }}
+                                />
+                            </Button>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <Button
+                                variant="outlined"
+                                component="label"
+                                fullWidth
+                                startIcon={
+                                    person.verification_additional_document_back ? (
+                                        <CheckCircleIcon color="success" />
+                                    ) : (
+                                        <CloudUploadIcon />
+                                    )
+                                }
+                                disabled={
+                                    uploadingFile ===
+                                    `${personType}_${idx}_verification_additional_document_back`
+                                }
+                                sx={{ height: '56px' }}
+                            >
+                                {uploadingFile ===
+                                `${personType}_${idx}_verification_additional_document_back`
+                                    ? 'Uploading...'
+                                    : person.verification_additional_document_back
+                                      ? 'Address Proof (Back) - Uploaded'
+                                      : 'Upload Address Proof (Back)'}
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept="image/*,.pdf"
+                                    onChange={e => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            handlePersonFileUpload(
+                                                file,
+                                                idx,
+                                                'verification_additional_document_back',
+                                                personType
+                                            );
+                                        }
+                                    }}
+                                />
+                            </Button>
+                        </Grid>
+                        <Grid size={{ xs: 12 }}>
+                            <Button
+                                variant="outlined"
+                                color="error"
+                                onClick={() => onRemove(idx)}
+                                startIcon={<CloseIcon />}
+                            >
+                                {`Remove ${singularLabel}`}
+                            </Button>
+                        </Grid>
                     </Grid>
-                    <Grid size={{ xs: 12 }}>
-                        <Button
-                            variant="outlined"
-                            color="error"
-                            onClick={() => onRemove(idx)}
-                            startIcon={<CloseIcon />}
-                        >
-                            {`Remove ${singularLabel}`}
-                        </Button>
-                    </Grid>
-                </Grid>
-            </Box>
-        </Grid>
-    );
+                </Box>
+            </Grid>
+        );
+    };
 
     const renderRoleSection = ({
         sectionTitle,
@@ -421,7 +741,14 @@ const GreeceForm: React.FC<DirectOnboardFormProps> = ({
                 )}
             </Grid>
             {(list || []).map((person, idx) =>
-                renderPersonCard(person, idx, onFieldChange, onRemove, singularLabel)
+                renderPersonCard(
+                    person,
+                    idx,
+                    onFieldChange,
+                    onRemove,
+                    singularLabel,
+                    sectionTitle.toLowerCase() === 'directors' ? 'director' : 'executive'
+                )
             )}
             <Grid size={{ xs: 12 }}>
                 <Button variant="outlined" onClick={onAdd}>
@@ -787,6 +1114,7 @@ const GreeceForm: React.FC<DirectOnboardFormProps> = ({
                     dob_month: 1,
                     dob_year: 1990,
                     address_line1: '',
+                    address_line2: '',
                     address_city: '',
                     address_state: '',
                     address_postal_code: '',
@@ -794,6 +1122,10 @@ const GreeceForm: React.FC<DirectOnboardFormProps> = ({
                     relationship_title: '',
                     id_number: '',
                     ssn_last_4: '',
+                    verification_document_front: '',
+                    verification_document_back: '',
+                    verification_additional_document_front: '',
+                    verification_additional_document_back: '',
                 },
             ],
         }));
@@ -832,6 +1164,7 @@ const GreeceForm: React.FC<DirectOnboardFormProps> = ({
                     dob_month: 1,
                     dob_year: 1990,
                     address_line1: '',
+                    address_line2: '',
                     address_city: '',
                     address_state: '',
                     address_postal_code: '',
@@ -839,6 +1172,10 @@ const GreeceForm: React.FC<DirectOnboardFormProps> = ({
                     relationship_title: '',
                     id_number: '',
                     ssn_last_4: '',
+                    verification_document_front: '',
+                    verification_document_back: '',
+                    verification_additional_document_front: '',
+                    verification_additional_document_back: '',
                 },
             ],
         }));

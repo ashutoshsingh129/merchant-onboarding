@@ -217,6 +217,10 @@ export interface DirectOnboardFormData {
         relationship_title?: string;
         id_number?: string;
         ssn_last_4?: string;
+        verification_document_front?: string;
+        verification_document_back?: string;
+        verification_additional_document_front?: string;
+        verification_additional_document_back?: string;
     }>;
     // Additional executives (optional)
     executives?: Array<{
@@ -253,6 +257,10 @@ export interface DirectOnboardFormData {
         relationship_title?: string;
         id_number?: string;
         ssn_last_4?: string;
+        verification_document_front?: string;
+        verification_document_back?: string;
+        verification_additional_document_front?: string;
+        verification_additional_document_back?: string;
     }>;
 }
 
