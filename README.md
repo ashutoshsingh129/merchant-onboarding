@@ -1,5 +1,8 @@
 # Merchant Onboarding Application
 
+> **Current Working Branch:** `final_deployment` ✅  
+> This is the active production-ready branch currently in use.
+
 A full-stack application for onboarding merchants using Stripe Connect. This application allows you to create Stripe merchant accounts, manage onboarding processes, and generate onboarding links for merchants to complete their setup.
 
 ## Table of Contents
@@ -17,32 +20,33 @@ A full-stack application for onboarding merchants using Stripe Connect. This app
 - [Security Features](#security-features)
 - [Deployment](#deployment)
 - [Troubleshooting](#troubleshooting)
+- [Future Improvements](#future-improvements)
 
 ## Features
 
 ### Frontend (React + TypeScript + Material-UI)
-- Modern, responsive UI for merchant onboarding
+  - Modern, responsive UI for merchant onboarding
 - JWT-based authentication system
-- Form to create Stripe merchant accounts
+  - Form to create Stripe merchant accounts
 - Direct onboarding forms for multiple countries (US, UK, Japan, France, Greece, Cyprus, Sweden)
 - Document upload functionality for identity verification
-- Success modal showing account details
-- Generate and copy onboarding links
+  - Success modal showing account details
+  - Generate and copy onboarding links
 - Dashboard to view and manage merchant accounts
-- Dark/Light theme support
+  - Dark/Light theme support
 - Protected routes with authentication
 
 ### Backend (Node.js + Express + Stripe)
-- RESTful API for Stripe integration
+  - RESTful API for Stripe integration
 - JWT authentication middleware
-- Create merchant accounts
+  - Create merchant accounts
 - Direct merchant onboarding with country-specific handlers
-- Generate secure onboarding links
-- Retrieve account information
+  - Generate secure onboarding links
+  - Retrieve account information
 - Document upload to Stripe
 - User management with PostgreSQL
 - Encrypted storage of Stripe keys
-- Rate limiting and security features
+  - Rate limiting and security features
 
 ## Project Structure
 
@@ -96,7 +100,7 @@ Before you begin, ensure you have the following installed:
 
 2. **Install all dependencies:**
    ```bash
-   npm run setup
+   npm run install:all
    ```
    
    Or install manually:
@@ -105,6 +109,8 @@ Before you begin, ensure you have the following installed:
    cd Client && npm install && cd ..
    cd server && npm install && cd ..
    ```
+
+   **Note:** There's a directory name inconsistency: the root `package.json` scripts reference `client` (lowercase), but the actual directory is `Client` (uppercase). The scripts may need adjustment if you encounter path issues. The project structure uses `Client` (uppercase) throughout.
 
 ## Environment Variables Setup
 
@@ -177,7 +183,7 @@ REACT_APP_VERSION=1.0.0
 From the root directory:
 
 ```bash
-npm start
+npm run dev
 ```
 
 This will start:
@@ -206,6 +212,8 @@ npm start
 
 The frontend will start on `http://localhost:3000`
 
+**Note:** In the Client directory, `npm start` is the correct command (this is different from the root directory where you should use `npm run dev`).
+
 ## Authentication
 
 The application uses JWT (JSON Web Tokens) for authentication.
@@ -230,13 +238,16 @@ After running the setup script, you can login with:
 ### Protected Routes
 
 All Stripe-related endpoints require authentication:
-- `/api/stripe/*` - All Stripe operations
-- `/api/stripe/keys/*` - Stripe keys management
+- `/api/stripe/*` - All Stripe operations (requires JWT token)
+- `/api/stripe/keys/*` - Stripe keys management (requires JWT token)
+
+**Note:** The authentication middleware is applied at the route level, so all routes under `/api/stripe` require a valid JWT token.
 
 Public endpoints:
-- `/api/auth/login` - User login
-- `/api/auth/verify` - Token verification
-- `/api/health` - Health check
+- `/api/auth/login` - User login (no authentication required)
+- `/api/auth/verify` - Token verification (requires JWT token)
+- `/api/auth/logout` - User logout (requires JWT token)
+- `/api/health` - Health check (no authentication required)
 
 ## Database Setup
 
@@ -283,12 +294,15 @@ npm run setup-users
 
 ### Root Directory
 
-- `npm start` - Start both backend and frontend servers
-- `npm run dev` - Same as `npm start` (alias)
-- `npm run start:server` - Start only the backend server
+- `npm run dev` - Start both backend and frontend servers concurrently (recommended)
+- `npm start` - Same as `npm run dev` (alias)
+- `npm run start:server` - Start only the backend server (development mode)
 - `npm run start:client` - Start only the frontend server
+- `npm run start:server:prod` - Start backend server in production mode
+- `npm run start:client:prod` - Start frontend server in production mode
 - `npm run build` - Build the frontend for production
-- `npm run setup` - Install all dependencies (root, backend, frontend)
+- `npm run install:all` - Install all dependencies (root, backend, frontend)
+- `npm run setup` - Same as `npm run install:all` (alias)
 
 ### Backend (`server/`)
 
@@ -327,14 +341,19 @@ npm run setup-users
 
 ## Security Features
 
-- **JWT Authentication** - Secure token-based authentication
+- **JWT Authentication** - Secure token-based authentication with configurable expiration
 - **Password Hashing** - bcrypt for password encryption
-- **Encrypted Storage** - Stripe keys encrypted in database
-- **Rate Limiting** - Protection against brute force attacks
-- **CORS Protection** - Configured allowed origins
-- **Helmet.js** - Security headers
-- **Input Validation** - Server-side validation
-- **Environment Variables** - Sensitive data in .env files
+- **Encrypted Storage** - Stripe keys encrypted in database using AES-256-CBC
+- **Rate Limiting** - Multi-tier rate limiting:
+  - Global: 100 requests per 15 minutes per IP
+  - Write operations: 60 requests per minute per IP (POST/PUT/DELETE)
+  - Health check and OPTIONS requests are exempt
+- **CORS Protection** - Configured allowed origins with credentials support
+- **Helmet.js** - Security headers for XSS, clickjacking, and other attacks
+- **Input Validation** - Server-side validation on all endpoints
+- **Environment Variables** - Sensitive data stored in .env files (never committed)
+- **User-Specific Keys** - Stripe keys are stored per user and loaded from cache
+- **Trust Proxy** - Configured for platforms like Render
 
 ## Deployment
 
@@ -415,6 +434,33 @@ npm run setup-users
 - [API Documentation](./API.md) - Detailed API endpoint documentation
 - [Stripe Connect Documentation](https://stripe.com/docs/connect)
 - [Stripe API Reference](https://stripe.com/docs/api)
+
+## Future Improvements
+
+The following improvements are planned for future releases:
+
+### Security Enhancements
+
+1. **Encrypt Login Credentials in Network Requests**
+   - **Current Issue:** Email and password are visible in the browser network tab when making login requests
+   - **Proposed Solution:** Implement client-side encryption for sensitive data before sending it over the network
+   - **Implementation Options:**
+     - Use RSA public key encryption on the client side
+     - Implement end-to-end encryption for authentication payloads
+     - Consider using HTTPS-only cookies with secure flags
+   - **Priority:** High (Security)
+
+### Additional Planned Improvements
+
+- Enhanced error handling and user feedback
+- Real-time notifications for account status changes
+- Advanced filtering and search capabilities in the dashboard
+- Multi-language support
+- Enhanced audit logging
+- Two-factor authentication (2FA)
+- API rate limiting per user (in addition to IP-based)
+- Webhook support for Stripe events
+- Bulk operations for merchant accounts
 
 ## License
 

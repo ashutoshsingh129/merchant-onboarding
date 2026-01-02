@@ -159,9 +159,41 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
-- `400` - Invalid key format or validation failed
-- `401` - Unauthorized
-- `500` - Server error
+
+**400 - Invalid Key Format:**
+```json
+{
+  "success": false,
+  "error": "Invalid secret key format",
+  "message": "Secret key must start with sk_test_ or sk_live_"
+}
+```
+
+**400 - Validation Failed:**
+```json
+{
+  "success": false,
+  "error": "Invalid keys",
+  "message": "The provided Stripe keys are invalid or not accessible"
+}
+```
+
+**401 - Unauthorized:**
+```json
+{
+  "success": false,
+  "message": "Access token required"
+}
+```
+
+**500 - Server Error:**
+```json
+{
+  "success": false,
+  "error": "Failed to save Stripe keys",
+  "message": "Error details..."
+}
+```
 
 #### Get Stripe Keys
 
@@ -263,6 +295,16 @@ Content-Type: application/json
   }
 }
 ```
+
+**Note:** The `capabilities` field is optional. If not provided, defaults to:
+```json
+{
+  "card_payments": { "requested": true },
+  "transfers": { "requested": true }
+}
+```
+
+The backend automatically converts boolean values to the Stripe format with `requested: true`.
 
 **Response:**
 ```json
@@ -415,13 +457,20 @@ Content-Type: application/json
 ```
 
 **Supported Countries:**
-- US (United States)
-- UK (United Kingdom)
-- JP (Japan)
-- FR (France)
-- GR (Greece)
-- CY (Cyprus)
-- SE (Sweden)
+- **US** (United States) - Default handler
+- **GB/UK** (United Kingdom)
+- **JP** (Japan)
+- **FR** (France)
+- **GR** (Greece)
+- **CY** (Cyprus)
+- **SE** (Sweden)
+
+**Country Detection:**
+The handler is automatically selected based on the country code from:
+1. `company_address_country` (for company accounts)
+2. `individual_address_country` (for individual accounts)
+3. `external_account_country` (fallback)
+4. Defaults to US if none provided
 
 Each country has specific field requirements. See [Country-Specific Onboarding](#country-specific-onboarding) for details.
 
@@ -486,13 +535,32 @@ GET /api/stripe/accounts?limit=25&starting_after=acct_xxx
         "email": "merchant@example.com",
         "country": "US",
         "business_type": "individual",
-        "status": "active",
+        "created": 1691234567,
+        "business_profile": {
+          "name": null,
+          "url": null,
+          "mcc": "5734"
+        },
+        "capabilities": {
+          "card_payments": "active",
+          "transfers": "active"
+        },
         "charges_enabled": true,
         "payouts_enabled": true,
-        "created": 1691234567
+        "details_submitted": true,
+        "requirements": {
+          "disabled_reason": null
+        },
+        "tos_acceptance": {
+          "date": 1691234567,
+          "ip": "203.0.113.1",
+          "user_agent": null
+        }
       }
     ],
-    "has_more": true
+    "has_more": true,
+    "total_count": null,
+    "url": "/v1/accounts"
   }
 }
 ```
@@ -517,16 +585,27 @@ Authorization: Bearer <token>
     "email": "merchant@example.com",
     "country": "US",
     "business_type": "individual",
-    "status": "active",
+    "created": 1691234567,
+    "business_profile": {
+      "name": null,
+      "url": "https://example.com",
+      "mcc": "5734"
+    },
     "capabilities": {
       "card_payments": "active",
       "transfers": "active"
     },
+    "charges_enabled": true,
+    "payouts_enabled": true,
+    "details_submitted": true,
+    "requirements": {
+      "disabled_reason": null
+    },
     "tos_acceptance": {
       "date": 1691234567,
-      "ip": "203.0.113.1"
-    },
-    "created": 1691234567
+      "ip": "203.0.113.1",
+      "user_agent": null
+    }
   }
 }
 ```
@@ -555,6 +634,16 @@ Content-Type: application/json
   "default_for_currency": true
 }
 ```
+
+**Required Fields:**
+- `account_id` - Stripe account ID
+- `object` - Type of external account (e.g., "bank_account")
+- `country` - Country code (ISO 2-letter)
+- `currency` - Currency code (ISO 3-letter)
+- `account_number` - Bank account number
+
+**Optional Fields:**
+- `default_for_currency` - Set as default for the currency (default: true)
 
 **Response:**
 ```json
@@ -588,6 +677,8 @@ Authorization: Bearer <token>
 ```json
 {
   "success": true,
+  "deleted": true,
+  "account_id": "acct_1234567890",
   "message": "Account deleted successfully"
 }
 ```
@@ -613,10 +704,30 @@ Content-Type: application/json
 
 **Valid reasons:** `fraud`, `terms_of_service`, `other`
 
+**Error Response (Invalid Reason):**
+```json
+{
+  "error": "Invalid reason",
+  "valid_reasons": ["fraud", "terms_of_service", "other"]
+}
+```
+
 **Response:**
 ```json
 {
   "success": true,
+  "account": {
+    "id": "acct_1234567890",
+    "email": "merchant@example.com",
+    "country": "US",
+    "type": "custom",
+    "business_type": "individual",
+    "charges_enabled": false,
+    "payouts_enabled": false,
+    "details_submitted": true,
+    "requirements": { ... },
+    "created": 1691234567
+  },
   "message": "Account rejected successfully"
 }
 ```
@@ -636,8 +747,21 @@ Content-Type: multipart/form-data
 ```
 
 **Request Body (Form Data):**
-- `file`: File (image or PDF, max 10MB)
-- `purpose`: String (default: "identity_document")
+- `file`: File (image or PDF, max 10MB) - **Required**
+- `purpose`: String (optional, default: "identity_document")
+
+**Error Response (No File):**
+```json
+{
+  "error": "No file uploaded"
+}
+```
+
+**File Upload Process:**
+1. File is temporarily stored on server using Multer
+2. File is uploaded to Stripe's File API
+3. Temporary file is automatically deleted after upload
+4. File ID is returned for use in onboarding forms
 
 **Supported File Types:**
 - Images: PNG, JPG, JPEG, GIF
@@ -724,7 +848,11 @@ import {
   directOnboardMerchant,
   uploadDocument,
   createExternalAccount,
-  getAccountInfo
+  getAccountInfo,
+  deleteMerchantAccount,
+  rejectMerchantAccount,
+  clearStripeKeys,
+  checkKeysStatus
 } from '../services/stripeApi';
 
 // Create account
@@ -732,7 +860,11 @@ const account = await createStripeAccount({
   type: 'custom',
   country: 'US',
   email: 'merchant@example.com',
-  business_type: 'individual'
+  business_type: 'individual',
+  capabilities: {
+    card_payments: true,
+    transfers: true
+  }
 });
 
 // Upload document
@@ -741,10 +873,30 @@ const uploadResult = await uploadDocument(file, 'identity_document');
 // Direct onboard
 await directOnboardMerchant({
   account_id: 'acct_xxx',
+  business_type: 'individual',
   individual_first_name: 'John',
-  // ... other fields
+  individual_last_name: 'Doe',
+  // ... other required fields
   individual_verification_document_front: uploadResult.file_id
 });
+
+// Get account info
+const accountInfo = await getAccountInfo('acct_xxx');
+
+// Delete account
+await deleteMerchantAccount('acct_xxx');
+
+// Reject account
+await rejectMerchantAccount({
+  account_id: 'acct_xxx',
+  reason: 'fraud'
+});
+
+// Check keys status
+const keysStatus = await checkKeysStatus();
+
+// Clear Stripe keys
+await clearStripeKeys();
 ```
 
 ## Request/Response Formats
@@ -829,8 +981,8 @@ The application supports direct onboarding for multiple countries. Each country 
 
 ### Supported Countries
 
-- **US** - United States (`USA.js`)
-- **UK** - United Kingdom (`UK.js`)
+- **US** - United States (`USA.js`) - Default handler
+- **GB/UK** - United Kingdom (`UK.js`) - Accepts both GB and UK country codes
 - **JP** - Japan (`Japan.js`)
 - **FR** - France (`France.js`)
 - **GR** - Greece (`Greece.js`)
@@ -839,7 +991,19 @@ The application supports direct onboarding for multiple countries. Each country 
 
 ### Country-Specific Requirements
 
-Each country handler validates and processes fields according to Stripe's requirements for that country. The handler is automatically selected based on the account's country code.
+Each country handler validates and processes fields according to Stripe's requirements for that country. The handler is automatically selected based on the country code from the request body in the following priority:
+
+1. `company_address_country` (for company accounts)
+2. `individual_address_country` (for individual accounts)
+3. `external_account_country` (fallback)
+4. Defaults to US if none provided
+
+**Handler Location:** `server/routes/handlers/`
+
+**Handler Selection Logic:**
+- Country codes are converted to uppercase before matching
+- UK accepts both "GB" and "UK" country codes
+- All handlers extend a base handler class for common functionality
 
 For detailed field requirements for each country, refer to:
 - [Stripe Connect Documentation](https://stripe.com/docs/connect)
@@ -847,16 +1011,33 @@ For detailed field requirements for each country, refer to:
 
 ## Rate Limiting
 
-The API implements rate limiting:
+The API implements multi-tier rate limiting:
 
 - **Global Rate Limit:** 100 requests per 15 minutes per IP
-- **Write Operations:** 60 requests per minute per IP (for POST/PUT/DELETE)
-- **Health Check:** Exempt from rate limiting
+  - Applied to all routes except health check and OPTIONS requests
+  - Uses standard headers for rate limit information
+  
+- **Write Operations Rate Limit:** 60 requests per minute per IP
+  - Applied only to write operations (POST, PUT, DELETE) under `/api/stripe`
+  - GET requests are exempt from this limit
+  - OPTIONS requests are exempt from this limit
 
+- **Exempt Routes:**
+  - `/api/health` - Health check endpoint
+  - All OPTIONS requests (preflight CORS)
+
+**Rate Limit Headers:**
 Rate limit headers are included in responses:
 - `X-RateLimit-Limit` - Maximum requests allowed
 - `X-RateLimit-Remaining` - Remaining requests in window
 - `X-RateLimit-Reset` - Time when rate limit resets
+
+**Rate Limit Error Response:**
+```json
+{
+  "error": "Too many requests from this IP, please try again later."
+}
+```
 
 ## Health Check
 
